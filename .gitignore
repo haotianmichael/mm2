@@ -1,0 +1,9 @@
+.cproject
+.project
+.*.swp
+*.a
+*.o
+*.dSYM
+minimap2
+mappy.c
+.ccls-cache/
