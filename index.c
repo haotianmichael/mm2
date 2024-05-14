@@ -335,7 +335,7 @@ static void *worker_pipeline(void *shared, int step, void *in)
         for (i = 0; i < s->n_seq; ++i) {
             mm_bseq1_t *t = &s->seq[i];
             if (t->l_seq > 0)
-                mm_sketch(0, t->seq, t->l_seq, p->mi->w, p->mi->k, t->rid, p->mi->flag&MM_I_HPC, &s->a);
+                mm_sketch(0, t->seq, t->l_seq, p->mi->w, p->mi->k, t->rid, p->mi->flag&MM_I_HPC, &s->a); /*DAC-mm2: core to collect minimizers storing in s->a which passes as params of func@mm_sketch itself*/
             else if (mm_verbose >= 2)
                 fprintf(stderr, "[WARNING] the length database sequence '%s' is 0\n", t->name);
             free(t->seq); free(t->name);
@@ -359,12 +359,12 @@ mm_idx_t *mm_idx_gen(mm_bseq_file_t *fp, int w, int k, int b, int flag, int mini
     pl.batch_size = batch_size;
     pl.fp = fp;
     pl.mi = mm_idx_init(w, k, b, flag);
-
-    kt_pipeline(n_threads < 3? n_threads : 3, worker_pipeline, &pl, 3);
+    
+    kt_pipeline(n_threads < 3? n_threads : 3, worker_pipeline, &pl, 3); /*DAC-mm2: using thread-level parallelism to generate minimizers, focus on fun@worker_pipeline*/
     if (mm_verbose >= 3)
         fprintf(stderr, "[M::%s::%.3f*%.2f] collected minimizers\n", __func__, realtime() - mm_realtime0, cputime() / (realtime() - mm_realtime0));
-
-    mm_idx_post(pl.mi, n_threads);
+    
+    mm_idx_post(pl.mi, n_threads); /*DAC-mm2: using thread-level parallelism to generate HashTable of Reference.*/
     if (mm_verbose >= 3)
         fprintf(stderr, "[M::%s::%.3f*%.2f] sorted minimizers\n", __func__, realtime() - mm_realtime0, cputime() / (realtime() - mm_realtime0));
 
@@ -588,7 +588,7 @@ int64_t mm_idx_is_idx(const char *fn)
             if (mi && mm_verbose >= 2 && (mi->k != r->opt.k || mi->w != r->opt.w || (mi->flag&MM_I_HPC) != (r->opt.flag&MM_I_HPC)))
                 fprintf(stderr, "[WARNING]\033[1;31m Indexing parameters (-k, -w or -H) overridden by parameters used in the prebuilt index.\033[0m\n");
         } else
-            mi = mm_idx_gen(r->fp.seq, r->opt.w, r->opt.k, r->opt.bucket_bits, r->opt.flag, r->opt.mini_batch_size, n_threads, r->opt.batch_size);
+            mi = mm_idx_gen(r->fp.seq, r->opt.w, r->opt.k, r->opt.bucket_bits, r->opt.flag, r->opt.mini_batch_size, n_threads, r->opt.batch_size); /*DAC-mm2: mm_idx_gen return mi(struct mm_idx_ti) which consist of hashTable of Reference.*/
         if (mi) {
             if (r->fp_out) mm_idx_dump(r->fp_out, mi);
             mi->index = r->n_parts++;

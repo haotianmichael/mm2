@@ -76,7 +76,7 @@ static inline int tq_shift(tiny_queue_t *q)
  */
 void mm_sketch(void *km, const char *str, int len, int w, int k, uint32_t rid, int is_hpc, mm128_v *p)
 {
-	uint64_t shift1 = 2 * (k - 1), mask = (1ULL<<2*k) - 1, kmer[2] = {0,0};
+	uint64_t shift1 = 2 * (k - 1), mask = (1ULL<<2*k) - 1, kmer[2] = {0,0}; /*DAC-mm2: mask is unsigned longlong, its lower 30bits is 1, the rest is 0*/
 	int i, j, l, buf_pos, min_pos, kmer_span = 0;
 	mm128_t buf[256], min = { UINT64_MAX, UINT64_MAX };
 	tiny_queue_t tq;
@@ -84,10 +84,10 @@ void mm_sketch(void *km, const char *str, int len, int w, int k, uint32_t rid, i
 	assert(len > 0 && (w > 0 && w < 256) && (k > 0 && k <= 28)); // 56 bits for k-mer; could use long k-mers, but 28 enough in practice
 	memset(buf, 0xff, w * 16);
 	memset(&tq, 0, sizeof(tiny_queue_t));
-	kv_resize(mm128_t, km, *p, p->n + len/w);
+	kv_resize(mm128_t, km, *p, p->n + len/w); /*DAC-mm2: p->n is 0; Every w window can create one minimizer. so you'll have len/w minimizers.*/
 
 	for (i = l = buf_pos = min_pos = 0; i < len; ++i) {
-		int c = seq_nt4_table[(uint8_t)str[i]];
+		int c = seq_nt4_table[(uint8_t)str[i]]; /*DAC-mm2: translate ATCG to 0123.*/
 		mm128_t info = { UINT64_MAX, UINT64_MAX };
 		if (c < 4) { // not an ambiguous base
 			int z;
@@ -101,18 +101,18 @@ void mm_sketch(void *km, const char *str, int len, int w, int k, uint32_t rid, i
 				}
 				tq_push(&tq, skip_len);
 				kmer_span += skip_len;
-				if (tq.count > k) kmer_span -= tq_shift(&tq);
-			} else kmer_span = l + 1 < k? l + 1 : k;
-			kmer[0] = (kmer[0] << 2 | c) & mask;           // forward k-mer
+				if (tq.count > k) kmer_span -= tq_shift(&tq); 
+			} else kmer_span = l + 1 < k? l + 1 : k; /* DAC-mm2: normally kmer_span is a constant value when inserting into info.x*/
+			kmer[0] = (kmer[0] << 2 | c) & mask;           // forward k-mer /*DAC-mm2: collecting  k-mer for computing hash*/
 			kmer[1] = (kmer[1] >> 2) | (3ULL^c) << shift1; // reverse k-mer
 			if (kmer[0] == kmer[1]) continue; // skip "symmetric k-mers" as we don't know it strand
 			z = kmer[0] < kmer[1]? 0 : 1; // strand
 			++l;
 			if (l >= k && kmer_span < 256) {
 				info.x = hash64(kmer[z], mask) << 8 | kmer_span;
-				info.y = (uint64_t)rid<<32 | (uint32_t)i<<1 | z;
+				info.y = (uint64_t)rid<<32 | (uint32_t)i<<1 | z; /*DAC-mm2: i is the location of k-mer.*/
 			}
-		} else l = 0, tq.count = tq.front = 0, kmer_span = 0;
+		} else l = 0, tq.count = tq.front = 0, kmer_span = 0; /*DAC-mm2: All kv_push use buf and min as value which both from info, so info is the core structure of this computation.*/
 		buf[buf_pos] = info; // need to do this here as appropriate buf_pos and buf[buf_pos] are needed below
 		if (l == w + k - 1 && min.x != UINT64_MAX) { // special case for the first window - because identical k-mers are not stored yet
 			for (j = buf_pos + 1; j < w; ++j)
