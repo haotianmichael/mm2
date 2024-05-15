@@ -15,10 +15,18 @@
 #include "kvec.h"
 #include "khash.h"
 
+/*DAC-mm2: using C standard Library-khash.h create a hashTable Type: idx 
+ *KHASH_INIT: a MICRO Definition of khash.h
+ *  @idx: the type of hashTable you want to create
+ *  @uint64_t: type of hashKey and hashValue
+ *  @1: params of expanding HashTable
+ *  @idx_hash: pointer to a function which computes hashkey of type uint64_t
+ *  @idx_eq: pointer to a function which compare two hashkey 
+ * */
 #define idx_hash(a) ((a)>>1)
 #define idx_eq(a, b) ((a)>>1 == (b)>>1)
-KHASH_INIT(idx, uint64_t, uint64_t, 1, idx_hash, idx_eq)
-    typedef khash_t(idx) idxhash_t;
+KHASH_INIT(idx, uint64_t, uint64_t, 1, idx_hash, idx_eq) 
+    typedef khash_t(idx) idxhash_t;  
 
 KHASH_MAP_INIT_STR(str, uint32_t)
 
@@ -194,7 +202,7 @@ static void worker_post(void *g, long i, int tid)
     size_t j, start_a, start_p;
     idxhash_t *h;
     mm_idx_t *mi = (mm_idx_t*)g;
-    mm_idx_bucket_t *b = &mi->B[i];
+    mm_idx_bucket_t *b = &mi->B[i]; /*DAC-mm2: get every bucket.*/
     if (b->a.n == 0) return;
 
     // sort by minimizer
@@ -202,13 +210,13 @@ static void worker_post(void *g, long i, int tid)
 
     // count and preallocate
     for (j = 1, n = 1, n_keys = 0, b->n = 0; j <= b->a.n; ++j) {
-        if (j == b->a.n || b->a.a[j].x>>8 != b->a.a[j-1].x>>8) {
+        if (j == b->a.n || b->a.a[j].x>>8 != b->a.a[j-1].x>>8) { /*DAC-mm2: if two hashValue equals*/
             ++n_keys;
             if (n > 1) b->n += n;
             n = 1;
         } else ++n;
     }
-    h = kh_init(idx);
+    h = kh_init(idx); /*DAC-mm2: create a hashTable of Type idx*/
     kh_resize(idx, h, n_keys);
     b->p = (uint64_t*)calloc(b->n, 8);
 
@@ -218,11 +226,11 @@ static void worker_post(void *g, long i, int tid)
             khint_t itr;
             int absent;
             mm128_t *p = &b->a.a[j-1];
-            itr = kh_put(idx, h, p->x>>8>>mi->b<<1, &absent);
+            itr = kh_put(idx, h, p->x>>8>>mi->b<<1, &absent); /*DAC-mm2: changing p->x as HashKey*/
             assert(absent && j == start_a + n);
             if (n == 1) {
                 kh_key(h, itr) |= 1;
-                kh_val(h, itr) = p->y;
+                kh_val(h, itr) = p->y; /*DAC-mm2: p->y as HashValue*/
             } else {
                 int k;
                 for (k = 0; k < n; ++k)
@@ -342,7 +350,7 @@ static void *worker_pipeline(void *shared, int step, void *in)
         }
         free(s->seq); s->seq = 0;
         return s;
-    } else if (step == 2) { // dispatch sketch to buckets
+    } else if (step == 2) { // dispatch sketch to buckets /*DAC-mm2: suspecting using bucket sort.*/
         step_t *s = (step_t*)in;
         mm_idx_add(p->mi, s->a.n, s->a.a);
         kfree(0, s->a.a); free(s);

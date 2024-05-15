@@ -103,7 +103,7 @@ void mm_sketch(void *km, const char *str, int len, int w, int k, uint32_t rid, i
 				kmer_span += skip_len;
 				if (tq.count > k) kmer_span -= tq_shift(&tq); 
 			} else kmer_span = l + 1 < k? l + 1 : k; /* DAC-mm2: normally kmer_span is a constant value when inserting into info.x*/
-			kmer[0] = (kmer[0] << 2 | c) & mask;           // forward k-mer /*DAC-mm2: collecting  k-mer for computing hash*/
+			kmer[0] = (kmer[0] << 2 | c) & mask;           // forward k-mer /*DAC-mm2: collecting  k-mer for computing hash one bp by one bp*/
 			kmer[1] = (kmer[1] >> 2) | (3ULL^c) << shift1; // reverse k-mer
 			if (kmer[0] == kmer[1]) continue; // skip "symmetric k-mers" as we don't know it strand
 			z = kmer[0] < kmer[1]? 0 : 1; // strand
