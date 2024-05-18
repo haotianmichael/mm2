@@ -93,13 +93,13 @@ static mm_match_t *collect_matches(void *km, int *_n_m, int max_occ, const mm_id
 	mm_match_t *m;
 	*n_mini_pos = 0;
 	*mini_pos = (uint64_t*)kmalloc(km, mv->n * sizeof(uint64_t));
-	m = (mm_match_t*)kmalloc(km, mv->n * sizeof(mm_match_t));
+	m = (mm_match_t*)kmalloc(km, mv->n * sizeof(mm_match_t)); /*DAC-mm2: create struct mm_match_t for every entry of mv */
 	for (i = 0, n_m = 0, *rep_len = 0, *n_a = 0; i < mv->n; ++i) {
 		const uint64_t *cr;
 		mm128_t *p = &mv->a[i];
-		uint32_t q_pos = (uint32_t)p->y, q_span = p->x & 0xff;
+		uint32_t q_pos = (uint32_t)p->y, q_span = p->x & 0xff;  /*DAC-mm2: get position and length of each k-mer of read.*/
 		int t;
-		cr = mm_idx_get(mi, p->x>>8, &t);
+		cr = mm_idx_get(mi, p->x>>8, &t); /* DAC-mm2: kmer's position in reference if exist.*/
 		if (t >= max_occ) {
 			int en = (q_pos >> 1) + 1, st = en - q_span;
 			if (st > rep_en) {
@@ -211,8 +211,8 @@ static mm128_t *collect_seed_hits_heap(void *km, const mm_mapopt_t *opt, int max
 	return a;
 }
 
-static mm128_t *collect_seed_hits(void *km, const mm_mapopt_t *opt, int max_occ, const mm_idx_t *mi, const char *qname, const mm128_v *mv, int qlen, int64_t *n_a, int *rep_len,
-								  int *n_mini_pos, uint64_t **mini_pos)
+static mm128_t *collect_seed_hits(void *km, const mm_mapopt_t *opt, int max_occ, const mm_idx_t *mi, const char *qname,
+        const mm128_v *mv, int qlen, int64_t *n_a, int *rep_len, int *n_mini_pos, uint64_t **mini_pos)
 {
 	int i, n_m;
 	mm_match_t *m;

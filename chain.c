@@ -42,7 +42,7 @@ mm128_t *mm_chain_dp(int max_dist_x, int max_dist_y, int bw, int max_skip, int m
 
     for (i = 0; i < n; ++i) sum_qspan += a[i].y>>32&0xff;
     avg_qspan = (float)sum_qspan / n;
-
+    /*DAC-mm2: chaining will execute a few times per read, so many read and kmers result in bad speculation.*/
     // fill the score and backtrack arrays
     for (i = 0; i < n; ++i) {
         uint64_t ri = a[i].x;

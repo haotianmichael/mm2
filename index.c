@@ -98,7 +98,7 @@ const uint64_t *mm_idx_get(const mm_idx_t *mi, uint64_t minier, int *n)
     if (k == kh_end(h)) return 0;
     if (kh_key(h, k)&1) { // special casing when there is only one k-mer
         *n = 1;
-        return &kh_val(h, k);
+        return &kh_val(h, k); /*DAC-mm2: return according p->y of each hashKey */
     } else {
         *n = (uint32_t)kh_val(h, k);
         return &b->p[kh_val(h, k)>>32];
