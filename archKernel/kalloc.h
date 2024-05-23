@@ -7,6 +7,16 @@
 extern "C" {
 #endif
 
+typedef struct header_t {
+	size_t size;
+	struct header_t *ptr;
+} header_t;
+
+typedef struct {
+	header_t base, *loop_head, *core_head; /* base is a zero-sized block always kept in the loop */
+} kmem_t;
+
+
 typedef struct {
 	size_t capacity, available, n_blocks, n_cores, largest;
 } km_stat_t;

@@ -4,16 +4,38 @@
 #include <stdio.h>
 #include "kalloc.h"
 
+/*for allocation of memory*/
+typedef struct{
+    int rep_len, frag_gap;
+    void *km;
+}mm_tbuf_t;
+
 static const char LogTable256[256] = {
 #define LT(n) n, n, n, n, n, n, n, n, n, n, n, n, n, n, n, n
     -1, 0, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3,
     LT(4), LT(5), LT(5), LT(6), LT(6), LT(6), LT(6),
     LT(7), LT(7), LT(7), LT(7), LT(7), LT(7), LT(7), LT(7)};
 
+typedef int32_t loc_t;
+typedef int32_t width_t;
+typedef int32_t tag_t;
 typedef struct
 {
     uint64_t x, y;
 } mm128_t;
+typedef struct{
+    tag_t tag;
+    loc_t x;
+    width_t w;
+    loc_t y;
+}anchor_t;
+typedef struct{
+    int64_t n;
+    float avg_span;
+    int max_dist_x, max_dist_y, bw;
+    anchor_t* anchors;    
+}read_t;
+
 #define MM_SEED_SEG_SHIFT 48
 #define MM_SEED_SEG_MASK (0xffULL << (MM_SEED_SEG_SHIFT))
 #define READ_NUM 3000
@@ -48,7 +70,7 @@ static inline int ilog2_32(uint32_t v)
 
 
 */
-mm128_t *mm_chain_dp(int max_dist_x, int max_dist_y, int bw,
+void mm_chain_dp(int max_dist_x, int max_dist_y, int bw,
                      int max_skip, int max_iter, int min_cnt, int min_sc, int is_cdna, int n_segs, int64_t n, mm128_t *a, int *n_u_, uint64_t **_u, void *km)
 {
 
@@ -62,13 +84,12 @@ mm128_t *mm_chain_dp(int max_dist_x, int max_dist_y, int bw,
     if (n == 0 || a == 0)
     {
         kfree(km, a);
-        return 0;
+        return;
     }
 
     int32_t *f, *p, *t, *v;
     f = (int32_t *)kmalloc(km, n * 4);
     p = (int32_t *)kmalloc(km, n * 4);
-    ;
     t = (int32_t *)kmalloc(km, n * 4);
     v = (int32_t *)kmalloc(km, n * 4);
     memset(t, 0, n * 4);
@@ -147,6 +168,46 @@ mm128_t *mm_chain_dp(int max_dist_x, int max_dist_y, int bw,
         fprintf(outfp, "%d\t%d\n", (int)f[i], (int)p[i]);
     }
     fprintf(outfp, "EOR\n");
+
+}
+
+void skip_to_EOR(FILE *fp) {
+    const char *loc = "EOR";
+    while(*loc != '\0') {
+        if(fgetc(fp) == *loc) {
+             loc++;
+        }
+    }
+}
+void parse_read(void *km, FILE* fp, read_t *read) {
+
+    long long n;
+    float avg_qspan;
+    int max_dist_x, max_dist_y, bw;
+    int t = fscanf(fp, "%lld%f%d%d%d", &n, &avg_qspan, &max_dist_x, &max_dist_y, &bw);
+
+    read->n = n;
+    read->avg_span = avg_qspan;
+    read->max_dist_x = max_dist_x;
+    read->max_dist_y = max_dist_y;
+    read->bw = bw;
+    
+    //kmalloc read->anchors
+    read->anchors = (anchor_t*)kmalloc(km, read->n * sizeof(anchor_t)); 
+
+    for(int i = 0; i < read->n; i ++) {
+        unsigned int tag;
+        int x, w, y;
+        fscanf(fp, "%u%d%d%d", &tag, &x, &w, &y);
+        anchor_t at;
+        at.tag = tag;
+        at.x = x;
+        at.y = y;
+        at.w = w;
+    }
+
+//    skip_to_EOR(fp);
+    return ;
 }
 
 int main() {
@@ -164,8 +225,18 @@ int main() {
     mm128_t *a;
     int *n_u_;
     uint64_t **_u;
-    void *km;
-    mm_chain_dp(max_dist_x, max_dist_y, bw, max_skip, max_iter, min_cnt, min_sc, is_cdna, n_segs, n, a, n_u_, _u, km);
+    read_t read;
+    FILE *infp = fopen("input.txt", "r");
+    if(infp == NULL){
+        printf("ERROR TO GET FILE!"); 
+        return -1;
+    }
+    mm_tbuf_t *b = (mm_tbuf_t*)calloc(1, sizeof(mm_tbuf_t));
+    b->km = calloc(1, sizeof(kmem_t));  // alloc for km
 
+    parse_read(b->km, infp, &read);
+    mm_chain_dp(max_dist_x, max_dist_y, bw, max_skip, max_iter, min_cnt, min_sc, is_cdna, n_segs, n, a, n_u_, _u, b->km);
+
+    fclose(infp);
     return 0;
 }

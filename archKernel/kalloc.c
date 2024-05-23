@@ -21,15 +21,6 @@
 
 #define MIN_CORE_SIZE 0x80000
 
-typedef struct header_t {
-	size_t size;
-	struct header_t *ptr;
-} header_t;
-
-typedef struct {
-	header_t base, *loop_head, *core_head; /* base is a zero-sized block always kept in the loop */
-} kmem_t;
-
 static void panic(const char *s)
 {
 	fprintf(stderr, "%s\n", s);
