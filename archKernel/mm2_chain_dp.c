@@ -179,35 +179,29 @@ void skip_to_EOR(FILE *fp) {
         }
     }
 }
-void parse_read(void *km, FILE* fp, read_t *read) {
+mm128_t *parse_read(void *km, FILE* fp,mm128_t* a, int64_t *n, int *max_dist_x, int *max_dist_y, int *bw) {
 
-    long long n;
     float avg_qspan;
-    int max_dist_x, max_dist_y, bw;
-    int t = fscanf(fp, "%lld%f%d%d%d", &n, &avg_qspan, &max_dist_x, &max_dist_y, &bw);
+    int t = fscanf(fp, "%lld%f%d%d%d", n, &avg_qspan, max_dist_x, max_dist_y, bw);
 
-    read->n = n;
-    read->avg_span = avg_qspan;
-    read->max_dist_x = max_dist_x;
-    read->max_dist_y = max_dist_y;
-    read->bw = bw;
     
     //kmalloc read->anchors
-    read->anchors = (anchor_t*)kmalloc(km, read->n * sizeof(anchor_t)); 
+    //read->anchors = (anchor_t*)kmalloc(km, read->n * sizeof(anchor_t)); 
+    a = (mm128_t*)kmalloc(km, *n * sizeof(mm128_t));
 
-    for(int i = 0; i < read->n; i ++) {
-        unsigned int tag;
-        int x, w, y;
-        fscanf(fp, "%u%d%d%d", &tag, &x, &w, &y);
-        anchor_t at;
-        at.tag = tag;
-        at.x = x;
-        at.y = y;
-        at.w = w;
+    for(int i = 0; i < *n;i ++) {
+        uint64_t tag;
+        uint64_t x, w, y;
+        fscanf(fp, "%llu%llu%llu%llu", &tag, &x, &w, &y);
+
+        mm128_t* p;
+        p = &a[i];
+        p->x = tag << 32 | x;
+        p->y = w <<32 | y;
     }
 
 //    skip_to_EOR(fp);
-    return ;
+    return a;
 }
 
 int main() {
@@ -234,7 +228,7 @@ int main() {
     mm_tbuf_t *b = (mm_tbuf_t*)calloc(1, sizeof(mm_tbuf_t));
     b->km = calloc(1, sizeof(kmem_t));  // alloc for km
 
-    parse_read(b->km, infp, &read);
+    a = parse_read(b->km, infp, a, &n, &max_dist_x, &max_dist_y, &bw);
     mm_chain_dp(max_dist_x, max_dist_y, bw, max_skip, max_iter, min_cnt, min_sc, is_cdna, n_segs, n, a, n_u_, _u, b->km);
 
     fclose(infp);
