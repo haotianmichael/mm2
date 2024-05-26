@@ -1,0 +1,44 @@
+
+
+// n: number of anchors
+// sidi: id of read
+
+for(int i = 0; i < n; i ++) {   //iterating n anchors
+    int max_j = -1;
+    int max_f = q_span;
+    int n_skip = 0;
+    int sidi = (a[i].y & MM_SEED_SEG_MASK) >> MM_SEED_SEG_SHIFT;
+
+    while(st<i && ri > a[st].x + max_dist_x) ++st;
+    
+    for(int j = i - 1; j >= st; --j) {     // computing score of current seed.
+        int sidj = (a[j].y & MM_SEED_SEG_MASK) >> MM_SEED_SEG_SHIFT;
+        
+        // branch misprediction
+        if((sidi == sidj && dr == 0) || dq <= 0) continue;
+        if((sidi == sidj && dq > max_dist_y) || dq > max_dist_x) continue;
+        dd = dr > dq ? dr - dq : dq - dr;
+        if(sidi == sidj && dd > bw) continue;
+        if(n_segs > 1 && !is_cdna && sidi == sidj && dr > max_dist_y) continue;
+
+        // sc can at least get 15 
+        min = dq < dr ? dq : dr;
+        sc = min > q_span ? q_span : dq < dr ? dq : dr;
+        
+        sc = computeScore();
+        sc += f[j];  
+
+        if(sc > max_f) {
+            max_f = sc, max_j = j;
+            if(n_skip > 0) --n_skip;
+        }else if(t[j] == i) {
+            if(++n_skip > max_skip)
+                break;
+        }
+        if(p[j] >= 0) t[p[j]] = i;   
+    }
+
+    f[i] = max_f, p[i] = max_j;
+    v[i] = max_j >= 0 && v[max_j] > max_f ? v[max_j] : max_f;
+
+}
