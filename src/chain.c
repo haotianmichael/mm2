@@ -114,8 +114,9 @@ mm128_t *mm_chain_dp(int max_dist_x, int max_dist_y, int bw, int max_skip, int m
             // dump chain output after kernel
             FILE *fp = opt->chain_dump_out.fp;
             fprintf(fp, "%lld\n", (long long)n);
+            fprintf(fp, "f\tp\tv\tt\n");
             for (i = 0; i < n; i++) {
-                fprintf(fp, "%d\t%d\n", (int)f[i], (int)p[i]);
+                fprintf(fp, "%d\t%d\t%d\t%d\n", (int)f[i], (int)p[i], (int)v[i], (int)t[i]);
             }
             fprintf(fp, "EOR\n");
         }
