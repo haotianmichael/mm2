@@ -209,10 +209,10 @@ int main() {
     int max_dist_x = 5000;
     int max_dist_y = 5000;
     int bw = 500;
-    int max_skip = 0;
+    int max_skip = 25;
     int max_iter = 5000;
-    int min_cnt = 0;
-    int min_sc = 0;
+    int min_cnt = 3;
+    int min_sc = 40;
     int is_cdna = 0;
     int n_segs = 1;
     int64_t n = 0;
