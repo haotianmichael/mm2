@@ -1,0 +1,50 @@
+
+Accuracy check of branch presets.
+Comparing a measurement with separate measurements.
+
+
+First run: Together.
+	Operations= 0.0 Mflop	(0 Mflop/s)
+
+PAPI grouped measurement:
+   Cond br not taken = 1483607
+   Cond br predicted = 3290715
+            Branches = 3519226
+  Cond br mspredictd = 105654
+
+
+Reference measurement 1 (of 4):
+	Operations= 0.0 Mflop	(0 Mflop/s)
+
+PAPI results:
+   Cond br not taken = 1483631
+
+Reference measurement 2 (of 4):
+	Operations= 0.0 Mflop	(0 Mflop/s)
+
+PAPI results:
+   Cond br predicted = 3291179
+
+Reference measurement 3 (of 4):
+	Operations= 0.0 Mflop	(0 Mflop/s)
+
+PAPI results:
+            Branches = 3519219
+
+Reference measurement 4 (of 4):
+	Operations= 0.0 Mflop	(0 Mflop/s)
+
+PAPI results:
+  Cond br mspredictd = 105094
+
+
+
+Relative accuracy:
+	Event		Group		Individual	Spread
+	00: PAPI_BR_NTK	   1483607	   1483631	  1.62e-05
+	01: PAPI_BR_PRC	   3290715	   3291179	  0.000141
+	02: PAPI_BR_INS	   3519226	   3519219	  1.99e-06
+	03: PAPI_BR_MSP	    105654	    105094	    0.0053
+
+
+PASSED
