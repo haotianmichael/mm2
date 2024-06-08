@@ -1,7 +1,6 @@
 .cproject
 .project
 .*.swp
-*.a
 *.o
 *.dSYM
 minimap2
