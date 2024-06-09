@@ -156,7 +156,7 @@ void mm_chain_dp(int max_dist_x, int max_dist_y, int bw,
         v[i] = max_j >= 0 && v[max_j] > max_f ? v[max_j] : max_f; // v[] keeps the peak score up to i; f[] is the score ending at i, not always the peak
     }
 
-    FILE *outfp = fopen("resulttest/kout4.txt", "w"); 
+    FILE *outfp = fopen("kout4.txt", "w"); 
     static int count = 0;
     if(count++ > READ_NUM) {
         fclose(outfp);
@@ -222,7 +222,7 @@ int main() {
     int *n_u_;
     uint64_t **_u;
     read_t read;
-    FILE *infp = fopen("archKernel/data/in4.txt", "r");
+    FILE *infp = fopen("in4.txt", "r");
     if(infp == NULL){
         printf("ERROR TO GET FILE!"); 
         return -1;
