@@ -1,0 +1,51 @@
+{
+  "variables": {
+    "iso_url": "http://releases.ubuntu.com/18.04/ubuntu-18.04.5-live-server-amd64.iso",
+    "iso_checksum": "sha256:57b60f73f0fcfbbe691bf58c14d4d8f3a1b3f19e6a217f1e7c0726d3a9bcd789"
+  },
+  "builders": [
+    {
+      "type": "qemu",
+      "format": "qcow2",
+      "accelerator": "kvm",
+      "iso_url": "{{user `iso_url`}}",
+      "iso_checksum": "{{user `iso_checksum`}}",
+      "ssh_username": "ubuntu",
+      "ssh_password": "ubuntu",
+      "ssh_timeout": "30m",
+      "disk_size": 10240,
+      "http_directory": "http",
+      "boot_wait": "10s",
+      "boot_command": [
+        "<esc><wait>",
+        "linux /casper/vmlinuz --- autoinstall ds=nocloud-net;s=http://{{ .HTTPIP }}:{{ .HTTPPort }}/<enter>",
+        "initrd /casper/initrd<enter><wait>",
+        "boot<enter>"
+      ]
+    }
+  ],
+  "provisioners": [
+    {
+      "type": "shell",
+      "inline": [
+        "echo 'ubuntu:ubuntu' | chpasswd",
+        "mkdir /home/ubuntu/mm2",
+        "cp /tmp/mm2 /home/ubuntu/mm2/",
+        "chown -R ubuntu:ubuntu /home/ubuntu/mm2"
+      ]
+    },
+    {
+      "type": "file",
+      "source": "path/to/your/mm2",
+      "destination": "/tmp/mm2"
+    },
+    {
+      "type": "shell",
+      "inline": [
+        "chmod +x /home/ubuntu/mm2/mm2",
+        "rm /tmp/mm2"
+      ]
+    }
+  ]
+}
+
