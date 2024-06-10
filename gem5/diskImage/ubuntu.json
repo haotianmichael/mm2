@@ -6,6 +6,7 @@
         {
             "type": "qemu",
             "format": "raw",
+	    "ssh_port": 22,
             "boot_command":
             [
                 "{{ user `boot_command_prefix` }}",
@@ -37,14 +38,14 @@
             "output_directory": "mm2/{{ user `image_name` }}-image",
             "qemuargs":
             [
-                [ "-cpu", "host" ],
+                [ "-cpu", "qemu64" ],
                 [ "-display", "none" ]
             ],
             "qemu_binary":"/usr/bin/qemu-system-x86_64",
             "shutdown_command": "echo '{{ user `ssh_password` }}'|sudo -S shutdown -P now",
             "ssh_password": "{{ user `ssh_password` }}",
             "ssh_username": "{{ user `ssh_username` }}",
-            "ssh_wait_timeout": "60m",
+            "ssh_wait_timeout": "180m",
             "vm_name": "{{ user `image_name` }}"
         }
     ],
@@ -55,6 +56,12 @@
             "source": "/gem5/gem5/util/m5/build/x86/out/m5",
             "destination": "/home/gem5/"
         },
+	{
+            "type": "file",
+            "source": "shared/serial-getty@.service",
+            "destination": "/home/gem5/"	
+	
+	},
         {
             "type": "file",
             "source": "/gem5/gem5/mm2/gem5/archKernel/data/in4.txt",
@@ -70,13 +77,13 @@
             "source": "/gem5/gem5/mm2/gem5/mm2",
             "destination": "/home/mm2/"
         },
-        {
-            "type": "shell",
-            "execute_command": "echo '{{ user `ssh_password` }}' | {{.Vars}} sudo -E -S bash '{{.Path}}'",
-            "scripts":
-            [
-                "post-installation.sh"
-            ]
+	{
+         "type": "shell",
+         "execute_command": "echo '{{ user `ssh_password` }}' | {{.Vars}} sudo -E -S bash '{{.Path}}'",
+         "scripts":
+          [
+             "post-installation.sh"
+          ]
         }
     ],
     "variables":
