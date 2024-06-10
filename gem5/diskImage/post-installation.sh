@@ -4,6 +4,7 @@
 
 echo 'Post Installation Started'
 
+mv /home/gem5/serial-getty@.service /lib/systemd/system/
 
 mv /home/gem5/m5 /sbin
 ln -s /sbin/m5 /sbin/gem5
