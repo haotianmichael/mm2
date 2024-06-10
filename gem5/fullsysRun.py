@@ -36,7 +36,7 @@ processor = SimpleSwitchableProcessor(
     starting_core_type=CPUTypes.TIMING,
     switch_core_type=CPUTypes.O3,
     isa=ISA.X86,
-    num_cores=2,
+    num_cores=1,
 )
 
 # Here we setup the board. The X86Board allows for Full-System X86 simulations.
@@ -58,7 +58,11 @@ board = X86Board(
 # has ended you may inspect `m5out/system.pc.com_1.device` to see the echo
 # output.
 command = "m5 exit; echo 'This is running in O3'; sleep 1; m5 exit"
-#command = ("m5 exit;" + "echo 'This is running on O3 CPU cores.';" + "sleep 1;" + "m5 exit;")
+command="m5 exit;" 
+    +"/home/mm2/mm2;"
+    + "sleep 5;" 
+    + "m5 exit;"
+
 
 
 board.set_kernel_disk_workload(
