@@ -64,18 +64,18 @@
 	},
         {
             "type": "file",
-            "source": "/gem5/gem5/mm2/gem5/archKernel/data/in4.txt",
-            "destination": "/home/mm2/"
-        },
-        {
-            "type": "file",
             "source": "/gem5/gem5/mm2/gem5/diskImage/runscript.sh",
             "destination": "/home/gem5/"
         },
         {
             "type": "file",
             "source": "/gem5/gem5/mm2/gem5/mm2",
-            "destination": "/home/mm2/"
+            "destination": "/home/gem5/"
+        },
+        {
+            "type": "file",
+            "source": "/gem5/gem5/mm2/gem5/archKernel/data/in4.txt",
+            "destination": "/home/gem5/"
         },
 	{
          "type": "shell",

@@ -8,7 +8,7 @@ from gem5.components.processors.simple_switchable_processor import (
     SimpleSwitchableProcessor,
 )
 from gem5.isas import ISA
-from gem5.resources.resource import obtain_resource
+from gem5.resources.resource import obtain_resource, CustomResource, CustomDiskImageResource
 from gem5.simulate.exit_event import ExitEvent
 from gem5.simulate.simulator import Simulator
 
@@ -34,7 +34,7 @@ memory = SingleChannelDDR3_1600(size="3GB")
 # Out-of-order (O3) cores for the command we wish to run after boot.
 processor = SimpleSwitchableProcessor(
     starting_core_type=CPUTypes.TIMING,
-    switch_core_type=CPUTypes.O3,
+    switch_core_type=CPUTypes.MINOR,
     isa=ISA.X86,
     num_cores=1,
 )
@@ -57,17 +57,16 @@ board = X86Board(
 # then, again, call `m5 exit` to terminate the simulation. After simulation
 # has ended you may inspect `m5out/system.pc.com_1.device` to see the echo
 # output.
-command = "m5 exit; echo 'This is running in O3'; sleep 1; m5 exit"
-command="m5 exit;" 
-    +"/home/mm2/mm2;"
-    + "sleep 5;" 
+command="m5 exit;" \
+    + "sleep 5;" \
+    +"/home/gem5/mm2;"\
     + "m5 exit;"
 
 
 
 board.set_kernel_disk_workload(
     kernel=obtain_resource("x86-linux-kernel-4.4.186"),
-    disk_image=obtain_resource("x86-ubuntu-18.04-img"),
+    disk_image=CustomDiskImageResource("diskImage/mm2/mm2-image/mm2",),
     readfile_contents=command,
 )
 
