@@ -8,7 +8,7 @@ from gem5.components.processors.simple_switchable_processor import (
     SimpleSwitchableProcessor,
 )
 from gem5.isas import ISA
-from gem5.resources.resource import obtain_resource, CustomResource, CustomDiskImageResource
+from gem5.resources.resource import obtain_resource, DiskImageResource
 from gem5.simulate.exit_event import ExitEvent
 from gem5.simulate.simulator import Simulator
 
@@ -57,16 +57,19 @@ board = X86Board(
 # then, again, call `m5 exit` to terminate the simulation. After simulation
 # has ended you may inspect `m5out/system.pc.com_1.device` to see the echo
 # output.
-command="m5 exit;" \
-    + "sleep 5;" \
+command="echo 'About to running in MinorCPU';" \
+    +"m5 exit;"\
+    +"echo 'Abount to execute mm2';"\
     +"/home/gem5/mm2;"\
+    +"echo 'Done executing mm2';" \
     + "m5 exit;"
 
 
 
 board.set_kernel_disk_workload(
-    kernel=obtain_resource("x86-linux-kernel-4.4.186"),
-    disk_image=CustomDiskImageResource("diskImage/mm2/mm2-image/mm2",),
+    kernel=obtain_resource("x86-linux-kernel-4.19.83"),
+    #disk_image=obtain_resource("x86-ubuntu-18.04-img"),
+    disk_image=DiskImageResource(local_path="mm2-x86-ubuntu-18.04-img",root_partition="1",source="src/x86-ubuntu", id="x86-ubuntu-22.04-img"),
     readfile_contents=command,
 )
 

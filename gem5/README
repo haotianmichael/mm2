@@ -1,3 +1,0 @@
-# Don't compile this directly!
-# This is for gem5 simulation which depends on lib of gem5, you should have gem5 built on your system first.
-# libm5.a is a lib of m5 simulator, I put them on proj-root for simplicity. 
