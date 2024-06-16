@@ -11,6 +11,10 @@ from gem5.isas import ISA
 from gem5.resources.resource import obtain_resource, DiskImageResource
 from gem5.simulate.exit_event import ExitEvent
 from gem5.simulate.simulator import Simulator
+import m5
+from m5.objects import Root
+from m5.stats.gem5stats import get_simstat
+
 
 # Here we setup a MESI Two Level Cache Hierarchy.
 cache_hierarchy = MESITwoLevelCacheHierarchy(
@@ -57,19 +61,26 @@ board = X86Board(
 # then, again, call `m5 exit` to terminate the simulation. After simulation
 # has ended you may inspect `m5out/system.pc.com_1.device` to see the echo
 # output.
-command="echo 'About to running in MinorCPU';" \
-    +"m5 exit;"\
-    +"echo 'Abount to execute mm2';"\
-    +"/home/gem5/mm2;"\
-    +"echo 'Done executing mm2';" \
-    + "m5 exit;"
+command=("echo 'About to running in MinorCPU';" 
+    +"echo 'About to make mm2';"
+    +f"cd /home/gem5/kernel;"
+    + "make;"
+    +"echo 'Make Done! About to execute mm2';"
+    +"m5 exit;"
+    +"mm2;"
+    +"echo 'Done executing mm2';" 
+    +"m5 exit;"
+    +"echo 'simulation Ending!';"
+    +"m5 exit;"
+)
 
 
 
 board.set_kernel_disk_workload(
     kernel=obtain_resource("x86-linux-kernel-4.19.83"),
-    #disk_image=obtain_resource("x86-ubuntu-18.04-img"),
-    disk_image=DiskImageResource(local_path="mm2-x86-ubuntu-18.04-img",root_partition="1",source="src/x86-ubuntu", id="x86-ubuntu-22.04-img"),
+    #disk_image=obtain_resource("x86-ubuntu-24.04-img"),
+    #FIXME: Ubuntu18.04 doesnot support GLIBC2-34 for mm2 execution. so I can't set ROI to mm2.
+    disk_image=DiskImageResource(local_path="mm2-x86-ubuntu-18.04-BUG-img",root_partition="1",source="src/x86-ubuntu", id="x86-ubuntu-18.04-img"),
     readfile_contents=command,
 )
 
@@ -80,7 +91,15 @@ board.set_kernel_disk_workload(
 # the simulator.
 simulator = Simulator(
     board=board,
-    on_exit_event={ExitEvent.EXIT: (func() for func in [processor.switch])},
 )
+
+simulator.run()
+
+
+m5.stats.reset()
+processor.switch()
+simulator.run()
+m5.stats.dump()
+
 
 simulator.run()
