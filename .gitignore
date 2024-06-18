@@ -11,4 +11,5 @@ gem5/diskImage/mm2/
 gem5/trash/*
 mnt/
 gem5/*img
-gem5/m5out
+gem5/Minor
+gem5/DMinor

@@ -1,0 +1,1 @@
+echo 'About to build mm2';cd /home/gem5/kernel;gcc archKernel/mm2_chain_dp.c archKernel/kalloc.c -o mm2;echo 'Build Done! About to execute mm2';m5 exit 0;m5 resetstats;./mm2;m5 dumpstats;echo 'Done executing mm2';m5 exit 0;

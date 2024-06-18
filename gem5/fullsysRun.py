@@ -2,7 +2,7 @@ from gem5.components.boards.x86_board import X86Board
 from gem5.components.cachehierarchies.ruby.mesi_two_level_cache_hierarchy import (
     MESITwoLevelCacheHierarchy,
 )
-from gem5.components.memory.single_channel import SingleChannelDDR3_1600
+from gem5.components.memory import DualChannelDDR4_2400
 from gem5.components.processors.cpu_types import CPUTypes
 from gem5.components.processors.simple_switchable_processor import (
     SimpleSwitchableProcessor,
@@ -28,7 +28,8 @@ cache_hierarchy = MESITwoLevelCacheHierarchy(
 )
 
 # Setup the system memory.
-memory = SingleChannelDDR3_1600(size="3GB")
+memory = DualChannelDDR4_2400(size="3GB")
+
 
 # Here we setup the processor. This is a special switchable processor in which
 # a starting core type and a switch core type must be specified. Once a
@@ -61,17 +62,16 @@ board = X86Board(
 # then, again, call `m5 exit` to terminate the simulation. After simulation
 # has ended you may inspect `m5out/system.pc.com_1.device` to see the echo
 # output.
-command=("echo 'About to running in MinorCPU';" 
-    +"echo 'About to make mm2';"
-    +f"cd /home/gem5/kernel;"
-    + "make;"
-    +"echo 'Make Done! About to execute mm2';"
-    +"m5 exit;"
-    +"mm2;"
+command=("echo 'About to build mm2';"
+    +"cd /home/gem5/kernel;"
+    +"gcc archKernel/mm2_chain_dp.c archKernel/kalloc.c -o mm2;"
+    +"echo 'Build Done! About to execute mm2';"
+    +"m5 exit 0;"
+    +"m5 resetstats;"
+    +"./mm2;"
+    +"m5 dumpstats;"
     +"echo 'Done executing mm2';" 
-    +"m5 exit;"
-    +"echo 'simulation Ending!';"
-    +"m5 exit;"
+    +"m5 exit 0;"
 )
 
 
@@ -80,7 +80,7 @@ board.set_kernel_disk_workload(
     kernel=obtain_resource("x86-linux-kernel-4.19.83"),
     #disk_image=obtain_resource("x86-ubuntu-24.04-img"),
     #FIXME: Ubuntu18.04 doesnot support GLIBC2-34 for mm2 execution. so I can't set ROI to mm2.
-    disk_image=DiskImageResource(local_path="mm2-x86-ubuntu-18.04-BUG-img",root_partition="1",source="src/x86-ubuntu", id="x86-ubuntu-18.04-img"),
+    disk_image=DiskImageResource(local_path="mm2-x86-ubuntu-18.04-img",root_partition="1",source="src/x86-ubuntu", id="x86-ubuntu-18.04-img"),
     readfile_contents=command,
 )
 
@@ -91,15 +91,9 @@ board.set_kernel_disk_workload(
 # the simulator.
 simulator = Simulator(
     board=board,
+    on_exit_event={
+        ExitEvent.EXIT: (func() for func in [processor.switch])
+    },
 )
-
-simulator.run()
-
-
-m5.stats.reset()
-processor.switch()
-simulator.run()
-m5.stats.dump()
-
 
 simulator.run()
