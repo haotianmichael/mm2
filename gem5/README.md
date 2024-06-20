@@ -1,5 +1,4 @@
-# Gem5 fullsystem simulation pipeline
-
+# Gem5 fullsystem simulation pipeline(Deprecated for DAC!)
 ## Simulated machine
 * ubuntu18.04
 * In-Order CPU with 1core
@@ -33,5 +32,7 @@ sudo losetup -d /dev/loop0
 * diskImage: Configuration files for creating a diskImage to boot a OS from stratch. This is for the full-system simulation.
 
 * m5out: The simulation results of Gem5.
+
+* skylake: configuration files for skylake machine(TODO).
 
 * fullsysRun.py: Python scripts for Gem5 fullsystem simulation.
