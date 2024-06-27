@@ -31,3 +31,15 @@ make
 ## modified file
 > chain.c main.c
 
+
+## output format
+### in1.txt
+346(number of anchors each read) 15.000000(average length of one anchor, 15 by default) 5000(max_dist_x)  5000(max_dist_y)  500(bandwidth)
+0() 40(anchor position in reference)  15  16065(anchor position in query)
+
+### out-1.txt
+346(number of anchors each read)
+f(score) p(predecessor) v(not impotant) t(not impotant)
+3 15  -1  15  3
+
+
