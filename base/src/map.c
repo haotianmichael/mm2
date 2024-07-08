@@ -264,6 +264,35 @@ static mm128_t *collect_seed_hits(void *km, const mm_mapopt_t *opt, int max_occ,
 			if (is_self) p->y |= MM_SEED_SELF;
 		}
 	}
+
+	if (opt->chain_dump_in.fp || opt->chain_dump_out.fp) {
+        pthread_mutex_lock(&(opt->chain_dump_in.mutex));
+        pthread_mutex_lock(&opt->chain_dump_out.mutex);
+        if (opt->chain_dump_in.fp) {
+            // dump chain input before kernel
+            FILE *fp = opt->chain_dump_in.fp;
+            static int count = 0;
+            if (count++ > opt->chain_dump_limit) {
+                fclose(opt->chain_dump_in.fp);
+                fclose(opt->chain_dump_out.fp);
+                exit(0);
+            }
+            fprintf(fp, "the number of seeds is %zu\n", mv->n);
+            for(i = 0; i < n_m; i ++) {
+                mm_match_t *q = &m[i];
+                const uint64_t *r = q->cr;
+                uint32_t k;
+                for(k = 0; k < q->n; k++) {
+                   int32_t rpos = (uint32_t)r[k]>> 1; 
+                   int32_t rid = r[k] >> 32;
+                   fprintf(fp, "the location is seed%d is %d, the rid is %d\n", i, rpos, rid);
+                }
+            }
+            fprintf(fp, "EOR\n");
+        }
+        pthread_mutex_unlock(&(opt->chain_dump_in.mutex));
+        pthread_mutex_unlock(&opt->chain_dump_out.mutex);
+    }
 	kfree(km, m);
 	radix_sort_128x(a, a + (*n_a));
 	return a;
