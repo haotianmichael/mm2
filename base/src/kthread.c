@@ -97,7 +97,8 @@ typedef struct ktp_t {
 static void *ktp_worker(void *data)
 {
 	ktp_worker_t *w = (ktp_worker_t*)data;
-	ktp_t *p = w->pl;
+ /*DAC-mm2:  this p is from kt_pipeline(shared_data){aux.shared=shared_data; aux.worker[i].pl=&aux}; ktp_worker(aux.worker[i])*/
+	ktp_t *p = w->pl; 
 	while (w->step < p->n_steps) {
 		// test whether we can kick off the job with this worker
 		pthread_mutex_lock(&p->mutex);

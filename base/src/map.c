@@ -8,6 +8,7 @@
 #include "mmpriv.h"
 #include "bseq.h"
 #include "khash.h"
+#include <pthread.h>
 
 struct mm_tbuf_s {
 	void *km;
@@ -86,7 +87,7 @@ typedef struct {
 	const uint64_t *cr;
 } mm_match_t;
 
-static mm_match_t *collect_matches(void *km, int *_n_m, int max_occ, const mm_idx_t *mi, const mm128_v *mv, int64_t *n_a, int *rep_len, int *n_mini_pos, uint64_t **mini_pos)
+static mm_match_t *collect_matches(void *km, int *_n_m, int max_occ, const mm_idx_t *mi, const mm128_v *mv, int64_t *n_a, int *rep_len, int *n_mini_pos, uint64_t **mini_pos, mm_mapopt_t *opt)
 {
 	int rep_st = 0, rep_en = 0, n_m;
 	size_t i;
@@ -116,6 +117,29 @@ static mm_match_t *collect_matches(void *km, int *_n_m, int max_occ, const mm_id
 			(*mini_pos)[(*n_mini_pos)++] = (uint64_t)q_span<<32 | q_pos>>1;
 		}
 	}
+	if (opt->chain_dump_in.fp || opt->chain_dump_out.fp) {
+        pthread_mutex_lock(&(opt->chain_dump_in.mutex));
+        pthread_mutex_lock(&opt->chain_dump_out.mutex);
+        if (opt->chain_dump_in.fp) {
+            // dump chain input before kernel
+            FILE *fp = opt->chain_dump_in.fp;
+            static int count = 0;
+            if (count++ > opt->chain_dump_limit) {
+                fclose(opt->chain_dump_in.fp);
+                fclose(opt->chain_dump_out.fp);
+                exit(0);
+            }
+            fprintf(fp, "the number of seeds is %zu\n", mv->n);
+            for (i = 0; i < mv->n; ++i) {
+                mm128_t *p = &mv->a[i];
+                int mask = (1<<mi->b) - 1;
+                fprintf(fp, "%llu\n", (uint64_t)(p->x>>8 & mask));
+            }
+            fprintf(fp, "EOR\n");
+        }
+        pthread_mutex_unlock(&(opt->chain_dump_in.mutex));
+        pthread_mutex_unlock(&opt->chain_dump_out.mutex);
+    }
 	*rep_len += rep_en - rep_st;
 	*_n_m = n_m;
 	return m;
@@ -153,7 +177,7 @@ static mm128_t *collect_seed_hits_heap(void *km, const mm_mapopt_t *opt, int max
 	mm_match_t *m;
 	mm128_t *a, *heap;
 
-	m = collect_matches(km, &n_m, max_occ, mi, mv, n_a, rep_len, n_mini_pos, mini_pos);
+	m = collect_matches(km, &n_m, max_occ, mi, mv, n_a, rep_len, n_mini_pos, mini_pos, opt);
 
 	heap = (mm128_t*)kmalloc(km, n_m * sizeof(mm128_t));
 	a = (mm128_t*)kmalloc(km, *n_a * sizeof(mm128_t));
@@ -217,7 +241,7 @@ static mm128_t *collect_seed_hits(void *km, const mm_mapopt_t *opt, int max_occ,
 	int i, n_m;
 	mm_match_t *m;
 	mm128_t *a;
-	m = collect_matches(km, &n_m, max_occ, mi, mv, n_a, rep_len, n_mini_pos, mini_pos);
+	m = collect_matches(km, &n_m, max_occ, mi, mv, n_a, rep_len, n_mini_pos, mini_pos, opt);
 	a = (mm128_t*)kmalloc(km, *n_a * sizeof(mm128_t));
 	for (i = 0, *n_a = 0; i < n_m; ++i) {
 		mm_match_t *q = &m[i];
@@ -529,10 +553,10 @@ static void *worker_pipeline(void *shared, int step, void *in)
         s = (step_t*)calloc(1, sizeof(step_t));
 		if (p->n_fp > 1) s->seq = mm_bseq_read_frag2(p->n_fp, p->fp, p->mini_batch_size, with_qual, with_comment, &s->n_seq);
 		else s->seq = mm_bseq_read3(p->fp[0], p->mini_batch_size, with_qual, with_comment, frag_mode, &s->n_seq);
-		if (s->seq) {
+		if (s->seq) {   /*DAC-mm2: mm_bseq_read3 take each read and put it to s->seq[i].*/
 			s->p = p;
 			for (i = 0; i < s->n_seq; ++i)
-				s->seq[i].rid = p->n_processed++;
+				s->seq[i].rid = p->n_processed++;  /*DAC-mm2: read's rid*/
 			s->buf = (mm_tbuf_t**)calloc(p->n_threads, sizeof(mm_tbuf_t*));
 			for (i = 0; i < p->n_threads; ++i)
 				s->buf[i] = mm_tbuf_init();

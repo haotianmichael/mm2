@@ -292,9 +292,9 @@ static void *worker_pipeline(void *shared, int step, void *in)
     if (step == 0) { // step 0: read sequences
         step_t *s;
         if (p->sum_len > p->batch_size) return 0;
-        s = (step_t*)calloc(1, sizeof(step_t));
+        s = (step_t*)calloc(1, sizeof(step_t)); /*DAC-mm2: mm_bseq_read read a batch of reads */
         s->seq = mm_bseq_read(p->fp, p->mini_batch_size, 0, &s->n_seq); // read a mini-batch
-        if (s->seq) {
+        if (s->seq) { /*DAC-mm2: s->seq is a array of reads*/
             uint32_t old_m, m;
             assert((uint64_t)p->mi->n_seq + s->n_seq <= UINT32_MAX); // to prevent integer overflow
                                                                      // make room for p->mi->seq

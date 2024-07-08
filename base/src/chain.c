@@ -85,7 +85,7 @@ mm128_t *mm_chain_dp(int max_dist_x, int max_dist_y, int bw, int max_skip, int m
         f[i] = max_f, p[i] = max_j;
         v[i] = max_j >= 0 && v[max_j] > max_f? v[max_j] : max_f; // v[] keeps the peak score up to i; f[] is the score ending at i, not always the peak
     }
-
+/*
     if (opt->chain_dump_in.fp || opt->chain_dump_out.fp) {
         pthread_mutex_lock(&(opt->chain_dump_in.mutex));
         pthread_mutex_lock(&opt->chain_dump_out.mutex);
@@ -123,7 +123,7 @@ mm128_t *mm_chain_dp(int max_dist_x, int max_dist_y, int bw, int max_skip, int m
         pthread_mutex_unlock(&(opt->chain_dump_in.mutex));
         pthread_mutex_unlock(&opt->chain_dump_out.mutex);
     }
-
+*/
 
 
     // find the ending positions of chains
