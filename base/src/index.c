@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <stdbool.h>
 #include <assert.h>
 #if defined(WIN32) || defined(_WIN32)
 #include <io.h> // for open(2)
@@ -283,6 +284,18 @@ static void mm_idx_add(mm_idx_t *mi, int n, const mm128_t *a)
         mm128_v *p = &mi->B[a[i].x>>8&mask].a;
         kv_push(mm128_t, 0, *p, a[i]);
     }
+    int uniqueCount = 0;
+    bool *visited = (bool*)calloc(mask+1, sizeof(bool));
+    for(i = 0; i < n; i ++) {
+        int b_index = (a[i].x >>8) & mask;
+        if(!visited[b_index]) {
+            fprintf(stderr, "b_index is %d and %d\n", b_index, uniqueCount);
+            visited[b_index] = true;
+            uniqueCount++;
+        }
+    }
+    fprintf(stderr, "n is %d, the number of buckets  occupied is %d\n", n, uniqueCount);
+    free(visited);
 }
 
 static void *worker_pipeline(void *shared, int step, void *in)
