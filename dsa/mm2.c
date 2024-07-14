@@ -2,7 +2,6 @@
 #include <stdint.h>
 #include <string.h>
 #include <stdio.h>
-#include "kalloc.h"
 #define MM_SEED_SEG_SHIFT 48
 #define MM_SEED_SEG_MASK (0xffULL << (MM_SEED_SEG_SHIFT))
 #define READ_NUM 3000
@@ -16,8 +15,6 @@ static const char LogTable256[256] = {
     LT(4), LT(5), LT(5), LT(6), LT(6), LT(6), LT(6),
     LT(7), LT(7), LT(7), LT(7), LT(7), LT(7), LT(7), LT(7)};
 
-void *kmalloc(void *km, size_t size);
-void kfree(void *km, void *ptr);
 static inline int ilog2_32(uint32_t v)
 {
     uint32_t t, tt;
@@ -45,7 +42,7 @@ static inline int ilog2_32(uint32_t v)
  km              mm_tbuf_t
 */
 void mm_chain_dp(int max_dist_x, int max_dist_y, int bw,
-                     int max_skip, int max_iter, int min_cnt, int min_sc, int is_cdna, int n_segs, int64_t n, mm128_t *a, int *n_u_, uint64_t **_u, void *km)
+                     int max_skip, int max_iter, int min_cnt, int min_sc, int is_cdna, int n_segs, int64_t n, mm128_t *a, int *n_u_, uint64_t **_u, void *km, int32_t *f, int32_t *p, int32_t *t, int32_t *v)
 {
 
     int32_t k, n_u, n_v;
@@ -54,21 +51,9 @@ void mm_chain_dp(int max_dist_x, int max_dist_y, int bw,
     float avg_qspan;
     mm128_t *b, *w;
 
-/*    [>if(_u) *_u = 0, *n_u = 0;<]*/
-    /*if (n == 0 || a == 0)*/
-    /*{*/
-        /*kfree(km, a);*/
-        /*return;*/
-    /*}*/
-
-    int32_t *f, *p, *t, *v;
-    f = (int32_t *)kmalloc(km, n * 4);
-    p = (int32_t *)kmalloc(km, n * 4);
-    t = (int32_t *)kmalloc(km, n * 4);
-    v = (int32_t *)kmalloc(km, n * 4);
-    memset(t, 0, n * 4);
-
-    // calculate average length of anchors
+    if (n == 0 || a == 0) {
+        return;
+    }
     for (int i = 0; i < n; i++)
         sum_qspan += a[i].y >> 32 & 0xff;
     avg_qspan = (float)sum_qspan / n;
@@ -127,19 +112,4 @@ void mm_chain_dp(int max_dist_x, int max_dist_y, int bw,
         f[i] = max_f, p[i] = max_j;
         v[i] = max_j >= 0 && v[max_j] > max_f ? v[max_j] : max_f; // v[] keeps the peak score up to i; f[] is the score ending at i, not always the peak
     }
-
-    FILE *outfp = fopen("kout4.txt", "w"); 
-    static int count = 0;
-    if(count++ > READ_NUM) {
-        fclose(outfp);
-        exit(0);
-    }
-
-    // dump chain output after kernel
-    fprintf(outfp, "%lld\n", (long long)n);
-    fprintf(outfp, "f\tp\tv\tt\n");
-    for (int i = 0; i < n; i++) {
-        fprintf(outfp, "%d\t%d\t%d\t%d\n", (int)f[i], (int)p[i], (int)v[i], (int)t[i]);
-    }
-    fprintf(outfp, "EOR\n");
 }

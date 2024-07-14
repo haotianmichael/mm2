@@ -5,6 +5,7 @@
 #include "kalloc.h"
 
 /*for allocation of memory*/
+#define READ_NUM 3000
 typedef int32_t loc_t;
 typedef int32_t width_t;
 typedef int32_t tag_t;
@@ -32,7 +33,7 @@ typedef struct{
 
 void *kmalloc(void *km, size_t size);
 void kfree(void *km, void *ptr);
-void mm_chain_dp(int max_dist_x, int max_dist_y, int bw, int max_skip, int max_iter, int min_cnt, int min_sc, int is_cdna, int n_segs, int64_t n, mm128_t *a, int *n_u, uint64_t **_u, void *km);
+void mm_chain_dp(int max_dist_x, int max_dist_y, int bw, int max_skip, int max_iter, int min_cnt, int min_sc, int is_cdna, int n_segs, int64_t n, mm128_t *a, int *n_u, uint64_t **_u, void *km, int32_t *f, int32_t *p, int32_t *t, int32_t *v);
 void skip_to_EOR(FILE *fp) {
     const char *loc = "EOR";
     while(*loc != '\0') {
@@ -41,10 +42,11 @@ void skip_to_EOR(FILE *fp) {
         }
     }
 }
+
 mm128_t *parse_read(void *km, FILE* fp,mm128_t* a, int64_t *n, int *max_dist_x, int *max_dist_y, int *bw) {
 
     float avg_qspan;
-    int t = fscanf(fp, "%lld%f%d%d%d", n, &avg_qspan, max_dist_x, max_dist_y, bw);
+    int tt = fscanf(fp, "%lld%f%d%d%d", n, &avg_qspan, max_dist_x, max_dist_y, bw);
 
     
     //kmalloc read->anchors
@@ -61,9 +63,25 @@ mm128_t *parse_read(void *km, FILE* fp,mm128_t* a, int64_t *n, int *max_dist_x, 
         p->x = tag << 32 | x;
         p->y = w <<32 | y;
     }
-
     //skip_to_EOR(fp);
     return a;
+}
+
+void post_chain(int32_t *f, int32_t *p, int32_t *t, int32_t *v, int n) {
+    FILE *outfp = fopen("kout4.txt", "w");
+    static int count = 0;
+    if(count++ > READ_NUM) {
+        fclose(outfp);
+        exit(0);
+    }
+    
+
+    fprintf(outfp, "%lld\n", (long long)n);
+    fprintf(outfp, "f\tp\tv\tt\n");
+    for(int i = 0; i < n; i ++) {
+        fprintf(outfp, "%d\t%d\t%d\t%d\n", (int)f[i], (int)p[i], (int)v[i], (int)t[i]);
+    }
+    fprintf(outfp, "EOR\n");
 }
 
 int main() {
@@ -79,6 +97,7 @@ int main() {
     int n_segs = 1;
     int64_t n = 0;
     mm128_t *a;
+    int32_t *f, *p, *t, *v;
     int *n_u_;
     uint64_t **_u;
     read_t read;
@@ -91,8 +110,15 @@ int main() {
     b->km = calloc(1, sizeof(kmem_t));  // alloc for km
 
     a = parse_read(b->km, infp, a, &n, &max_dist_x, &max_dist_y, &bw);
-    mm_chain_dp(max_dist_x, max_dist_y, bw, max_skip, max_iter, min_cnt, min_sc, is_cdna, n_segs, n, a, n_u_, _u, b->km);
 
+    f = (int32_t*)kmalloc(b->km, n * 4);
+    p = (int32_t*)kmalloc(b->km, n * 4);
+    t = (int32_t*)kmalloc(b->km, n * 4);
+    v = (int32_t*)kmalloc(b->km, n * 4);
+    memset(t, 0,  n * 4);
+
+    mm_chain_dp(max_dist_x, max_dist_y, bw, max_skip, max_iter, min_cnt, min_sc, is_cdna, n_segs, n, a, n_u_, _u, b->km, f, p, t, v);
     fclose(infp);
+    post_chain(f, p, t, v, n);
     return 0;
 }
