@@ -4,7 +4,6 @@
 #include <stdio.h>
 #define MM_SEED_SEG_SHIFT 48
 #define MM_SEED_SEG_MASK (0xffULL << (MM_SEED_SEG_SHIFT))
-#define READ_NUM 3000
 typedef struct
 {
     uint64_t x, y;
@@ -42,7 +41,7 @@ static inline int ilog2_32(uint32_t v)
  km              mm_tbuf_t
 */
 void mm_chain_dp(int max_dist_x, int max_dist_y, int bw,
-                     int max_skip, int max_iter, int min_cnt, int min_sc, int is_cdna, int n_segs, int64_t n, mm128_t *a, int *n_u_, uint64_t **_u, void *km, int32_t *f, int32_t *p, int32_t *t, int32_t *v)
+                     int max_skip, int max_iter, int min_cnt, int min_sc, int is_cdna, int n_segs, int64_t n, mm128_t *a, int *n_u_, int32_t *f, int32_t *p, int32_t *t, int32_t *v)
 {
 
     int32_t k, n_u, n_v;
@@ -54,8 +53,8 @@ void mm_chain_dp(int max_dist_x, int max_dist_y, int bw,
     if (n == 0 || a == 0) {
         return;
     }
-    for (int i = 0; i < n; i++)
-        sum_qspan += a[i].y >> 32 & 0xff;
+    for (int ii = 0; ii < n; ii++)
+        sum_qspan += a[ii].y >> 32 & 0xff;
     avg_qspan = (float)sum_qspan / n;
 
     /*

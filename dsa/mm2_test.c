@@ -33,7 +33,7 @@ typedef struct{
 
 void *kmalloc(void *km, size_t size);
 void kfree(void *km, void *ptr);
-void mm_chain_dp(int max_dist_x, int max_dist_y, int bw, int max_skip, int max_iter, int min_cnt, int min_sc, int is_cdna, int n_segs, int64_t n, mm128_t *a, int *n_u, uint64_t **_u, void *km, int32_t *f, int32_t *p, int32_t *t, int32_t *v);
+void mm_chain_dp(int max_dist_x, int max_dist_y, int bw, int max_skip, int max_iter, int min_cnt, int min_sc, int is_cdna, int n_segs, int64_t n, mm128_t *a, int *n_u, int32_t *f, int32_t *p, int32_t *t, int32_t *v);
 void skip_to_EOR(FILE *fp) {
     const char *loc = "EOR";
     while(*loc != '\0') {
@@ -117,7 +117,7 @@ int main() {
     v = (int32_t*)kmalloc(b->km, n * 4);
     memset(t, 0,  n * 4);
 
-    mm_chain_dp(max_dist_x, max_dist_y, bw, max_skip, max_iter, min_cnt, min_sc, is_cdna, n_segs, n, a, n_u_, _u, b->km, f, p, t, v);
+    mm_chain_dp(max_dist_x, max_dist_y, bw, max_skip, max_iter, min_cnt, min_sc, is_cdna, n_segs, n, a, n_u_, f, p, t, v);
     fclose(infp);
     post_chain(f, p, t, v, n);
     return 0;
