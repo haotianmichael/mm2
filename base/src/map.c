@@ -117,6 +117,7 @@ static mm_match_t *collect_matches(void *km, int *_n_m, int max_occ, const mm_id
 			(*mini_pos)[(*n_mini_pos)++] = (uint64_t)q_span<<32 | q_pos>>1;
 		}
 	}
+  /*
 	if (opt->chain_dump_in.fp || opt->chain_dump_out.fp) {
         pthread_mutex_lock(&(opt->chain_dump_in.mutex));
         pthread_mutex_lock(&opt->chain_dump_out.mutex);
@@ -140,6 +141,7 @@ static mm_match_t *collect_matches(void *km, int *_n_m, int max_occ, const mm_id
         pthread_mutex_unlock(&(opt->chain_dump_in.mutex));
         pthread_mutex_unlock(&opt->chain_dump_out.mutex);
     }
+    */
 	*rep_len += rep_en - rep_st;
 	*_n_m = n_m;
 	return m;
@@ -285,7 +287,8 @@ static mm128_t *collect_seed_hits(void *km, const mm_mapopt_t *opt, int max_occ,
                 for(k = 0; k < q->n; k++) {
                    int32_t rpos = (uint32_t)r[k]>> 1; 
                    int32_t rid = r[k] >> 32;
-                   fprintf(fp, "the location is seed%d is %d, the rid is %d\n", i, rpos, rid);
+                   int32_t qid = q->seg_id;
+                   fprintf(fp, "the location is seed%d is %d, the rid is %d, the qid is %d\n", i, rpos, rid, qid);
                 }
             }
             fprintf(fp, "EOR\n");
