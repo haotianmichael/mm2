@@ -4,6 +4,17 @@
 #include <stdio.h>
 #define MM_SEED_SEG_SHIFT 48
 #define MM_SEED_SEG_MASK (0xffULL << (MM_SEED_SEG_SHIFT))
+#define MAX_DIST_X 5000
+#define MAX_DIST_Y 5000
+#define BW 500
+#define MAX_SKIP 25
+#define MAX_ITER 5000
+#define MIN_CNT 3
+#define MIN_SC 40
+#define IS_CDNA 0
+#define N_SEGS 1
+
+
 typedef struct
 {
     uint64_t x, y;
@@ -40,15 +51,12 @@ static inline int ilog2_32(uint32_t v)
  _u              u
  km              mm_tbuf_t
 */
-void mm_chain_dp(int max_dist_x, int max_dist_y, int bw,
-                     int max_skip, int max_iter, int min_cnt, int min_sc, int is_cdna, int n_segs, int64_t n, mm128_t *a, int *n_u_, int32_t *f, int32_t *p, int32_t *t, int32_t *v)
+void mm_chain_dp(int64_t n, mm128_t *a, int32_t *f, int32_t *p, int32_t *t, int32_t *v)
 {
 
-    int32_t k, n_u, n_v;
     int64_t st = 0;
-    uint64_t *u, *u2, sum_qspan = 0;
+    uint64_t sum_qspan = 0;
     float avg_qspan;
-    mm128_t *b, *w;
 
     if (n == 0 || a == 0) {
         return;
@@ -56,16 +64,6 @@ void mm_chain_dp(int max_dist_x, int max_dist_y, int bw,
     for (int ii = 0; ii < n; ii++)
         sum_qspan += a[ii].y >> 32 & 0xff;
     avg_qspan = (float)sum_qspan / n;
-
-    /*
-     * ri: where anchor[i] locates in ref
-     * qi: where anchors[i] locates in read
-     * q_span: the length of anchor[i]
-     * dr: Reference Gap
-     * dq: Query Gap
-     * sc: min(y[i]-y[j], x[i]-x[j], q_span)
-     *
-     * */
     for (int i = 0; i < n; ++i)
     {
         uint64_t ri = a[i].x;
@@ -73,22 +71,22 @@ void mm_chain_dp(int max_dist_x, int max_dist_y, int bw,
         int32_t qi = (int32_t)a[i].y, q_span = a[i].y >> 32 & 0xff; // NB: only 8 bits of span is used!!!
         int32_t max_f = q_span, n_skip = 0, min_d;
         int32_t sidi = (a[i].y & MM_SEED_SEG_MASK) >> MM_SEED_SEG_SHIFT;
-        while (st < i && ri > a[st].x + max_dist_x) ++st;
-        if (i - st > max_iter) st = i - max_iter;
+        while (st < i && ri > a[st].x + MAX_DIST_X) ++st;
+        if (i - st > MAX_ITER) st = i - MAX_ITER;
         for (int j = i - 1; j >= st; --j)
         {
             int64_t dr = ri - a[j].x;
             int32_t dq = qi - (int32_t)a[j].y, dd, sc, log_dd;
             int32_t sidj = (a[j].y & MM_SEED_SEG_MASK) >> MM_SEED_SEG_SHIFT;
             if ((sidi == sidj && dr == 0) || dq <= 0) continue; // don't skip if an anchor is used by multiple segments; see below
-            if ((sidi == sidj && dq > max_dist_y) || dq > max_dist_x) continue;
+            if ((sidi == sidj && dq > MAX_DIST_Y) || dq > MAX_DIST_X) continue;
             dd = dr > dq ? dr - dq : dq - dr;
-            if (sidi == sidj && dd > bw) continue;
-            if (n_segs > 1 && !is_cdna && sidi == sidj && dr > max_dist_y) continue;
+            if (sidi == sidj && dd > BW) continue;
+            if (N_SEGS> 1 && !IS_CDNA&& sidi == sidj && dr > MAX_DIST_Y) continue;
             min_d = dq < dr ? dq : dr;
             sc = min_d > q_span ? q_span : dq < dr ? dq : dr;
             log_dd = dd ? ilog2_32(dd) : 0;
-            if (is_cdna || sidi != sidj)
+            if (IS_CDNA|| sidi != sidj)
             {
                 int c_log, c_lin;
                 c_lin = (int)(dd * .01 * avg_qspan);
@@ -103,7 +101,7 @@ void mm_chain_dp(int max_dist_x, int max_dist_y, int bw,
                 if (n_skip > 0) --n_skip;
             }
             else if (t[j] == i) {
-                if (++n_skip > max_skip)
+                if (++n_skip > MAX_SKIP)
                     break;
             }
             if (p[j] >= 0) t[p[j]] = i;
