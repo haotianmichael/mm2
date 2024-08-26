@@ -2,4 +2,4 @@
 > The Directory Layout
 * base: base code of mm2
 * gem5: for gem5 simulation
-* base: for RTL acceleration
+* dsa: for RTL acceleration
