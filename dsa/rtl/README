@@ -1,0 +1,1 @@
+` dc_shell -no_log -f dc_synthesis.tcl

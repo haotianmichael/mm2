@@ -8,27 +8,27 @@ module computeScore(
 	output wire [31:0] result
 )
 
-	wire [31:0] diffX, diffY;
+	wire [31:0] diffR, diffQ;
 	wire [31:0] absDiff;
 	wire [31:0] log2_val;
 	wire valid;
 
-	assign diffX = (riX > qiX) ? (riX - qiX) : (qiX - riX);
-	assign diffY = (riY > qiY) ? (riY - qiY) : (qiY - riY);
+	assign diffR = (riX > riY) ? (riX - riY) : (riY - riX);
+	assign diffQ = (qiX > qiY) ? (qiX - qiY) : (qiY - qiX);
 
-	wire [31:0] minXY;
-	assign minXY = (diffX > diffY) ? diffX : diffY;
+	wire [31:0] min;
+	assign min = (diffR < diffQ) ? diffR : diffQ;
 	wire [31:0] A;
-	assign A = (minXY < W) ? minXY : W;
+	assign A = (min < W) ? min : W;
 
 	wire [31:0] B;
 	wire [31:0] mult_result, log_component;
 	wire [63:0] mult_temp;
 
-	assign absDiff = (diffX > diffY) ? (diffX - diffY) : (diffY - diffX);
+	assign absDiff = (diffR > diffQ) ? (diffR - diffQ) : (diffQ - diffR);
 	assign mult_result = absDiff * W_avg / 100;
 
-	ilog2 log2_cal(
+	ilog2 log2_val(
 		.v(absDiff),	
 		.log2(log2_val),
 		.valid(valid)

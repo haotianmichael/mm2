@@ -25,8 +25,8 @@ module tb;
 	initial begin
 
 		riX = 32'd100;
-		riY = 32'd50;
-		qiX = 32'd30;
+		riY = 32'd30;
+		qiX = 32'd50;
 		qiY = 32'd20;
 		W = 32'd40;
 		W_avg = 32'd40;
@@ -43,6 +43,8 @@ module tb;
 
 			cycle_count = cycle_count + 1;
 		end
+
+    $fnish;
 	end
 
 endmodule
