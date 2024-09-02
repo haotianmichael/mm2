@@ -6,11 +6,11 @@ module computeScore(
 	input wire [31:0] W, 
 	input wire [31:0] W_avg,
 	output wire [31:0] result
-)
+);
 
 	wire [31:0] diffR, diffQ;
 	wire [31:0] absDiff;
-	wire [31:0] log2_val;
+	wire [4:0] log2_val;
 	wire valid;
 
 	assign diffR = (riX > riY) ? (riX - riY) : (riY - riX);
@@ -28,7 +28,7 @@ module computeScore(
 	assign absDiff = (diffR > diffQ) ? (diffR - diffQ) : (diffQ - diffR);
 	assign mult_result = absDiff * W_avg / 100;
 
-	ilog2 log2_val(
+	ilog2 log2_cal(
 		.v(absDiff),	
 		.log2(log2_val),
 		.valid(valid)
