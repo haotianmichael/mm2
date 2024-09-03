@@ -13,7 +13,7 @@ module tb;
 		.riY(riY),
 		.qiX(qiX),
 		.qiY(qiY),
-		.W(w),
+		.W(W),
 		.W_avg(W_avg),
 		.result(result)
 	);
@@ -48,7 +48,7 @@ module tb;
 			cycle_count = cycle_count + 1;
 		end
 
-    $fnish;
+    $finish;
 	end
 
 endmodule
