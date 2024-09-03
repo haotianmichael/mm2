@@ -299,21 +299,45 @@ LogTable256[255] = 4'd7;
         end
     end
 
-    // v[31:24] / v[23:16]
-    reg [4:0] stage3_v;
+    reg [7:0] stage3_index;
+    reg [4:0] stage3_log2;
+    always @(posedge clk or posedge reset) begin
+       if(reset) begin
+            stage3_index <= 8'b0;
+            stage3_log2 <= 5'b0;
+       end else if(stage1_valid) begin 
+            if(stage2_v[15:8] != 8'b0) begin
+                stage3_index <= stage2_v[15:8];
+                stage3_log2 <= stage2_log2 + 5'b01000;
+            end else begin
+                stage3_index <= stage2_v[7:0];
+                stage3_log2 <= stage2_log2;
+            end
+       end 
+    end
+
+
+    reg [4:0] stage4_logtable_value;
     always @(posedge clk or posedge reset) begin
         if(reset) begin
-            stage3_v <= 5'b0;
-        end else if(stage1_valid) begin
-            if(stage2_v[15:8] != 8'b0) begin
-                stage3_v <= stage2_log2 + 5'b01000 + LogTable256[stage2_v[15:8]];
-            end else begin
-                stage3_v <= stage2_log2 + LogTable256[stage2_v[7:0]];       
-            end
+            stage4_logtable_value <= 5'b0;
+        end else if(stage1_valid)begin 
+            stage4_logtable_value <= LogTable256[stage3_index];
         end 
     end
 
+
+    reg [4:0] stage5_log2;
+    always @(posedge clk or posedge reset) begin
+        if(reset) begin
+            stage5_log2 <= 5'b0;
+        end else if() begin
+            stage5_log2 <= stage3_log2 + stage4_logtable_value;
+        end 
+    end
+
+
     assign valid = stage1_valid;
-    assign log2 = stage3_v;
+    assign log2 = stage5_log2;
 
 endmodule

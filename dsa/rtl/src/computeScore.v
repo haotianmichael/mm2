@@ -38,7 +38,7 @@ module computeScore(
 
 	wire [4:0] log2_val;
 	wire valid;
-			ilog2 log2_cal(
+			ilog2pp log2_cal(
 				.clk(clk),
 				.reset(reset),
 				.v(absDiff),	
