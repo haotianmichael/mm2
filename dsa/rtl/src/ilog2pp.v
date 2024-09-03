@@ -327,15 +327,24 @@ LogTable256[255] = 4'd7;
     end
 
 
-    reg [4:0] stage5_log2;
+    reg [4:0] stage5_log2_intermediate;
     always @(posedge clk or posedge reset) begin
         if(reset) begin
-            stage5_log2 <= 5'b0;
+            stage5_log2_intermediate <= 5'b0;
         end else if() begin
-            stage5_log2 <= stage3_log2 + stage4_logtable_value;
+            stage5_log2_intermediate <= stage3_log2 + stage4_logtable_value;
         end 
     end
 
+
+    reg [4:0] stage5_log2;
+    always @(posedge clk or posedge reset) begin
+       if(reset) begin
+            stage2_log2 <= 5'b0;
+       end else if(stage1_valid) begin
+            stage5_log2 <= stage5_log2_intermediate;
+       end 
+    end
 
     assign valid = stage1_valid;
     assign log2 = stage5_log2;
