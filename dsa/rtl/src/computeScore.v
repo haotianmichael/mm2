@@ -7,12 +7,12 @@ module computeScore(
 	input wire [31:0] qiY,
 	input wire [31:0] W, 
 	input wire [31:0] W_avg,
-	output wire [31:0] result
+	output reg [31:0] result
 );
 
 	reg [31:0] diffR, diffQ;
-	always @(posedge clk or posege reset) begin
-		if(reset begin
+	always @(posedge clk or posedge reset) begin
+		if(reset) begin
 			diffR <= 32'd0;
 			diffQ <= 32'd0;
 		end else begin
@@ -36,18 +36,8 @@ module computeScore(
 	end
 
 
-	reg [4:0] log2_val;
-	reg valid;
-	reg [31:0] log_component, mult_result;
-	reg [31:0] B;
-	always @(posedge clk or posedge reset) begin
-		if(reset) begin
-			B <= 32'd0;
-			log2_val <= 5'b0;
-			valid <= 1'd0;
-			log_component <= 32'd0;
-			mult_result <= 32'd0;
-		end else begin
+	wire [4:0] log2_val;
+	wire valid;
 			ilog2 log2_cal(
 				.clk(clk),
 				.reset(reset),
@@ -55,7 +45,15 @@ module computeScore(
 				.log2(log2_val),
 				.valid(valid)
 			);
-			mult_result = absDiff * W_avg / 100;
+	reg [31:0] log_component, mult_result;
+	reg [31:0] B;
+	always @(posedge clk or posedge reset) begin
+		if(reset) begin
+			B <= 32'd0;
+			log_component <= 32'd0;
+			mult_result <= 32'd0;
+		end else begin
+		mult_result = absDiff * W_avg / 100;
 			log_component = log2_val >> 1;
 			B = (absDiff == 0) ? 32'd0 : (mult_result + log_component);
 		end	

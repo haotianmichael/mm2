@@ -2,11 +2,13 @@ module tb;
 
 	reg [31:0] riX, riY, qiX, qiY, W, W_avg;
 	wire [31:0] result;
-	reg clk;
+	reg clk, reset;
 	reg [7:0] cycle_count;
 
 
 	computeScore uut(
+    .clk(clk),
+    .reset(reset),
 		.riX(riX),
 		.riY(riY),
 		.qiX(qiX),
@@ -19,6 +21,7 @@ module tb;
 	initial begin
 
 		clk = 0;
+    reset = 1;
 		forever #5 clk = ~clk;
 	end
 
@@ -30,6 +33,7 @@ module tb;
 		qiY = 32'd20;
 		W = 32'd40;
 		W_avg = 32'd40;
+    reset = 0;
 		cycle_count = 0;
 
 		$display("Cycle: %d, Result: %d", cycle_count, result);

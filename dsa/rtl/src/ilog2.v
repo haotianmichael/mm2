@@ -2,12 +2,12 @@ module ilog2(
 	input wire [31:0] v, 
   input wire clk,
   input wire reset,
-	output reg  [4:0] log2,
-	output reg valid
+	output wire [4:0] log2,
+	output wire valid
 );
 
 
-	reg [3:0] logTable256 [0:255];
+	reg [3:0] LogTable256 [0:255];
 	initial begin
 LogTable256[0] = 4'd0;
 LogTable256[1] = 4'd0;
@@ -301,14 +301,15 @@ LogTable256[255] = 4'd7;
 		end	
 	end
 
+  reg [4:0] result_temp;
 	always @(posedge clk or posedge reset) begin
 		if(reset) begin
-			log2 <= 32'd0;
+			result_temp <= 32'd0;
 		end else begin 
-			log2 <= stage2_log2 + logTable256[stage2_value];
+			result_temp <= stage2_log2 + LogTable256[stage2_value];
 		end
 	end
-
+  assign log2 = result_temp;
   /*
 	always@(*) begin
 		if(v == 32'b0) begin
