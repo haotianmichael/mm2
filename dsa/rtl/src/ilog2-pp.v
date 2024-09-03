@@ -1,10 +1,11 @@
-module ilog2(
-	input wire [31:0] v, 
-  input wire clk,
-  input wire reset,
+module ilog2-pp (
+    input wire [31:0] v, 
+    input wire clk,
+    input wire reset,
 	output wire [4:0] log2,
 	output wire valid
 );
+    
 
 // log近似值，1001和1111都选择3
 	reg [3:0] LogTable256 [0:255];
@@ -267,70 +268,68 @@ LogTable256[254] = 4'd7;
 LogTable256[255] = 4'd7;
 	end
 
-  reg [31:0] stage1_value;
-  reg [4:0] stage1_log2;
-  always @(posedge clk or posedge reset) begin
-      if(reset) begin
-    	    stage1_value <= 32'd0;
-    	    stage1_log2 <= 5'd0;
-       end else begin
-			if(v[31:16] != 0) begin
-				stage1_value <= v[31:16];
-				stage1_log2 <= 16;
-			end else begin
-				stage1_value <= v[15:0];
-				stage1_log2 <= 0;
-			end
-       end
-  end
+    // valid bit
+    reg [31:0] stage1_v;
+    reg stage1_valid;
+    always @(posedge clk or posedge reset) begin
+        if(reset) begin
+            stage1_v <= 32'b0;
+            stage1_valid <= 1'b0;
+        end else begin
+            stage1_v <= v;
+            stage1_valid <= (v != 32'b0);
+        end
+    end
 
-	reg [31:0] stage2_value;
-	reg [4:0] stage2_log2;
-	always @(posedge clk or posedge reset) begin
-		if(reset) begin
-			stage2_value <= 32'd0;
-			stage2_log2 <= 5'd0;
-		end else begin
-			if(stage1_value[15:8] != 0) begin
-				stage2_value <= stage1_value[15:8];
-				stage2_log2 <= stage1_log2 + 8;
-			end else begin
-				stage2_value <= stage1_value[7:0];
-				stage2_log2 <= stage1_log2;
-			end
-		end	
-	end
+    //v[31:16]
+    reg [15:0] stage2_v;
+    reg [4:0] stage2_log2; 
+    always @(posedge clk or posedge reset) begin
+        if(reset) begin
+           stage2_v <= 16'b0;
+           stage2_log2 <= 5'b0; 
+        end  else if(stage1_valid)begin
+           if(stage1_v[31:16] != 0) begin
+                stage2_v <= stage1_v[31:16]; 
+                stage2_log2 <= 5'b10000;   // 16
+           end else begin
+                stage2_v <= stage1_v[15:0]; 
+                stage2_log2 <= 5'b0000;
+           end
+        end
+    end
 
-  reg [4:0] result_temp;
-	always @(posedge clk or posedge reset) begin
-		if(reset) begin
-			result_temp <= 32'd0;
-		end else begin 
-			result_temp <= stage2_log2 + LogTable256[stage2_value];
-		end
-	end
-  assign log2 = result_temp;
-  /*
-	always@(*) begin
-		if(v == 32'b0) begin
-			log2 = 5'b0;
-			valid = 1'b0;	
-		end else begin
-			valid = 1'b1;
-			if(v[31:16] != 16'b0) begin
-				if(v[31:24] != 8'b0) begin
-					log2 = 24 + LogTable256[v[31:24]];
-				end else begin
-					log2 = 16 + LogTable256[v[23:16]];
-				end
-			end else begin
-				if(v[15:8] != 8'b0) begin
-					log2 = 8 + LogTable256[v[15:8]];
-				end else begin 
-					log2 = LogTable256[v[7:0]];
-				end
-			end
-		end
-	end
-  */
+    // v[31:24] / v[23:16]
+    reg [4:0] stage3_v;
+    always @(posedge clk or posedge reset) begin
+        if(reset) begin
+            stage3_v <= 5'b0;
+        end else if(stage1_valid) begin
+            if(stage2_v[15:8] != 8'b0) begin
+                stage3_v <= stage2_log2 + 5'b01000 + LogTable256[stage2_v[15:8]];
+            end else begin
+                stage3_v <= stage2_log2 + LogTable256[stage2_v[7:0]];       
+            end
+        end 
+    end
+
+    // v[15:0]
+    reg [4:0] stage4_log2;
+    always @(posedge clk or posedge reset) begin
+        if(reset) begin
+            stage4_log2 <= 5'b0;
+        end else if(stage1_valid) begin
+            if(stage3_v[4:3] != 2'b00) begin
+                stage4_log2 <= stage3_v;
+            end else if(stage2_v[7:0] != 8'b0) begin
+                stage4_log2 <= stage3_v + LogTable256[stage2_v[7:0]];
+            end else begin
+                stage4_log2 <= stage3_v;
+            end
+        end
+    end
+
+    assign valid = stage1_valid;
+    assign log2 = stage4_log2;
+
 endmodule
