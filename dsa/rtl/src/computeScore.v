@@ -1,4 +1,6 @@
 module computeScore(
+	input wire clk,
+	input wire reset,
 	input wire [31:0] riX,
 	input wire [31:0] riY,
 	input wire [31:0] qiX,
@@ -8,35 +10,64 @@ module computeScore(
 	output wire [31:0] result
 );
 
-	wire [31:0] diffR, diffQ;
-	wire [31:0] absDiff;
-	wire [4:0] log2_val;
-	wire valid;
+	reg [31:0] diffR, diffQ;
+	always @(posedge clk or posege reset) begin
+		if(reset begin
+			diffR <= 32'd0;
+			diffQ <= 32'd0;
+		end else begin
+			diffR <= (riX > riY) ? (riX - riY) : (riY - riX);
+			diffQ <= (qiX > qiY) ? (qiX - qiY) : (qiY - qiX);
+		end	
+	end
 
-	assign diffR = (riX > riY) ? (riX - riY) : (riY - riX);
-	assign diffQ = (qiX > qiY) ? (qiX - qiY) : (qiY - qiX);
 
-	wire [31:0] min;
-	assign min = (diffR < diffQ) ? diffR : diffQ;
-	wire [31:0] A;
-	assign A = (min < W) ? min : W;
+	reg [31:0] absDiff, A, min;
+	always @(posedge clk or posedge reset) begin
+		if(reset)begin
+			absDiff <= 32'd0;
+			A <= 32'd0;
+			min <= 32'd0;
+		end else begin
+			absDiff = (diffR > diffQ) ? (diffR - diffQ) : (diffQ - diffR);
+			min <= (diffR < diffQ) ? diffR : diffQ;
+			A <= (min < W) ? min : W;
+		end
+	end
 
-	wire [31:0] B;
-	wire [31:0] mult_result, log_component;
-	wire [63:0] mult_temp;
 
-	assign absDiff = (diffR > diffQ) ? (diffR - diffQ) : (diffQ - diffR);
-	assign mult_result = absDiff * W_avg / 100;
+	reg [4:0] log2_val;
+	reg valid;
+	reg [31:0] log_component, mult_result;
+	reg [31:0] B;
+	always @(posedge clk or posedge reset) begin
+		if(reset) begin
+			B <= 32'd0;
+			log2_val <= 5'b0;
+			valid <= 1'd0;
+			log_component <= 32'd0;
+			mult_result <= 32'd0;
+		end else begin
+			ilog2 log2_cal(
+				.clk(clk),
+				.reset(reset),
+				.v(absDiff),	
+				.log2(log2_val),
+				.valid(valid)
+			);
+			mult_result = absDiff * W_avg / 100;
+			log_component = log2_val >> 1;
+			B = (absDiff == 0) ? 32'd0 : (mult_result + log_component);
+		end	
+	end
 
-	ilog2 log2_cal(
-		.v(absDiff),	
-		.log2(log2_val),
-		.valid(valid)
-	);
-
-	assign log_component = log2_val >> 1;
-	assign B = (absDiff == 0) ? 32'd0 : (mult_result + log_component);
-	assign result = A - B;
+	always @(posedge clk or posedge reset) begin
+		if(reset) begin
+			result <= 32'd0;
+		end else begin 
+			result <= A - B;
+		end	
+	end
 
 endmodule
 
