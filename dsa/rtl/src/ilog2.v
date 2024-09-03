@@ -1,5 +1,7 @@
 module ilog2(
 	input wire [31:0] v, 
+  input wire clk,
+  input wire reset,
 	output reg  [4:0] log2,
 	output reg valid
 );
@@ -265,6 +267,49 @@ LogTable256[254] = 4'd7;
 LogTable256[255] = 4'd7;
 	end
 
+  reg [31:0] stage1_value;
+  reg [4:0] stage1_log2;
+  always @(posedge clk or posedge reset) begin
+      if(reset) begin
+    	    stage1_value <= 32'd0;
+    	    stage1_log2 <= 5'd0;
+       end else begin
+			if(v[31:16] != 0) begin
+				stage1_value <= v[31:16];
+				stage1_log2 <= 16;
+			end else begin
+				stage1_value <= v[15:0];
+				stage1_log2 <= 0;
+			end
+       end
+  end
+
+	reg [31:0] stage2_value;
+	reg [4:0] stage2_log2;
+	always @(posedge clk or posedge reset) begin
+		if(reset) begin
+			stage2_value <= 32'd0;
+			stage2_log2 <= 5'd0;
+		end else begin
+			if(stage1_value[15:8] != 0) begin
+				stage2_value <= stage1_value[15:8];
+				stage2_log2 <= stage1_log2 + 8;
+			end else begin
+				stage2_value <= stage1_value[7:0];
+				stage2_log2 <= stage1_log2;
+			end
+		end	
+	end
+
+	always @(posedge clk or posedge reset) begin
+		if(reset) begin
+			log2 <= 32'd0;
+		end else begin 
+			log2 <= stage2_log2 + logTable256[stage2_value];
+		end
+	end
+
+  /*
 	always@(*) begin
 		if(v == 32'b0) begin
 			log2 = 5'b0;
@@ -286,4 +331,5 @@ LogTable256[255] = 4'd7;
 			end
 		end
 	end
+  */
 endmodule
