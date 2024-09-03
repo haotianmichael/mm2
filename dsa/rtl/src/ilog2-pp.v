@@ -313,23 +313,7 @@ LogTable256[255] = 4'd7;
         end 
     end
 
-    // v[15:0]
-    reg [4:0] stage4_log2;
-    always @(posedge clk or posedge reset) begin
-        if(reset) begin
-            stage4_log2 <= 5'b0;
-        end else if(stage1_valid) begin
-            if(stage3_v[4:3] != 2'b00) begin
-                stage4_log2 <= stage3_v;
-            end else if(stage2_v[7:0] != 8'b0) begin
-                stage4_log2 <= stage3_v + LogTable256[stage2_v[7:0]];
-            end else begin
-                stage4_log2 <= stage3_v;
-            end
-        end
-    end
-
     assign valid = stage1_valid;
-    assign log2 = stage4_log2;
+    assign log2 = stage3_log2;
 
 endmodule
