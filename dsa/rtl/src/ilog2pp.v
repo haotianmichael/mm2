@@ -1,4 +1,4 @@
-module ilog2-pp (
+module ilog2pp (
     input wire [31:0] v, 
     input wire clk,
     input wire reset,
@@ -314,6 +314,6 @@ LogTable256[255] = 4'd7;
     end
 
     assign valid = stage1_valid;
-    assign log2 = stage3_log2;
+    assign log2 = stage3_v;
 
 endmodule
