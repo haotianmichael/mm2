@@ -14,24 +14,55 @@ module computeScorepp(
 	always @(posedge clk or posedge reset) begin
 		if(reset) begin
 			diffR <= 32'd0;
-			diffQ <= 32'd0;
 		end else begin
 			diffR <= (riX > riY) ? (riX - riY) : (riY - riX);
+		end	
+	end
+	always @(posedge clk or posedge reset) begin
+		if(reset) begin
+			diffQ <= 0;
+		end else begin
 			diffQ <= (qiX > qiY) ? (qiX - qiY) : (qiY - qiX);
 		end	
 	end
+	reg [31:0] tmp_RQ, tmp_QR;
+	always @(posedge clk or posedge reset) begin
+		if(reset) begin
+			tmp_QR <= 0;
+		end else begin
+			tmp_QR <= diffQ - diffR;
+		end
+	end
+	always @(posedge clk or posedge reset) begin
+		if(reset) begin
+			tmp_RQ <= 0;
+		end else begin 
+			tmp_RQ <= diffR - diffQ;
+		end	
+	end
+	
 
     reg [31:0] absDiff, A, min;
 	always @(posedge clk or posedge reset) begin
 		if(reset)begin
 			absDiff <= 32'd0;
-			A <= 32'd0;
-			min <= 32'd0;
+			min <= 32'b0;
 		end else begin
-			absDiff = (diffR > diffQ) ? (diffR - diffQ) : (diffQ - diffR);
-			min <= (diffR < diffQ) ? diffR : diffQ;
-			A <= (min < W) ? min : W;
+			if(diffR > diffQ) begin
+				absDiff <= tmp_QR;
+				min <= diffQ;
+			end else begin
+				absDiff <= tmp_QR;
+				min <= diffR;
+			end
 		end
+	end
+	always @(posedge clk or posedge reset) begin
+		if(reset) begin
+			A <= 32'd0;
+		end else begin
+			A <= (min < W) ? min : W;
+		end	
 	end
 
     reg [31:0] mult_result;
