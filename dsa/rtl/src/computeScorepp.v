@@ -1,4 +1,4 @@
-module computeScore(
+module computeScorepp(
 	input wire clk,
 	input wire reset,
 	input wire [31:0] riX,
@@ -34,7 +34,7 @@ module computeScore(
 		end
 	end
 
-    wire [3:0] mult_result;
+    wire [31:0] mult_result;
     assign mult_result = absDiff * W_avg / 100;
 
     wire [4:0] log2_val;
@@ -47,16 +47,21 @@ module computeScore(
 		.valid(valid)
 	); 
 
+	reg [31:0] partialSum;
+	always @(posedge clk or posedge reset) begin
+		if(reset) begin
+			partialSum <= 0;
+		end else begin
+			partialSum <= mult_result + log2_val;	 // >>1 done in ilog2pp.v
+		end	
+	end
 
-	reg [31:0] log_component;
 	reg [31:0] B;
 	always @(posedge clk or posedge reset) begin
 		if(reset) begin
 			B <= 32'd0;
-			log_component <= 32'd0;
 		end else begin
-			log_component = log2_val >> 1;
-			B = (absDiff == 0) ? 32'd0 : (mult_result + log_component);
+			B = (absDiff == 0) ? 32'd0 : partialSum;
 		end	
 	end
 

@@ -347,6 +347,6 @@ LogTable256[255] = 4'd7;
     end
 
     assign valid = stage1_valid;
-    assign log2 = stage5_log2;
+    assign log2 = stage5_log2 >> 1;
 
 endmodule
