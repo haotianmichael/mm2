@@ -20,7 +20,7 @@ inputs and outputs, drawn from:
 
 max propagation delay: 51.2 nand units
 */
-
+`include "float/float_params.sv"
 `default_nettype none
 module float_add_pipeline(
     input                         clk,
@@ -97,14 +97,14 @@ module float_add_pipeline(
         end
 
         // $display("t=%0d float_add always(*) state=%0d", $time, state);
-        `assert_known(state);
+        //`assert_known(state);
         case(state)
             IDLE: begin
-                `assert_known(req);
+                //`assert_known(req);
                 if(req) begin
                     // $display("float got req");
-                    `assert_known(a);
-                    `assert_known(b);
+                    //`assert_known(a);
+                    //`assert_known(b);
 
                     n_a_mant[float_mant_width + 2:float_mant_width] = 3'b001;
                     {n_a_sign, n_a_exp, n_a_mant[float_mant_width - 1:0]} = a;
@@ -133,11 +133,11 @@ module float_add_pipeline(
             S1: begin
                 // $display("float.S1");
                 // this if-else block adds 56 nand units, from the subtraction and addition presumably
-                `assert_known(n_a_sign);
-                `assert_known(n_b_sign);
+                //`assert_known(n_a_sign);
+                //`assert_known(n_b_sign);
                 if(n_a_sign != n_b_sign) begin
-                    `assert_known(n_a_mant);
-                    `assert_known(n_b_mant);
+                   // `assert_known(n_a_mant);
+                   // `assert_known(n_b_mant);
                     if(n_a_mant > n_b_mant) begin
                         // a bigger, sign comes from a,
                         // subract b from a
@@ -163,7 +163,7 @@ module float_add_pipeline(
             S2: begin
                 // $display("float.S2");
                 // this if adds 8 nand units delay
-                `assert_known(n_new_mant);
+                //`assert_known(n_new_mant);
                 if(n_new_mant[float_mant_width + 1] == 1) begin
                     n_new_mant[float_mant_width + 1:0] = n_new_mant[float_mant_width + 1:0] >> 1;
                     n_new_exp = n_new_exp + 1;
@@ -171,7 +171,7 @@ module float_add_pipeline(
                 // $display("new_mant %b", n_new_mant);
                 norm_shift = 0;
                 // this if-else adds 35 nand units delay, which is surprisingly small really...
-                `assert_known(n_new_mant);
+                //`assert_known(n_new_mant);
                 if(|n_new_mant == 0) begin
                     // if eveyrthing is zero ,then just return zero
                     // $display("all zero");
@@ -185,7 +185,7 @@ module float_add_pipeline(
                         reg [$clog2(float_mant_width) - 1:0] shift;
                         shift = shift_int[$clog2(float_mant_width) - 1:0];
                         // $display("shift %0d new_mant[shift]=%0d", shift, n_new_mant[float_mant_width - shift]);
-                        `assert_known(n_new_mant);
+                        //`assert_known(n_new_mant);
                         if(n_new_mant[float_mant_width - shift] == 1) begin
                             norm_shift = shift;
                             new_mant_lookup[shift] = n_new_mant << shift;

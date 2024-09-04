@@ -100,7 +100,8 @@ module computeScorepp(
 		end	
 	end
 
-    reg [31:0] mult_result, mult_result_tmp;
+    reg [31:0] mult_result;
+	wire [31:0] mult_result_tmp;
 	float_mul_pipeline mul_uut(
 		.clk(clk),
 		.rst(reset),
@@ -117,7 +118,8 @@ module computeScorepp(
 	end
 
 	wire [31:0] float_val = 32'b00111100001000111101011100001011;
-	reg [31:0] div_result, div_result_tmp;
+	reg [31:0] div_result;
+	wire [31:0] div_result_tmp;
 	float_mul_pipeline mul_uut2(
 		.clk(clk),
 		.rst(reset),

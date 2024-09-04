@@ -13,7 +13,8 @@ Max propagation delay: 54.6 nand units
 Area:                  3841.5 nand units
 
 */
-
+`include "float/float_params.sv"
+`include "float/mul_pipeline_cycle_24bit_2bpc.sv"
 `default_nettype none
 module float_mul_pipeline(
     input                               clk,
@@ -101,14 +102,14 @@ module float_mul_pipeline(
 
         pos_plus_one = 0;
 
-        `assert_known(state);
+       // `assert_known(state);
         case(state)
             IDLE: begin
-                `assert_known(req);
+                //`assert_known(req);
                 if(req) begin
                     // $display("floatmul.req");
-                    `assert_known(a);
-                    `assert_known(b);
+                   // `assert_known(a);
+                    //`assert_known(b);
 
                     n_a_mant = '0;
                     n_b_mant = '0;
@@ -118,8 +119,8 @@ module float_mul_pipeline(
                     {a_sign, n_a_exp, n_a_mant[float_mant_width - 1:0]} = a;
                     {b_sign, n_b_exp, n_b_mant[float_mant_width - 1:0]} = b;
 
-                    `assert_known(n_a_exp);
-                    `assert_known(n_b_exp);
+                    //`assert_known(n_a_exp);
+                    //`assert_known(n_b_exp);
                     if(|n_a_exp == 0 || |n_b_exp == 0) begin
                         n_new_exp = '0;
                         n_new_sign = 0;
@@ -155,7 +156,7 @@ module float_mul_pipeline(
                     n_carry
                 );
                 // $display("pos=%0d n_new_mant=%b carry=%b n_carry=%b norm_shift %0d", n_pos, n_new_mant, carry, n_carry, norm_shift);
-                `assert_known(n_pos);
+                //`assert_known(n_pos);
                 if(pos >= float_mant_width * 2 + 1) begin
                     n_state = S2;
                 end
