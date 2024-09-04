@@ -34,8 +34,23 @@ module computeScorepp(
 		end
 	end
 
-    wire [31:0] mult_result;
-    assign mult_result = absDiff * W_avg / 100;
+    reg [31:0] mult_result;
+	always @(posedge clk or posedge reset) begin
+		if(reset) begin
+			mult_result <= 0;
+		end else begin
+			mult_result <= absDiff * W_avg;
+		end	
+	end
+
+	reg [31:0] div_result;
+	always @(posedge clk or posedge reset) begin
+		if(reset) begin
+			div_result <= 0;
+		end else begin
+			div_result <= mult_result / 100;
+		end	
+	end
 
     wire [4:0] log2_val;
     wire valid;
@@ -47,12 +62,24 @@ module computeScorepp(
 		.valid(valid)
 	); 
 
+	reg [31:0] log2_result;
+	reg valid_result;
+	always @(posedge clk or posedge reset) begin
+		if(reset)begin
+			log2_result <= 0;
+			valid_result <= 0;
+		end else begin
+			log2_result <= log2_val;
+			valid_result <= valid;
+		end	
+	end
+
 	reg [31:0] partialSum;
 	always @(posedge clk or posedge reset) begin
 		if(reset) begin
 			partialSum <= 0;
 		end else begin
-			partialSum <= mult_result + log2_val;	 // >>1 done in ilog2pp.v
+			partialSum <= div_result + log2_result;	 // >>1 done in ilog2pp.v
 		end	
 	end
 
