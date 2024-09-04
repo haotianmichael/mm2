@@ -331,7 +331,7 @@ LogTable256[255] = 4'd7;
     always @(posedge clk or posedge reset) begin
         if(reset) begin
             stage5_log2_intermediate <= 5'b0;
-        end else if() begin
+        end else if(stage1_valid) begin
             stage5_log2_intermediate <= stage3_log2 + stage4_logtable_value;
         end 
     end
