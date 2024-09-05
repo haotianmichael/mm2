@@ -1,5 +1,3 @@
-`include "./float/multiplier.sv"
-
 module computeScorepp(
 	input wire clk,
 	input wire reset,
@@ -11,6 +9,11 @@ module computeScorepp(
 	input wire [31:0] W_avg,
 	output reg [31:0] result
 );
+
+    parameter [31:0] CONST_15 = 32'h3E19999A;  // 15 * 0.01 = 0.15
+    parameter [31:0] CONST_21 = 32'h3E6B851F;  // 21 * 0.01 = 0.21
+    parameter [31:0] CONST_25 = 32'h3E800000;  // 25 * 0.01 = 0.25
+    parameter [31:0] CONST_31 = 32'h3EA1C28F;  // 31 * 0.01 = 0.31
 
     reg [31:0] diffR, diffQ;
 	reg [31:0] tmpRXY, tmpRYX;
@@ -76,13 +79,21 @@ module computeScorepp(
 		end	
 	end
 	
+	/*
+	 @Floating Computing
+		1. specifying FLOATING CONSTANT. 
+		2. INT to 32FLOAT
+		3. FLOAT MULOp
+		4. 32FLOAT to INT
+	 */
 
+	wire ioutput_en, ioutput_z_ack, iinput_a_ack;
     reg [31:0] absDiff, A, min;
 	always @(posedge clk or posedge reset) begin
 		if(reset)begin
 			absDiff <= 32'd0;
 			min <= 32'b0;
-		end else begin
+		end else if(iinput_a_ack)begin
 			if(diffR > diffQ) begin
 				absDiff <= tmp_RQ;
 				min <= diffQ;
@@ -100,35 +111,93 @@ module computeScorepp(
 		end	
 	end
 
-    reg [31:0] mult_result;
-	wire [31:0] mult_result_inter;
-	wire output_en;
-	multiplier mul_uut(
+	wire moutput_en, moutput_z_ack, minput_a_ack, minput_b_ack;
+	reg [31:0] float_W;
+	always @(posedge clk or posedge reset) begin
+		if(reset) begin
+			float_W <= 0;	
+		end else if(minput_b_ack)begin
+			case (W_avg)
+				15:  float_W <= CONST_15;
+				21:  float_W <= CONST_21;
+				25:  float_W <= CONST_25;
+				31:  float_W <= CONST_31;
+				default:  float_W <= CONST_15;
+			endcase
+		end
+	end
+
+	reg [31:0] float_absDiff, float_absDiff_inter;
+	int2float i2fuut(
 		.input_a(absDiff),
-		.input_b(W_avg),
 		.input_a_stb(1'b1),
-		.input_b_stb(1'b1),
+		.output_z_ack(ioutput_z_ack),
 		.clk(clk),
 		.rst(reset),
-		.output_z(mult_result_inter),
-		.output_z_stb(output_en)
+		.output_z(float_absDiff_inter),
+		.input_a_ack(iinput_a_ack),
+		.output_z_stb(ioutput_en)
+	);
+	always @(posedge clk or posedge reset) begin
+		if(reset)begin
+			float_absDiff <= 32'b0;
+			ioutput_z_ack <= 0;
+		end else if(ioutput_en && minput_a_ack)begin
+			float_absDiff <= float_absDiff_inter;
+			ioutput_z_ack <= 1;
+		end else begin
+			float_absDiff <= 32'b0;
+		end
+	end
+
+    reg [31:0] float_mult_result;
+	wire [31:0] float_mult_result_inter;
+	multiplier mul_uut(
+		.input_a(float_absDiff),
+		.input_b(float_W),
+		.input_a_stb(1'b1),
+		.input_b_stb(1'b1),
+		.output_z_ack(moutput_z_ack),
+		.clk(clk),
+		.rst(reset),
+		.output_z(float_mult_result_inter),
+		.output_z_stb(moutput_en),
+		.input_a_ack(minput_a_ack),
+		.input_b_ack(minput_b_ack)
 	);
 	always @(posedge clk or posedge reset) begin
 		if(reset) begin
-			mult_result <= 0;
-		end else if(output_en)begin
-			mult_result <= mult_result_inter;  // W_avg should be larger
+			float_mult_result <= 0;
+			moutput_z_ack <= 0;
+		end else if(moutput_en && finput_a_ack)begin
+			float_mult_result <= float_mult_result_inter;  
+			moutput_z_ack <= 1;
 		end	
 	end
 
-	reg [31:0] div_result;
-	always @(posedge clk or posedge reset) begin
+	wire foutput_en, foutput_z_ack, finput_a_ack;
+	reg [31:0] mult_result_inter, mult_result;
+	float2int f2iuut(
+		.input_a(float_mult_result),
+		.input_a_stb(1'b1),
+		.output_z_ack(foutput_z_ack),
+		.clk(clk),
+		.rst(rst),
+		.output_z(mult_result_inter),
+		.output_z_stb(foutput_en),
+		.input_a_ack(finput_a_ack)
+	);
+	always @(posedge clk ot posedge reset) begin
 		if(reset) begin
-			div_result <= 0;
-		end else begin
-			div_result <= (mult_result >> 6);
+			mult_result <= 0;	
+			foutput_z_ack <= 0l
+		end else if(foutput_en)begin
+			mult_result <= mult_result_inter;
+			foutput_z_ack <= 1;
 		end	
 	end
+
+
 
     wire [4:0] log2_val;
     wire valid;
@@ -157,7 +226,7 @@ module computeScorepp(
 		if(reset) begin
 			partialSum <= 0;
 		end else begin
-			partialSum <= div_result + log2_result;	 // >>1 done in ilog2pp.v
+			partialSum <= mult_result + log2_result;	 // >>1 done in ilog2pp.v
 		end	
 	end
 
