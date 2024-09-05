@@ -1,4 +1,4 @@
-`include "./float/float_mul_pp.sv"
+`include "./float/multiplier.sv"
 
 module computeScorepp(
 	input wire clk,
@@ -101,37 +101,32 @@ module computeScorepp(
 	end
 
     reg [31:0] mult_result;
-	wire [31:0] mult_result_tmp;
-	float_mul_pipeline mul_uut(
+	wire [31:0] mult_result_inter;
+	wire output_en;
+	multiplier mul_uut(
+		.input_a(absDiff),
+		.input_b(W_avg),
+		.input_a_stb(1'b1),
+		.input_b_stb(1'b1),
 		.clk(clk),
 		.rst(reset),
-		.a(absDiff),
-		.b(W_avg),
-		.out(mult_result_tmp)
+		.output_z(mult_result_inter),
+		.output_z_stb(output_en)
 	);
 	always @(posedge clk or posedge reset) begin
 		if(reset) begin
 			mult_result <= 0;
-		end else begin
-			mult_result <= mult_result_tmp;
+		end else if(output_en)begin
+			mult_result <= mult_result_inter;  // W_avg should be larger
 		end	
 	end
 
-	wire [31:0] float_val = 32'b00111100001000111101011100001011;
 	reg [31:0] div_result;
-	wire [31:0] div_result_tmp;
-	float_mul_pipeline mul_uut2(
-		.clk(clk),
-		.rst(reset),
-		.a(mult_result),
-		.b(float_val),
-		.out(div_result_tmp)
-	);
 	always @(posedge clk or posedge reset) begin
 		if(reset) begin
 			div_result <= 0;
 		end else begin
-			div_result <= div_result_tmp;
+			div_result <= (mult_result >> 6);
 		end	
 	end
 
