@@ -87,7 +87,8 @@ module computeScorepp(
 		4. 32FLOAT to INT
 	 */
 
-	wire ioutput_en, ioutput_z_ack, iinput_a_ack;
+	wire ioutput_en, iinput_a_ack;
+	reg ioutput_z_ack;
     reg [31:0] absDiff, A, min;
 	always @(posedge clk or posedge reset) begin
 		if(reset)begin
@@ -111,7 +112,8 @@ module computeScorepp(
 		end	
 	end
 
-	wire moutput_en, moutput_z_ack, minput_a_ack, minput_b_ack;
+	wire moutput_en, minput_a_ack, minput_b_ack;
+	reg moutput_z_ack;
 	reg [31:0] float_W;
 	always @(posedge clk or posedge reset) begin
 		if(reset) begin
@@ -175,7 +177,8 @@ module computeScorepp(
 		end	
 	end
 
-	wire foutput_en, foutput_z_ack, finput_a_ack;
+	wire foutput_en, finput_a_ack;
+	reg foutput_z_ack;
 	reg [31:0] mult_result_inter, mult_result;
 	float2int f2iuut(
 		.input_a(float_mult_result),
@@ -187,10 +190,10 @@ module computeScorepp(
 		.output_z_stb(foutput_en),
 		.input_a_ack(finput_a_ack)
 	);
-	always @(posedge clk ot posedge reset) begin
+	always @(posedge clk or posedge reset) begin
 		if(reset) begin
 			mult_result <= 0;	
-			foutput_z_ack <= 0l
+			foutput_z_ack <= 0;
 		end else if(foutput_en)begin
 			mult_result <= mult_result_inter;
 			foutput_z_ack <= 1;
