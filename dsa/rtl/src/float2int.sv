@@ -2,14 +2,14 @@
 //Copyright (C) Jonathan P Dawson 2013
 //2013-12-12
 module float2int(
-        input [31:0] input_a,
-        input input_a_stb,
-        input output_z_ack,
-        input clk,
-        input rst,
-        output [31:0] output_z,
-        output output_z_stb,
-        output input_a_ack);
+        input wire [31:0] input_a,
+        input wire input_a_stb,
+        input wire output_z_ack,
+        input wire clk,
+        input wire rst,
+        output reg [31:0] output_z,
+        output reg output_z_stb,
+        output reg input_a_ack);
 
   reg       s_output_z_stb;
   reg       [31:0] s_output_z;
