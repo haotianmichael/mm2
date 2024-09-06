@@ -79,22 +79,28 @@ module computeScorepp(
 		end	
 	end
 	
-	/*
+	/**************************************************************
+	 @Computed Value 
+		||riX - riY| - |qiX - qiY||	——> absDiff
+		min{|riX - riY|, |qiX - qiY|, W} ——> min
+
 	 @Floating Computing
 		1. specifying FLOATING CONSTANT. 
 		2. INT to 32FLOAT
 		3. FLOAT MULOp
 		4. 32FLOAT to INT
-	 */
+	**************************************************************/
 
-	wire ioutput_en, iinput_a_ack;
+	wire ioutput_en, iinput_a_ack, iinput_a_stb;
 	reg ioutput_z_ack;
     reg [31:0] absDiff, A, min;
 	always @(posedge clk or posedge reset) begin
 		if(reset)begin
 			absDiff <= 32'd0;
 			min <= 32'b0;
-		end else if(iinput_a_ack)begin
+			iinput_a_stb <= 0;
+		end else if(iinput_a_ack == 0)begin
+			iinput_a_stb <= 0;
 			if(diffR > diffQ) begin
 				absDiff <= tmp_RQ;
 				min <= diffQ;
@@ -132,7 +138,7 @@ module computeScorepp(
 	reg [31:0] float_absDiff, float_absDiff_inter;
 	int2float i2fuut(
 		.input_a(absDiff),
-		.input_a_stb(1'b1),
+		.input_a_stb(iinput_a_stb),
 		.output_z_ack(ioutput_z_ack),
 		.clk(clk),
 		.rst(reset),
