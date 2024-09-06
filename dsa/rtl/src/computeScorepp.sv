@@ -1,6 +1,7 @@
 module computeScorepp(
 	input wire clk,
 	input wire reset,
+	input wire rst_i2f,
 	input wire [31:0] riX,
 	input wire [31:0] riY,
 	input wire [31:0] qiX,
@@ -91,8 +92,8 @@ module computeScorepp(
 		4. 32FLOAT to INT
 	**************************************************************/
 
-	wire ioutput_en, iinput_a_ack, iinput_a_stb;
-	reg ioutput_z_ack;
+	wire ioutput_en, iinput_a_ack;
+	reg iinput_a_stb, ioutput_z_ack;
     reg [31:0] absDiff, A, min;
 	always @(posedge clk or posedge reset) begin
 		if(reset)begin
@@ -100,7 +101,7 @@ module computeScorepp(
 			min <= 32'b0;
 			iinput_a_stb <= 0;
 		end else if(iinput_a_ack == 0)begin
-			iinput_a_stb <= 0;
+			iinput_a_stb <= 1;
 			if(diffR > diffQ) begin
 				absDiff <= tmp_RQ;
 				min <= diffQ;
@@ -141,7 +142,7 @@ module computeScorepp(
 		.input_a_stb(iinput_a_stb),
 		.output_z_ack(ioutput_z_ack),
 		.clk(clk),
-		.rst(reset),
+		.rst(rst_i2f),
 		.output_z(float_absDiff_inter),
 		.input_a_ack(iinput_a_ack),
 		.output_z_stb(ioutput_en)
@@ -150,7 +151,7 @@ module computeScorepp(
 		if(reset)begin
 			float_absDiff <= 32'b0;
 			ioutput_z_ack <= 0;
-		end else if(ioutput_en && minput_a_ack)begin
+		end else if(ioutput_en && minput_a_ack == 0)begin
 			float_absDiff <= float_absDiff_inter;
 			ioutput_z_ack <= 1;
 		end else begin
@@ -167,7 +168,7 @@ module computeScorepp(
 		.input_b_stb(1'b1),
 		.output_z_ack(moutput_z_ack),
 		.clk(clk),
-		.rst(reset),
+		.rst(ioutput_en),
 		.output_z(float_mult_result_inter),
 		.output_z_stb(moutput_en),
 		.input_a_ack(minput_a_ack),
@@ -177,7 +178,7 @@ module computeScorepp(
 		if(reset) begin
 			float_mult_result <= 0;
 			moutput_z_ack <= 0;
-		end else if(moutput_en && finput_a_ack)begin
+		end else if(moutput_en && finput_a_ack == 0)begin
 			float_mult_result <= float_mult_result_inter;  
 			moutput_z_ack <= 1;
 		end	
