@@ -1,7 +1,6 @@
 module computeScorepp(
 	input wire clk,
 	input wire reset,
-	input wire rst_i2f,
 	input wire [31:0] riX,
 	input wire [31:0] riY,
 	input wire [31:0] qiX,
@@ -65,18 +64,73 @@ module computeScorepp(
 
 
 	reg [31:0] tmp_RQ, tmp_QR;
+	reg [31:0] diffQ_prev, diffR_prev;
+	reg i2f;
+	reg state;
+	parameter state0 = 1'b0, state1 = 1'b1;
 	always @(posedge clk or posedge reset) begin
 		if(reset) begin
 			tmp_QR <= 32'b0;
+			i2f <= 0;
+			state <= state0;
 		end else begin
-			tmp_QR <= diffQ - diffR;
+			case (state)
+				state0:  begin
+					if(!(diffQ == 0 && diffR == 0)) begin
+						tmp_QR <= diffQ - diffR;
+						i2f <= 1;
+						diffQ_prev <= diffQ;
+						diffR_prev <= diffR;
+						state <= state1;
+					end else begin
+						state <= state0;
+					end
+				end
+				state1: begin
+					if((diffQ_prev != diffQ) || (diffR_prev != diffR)) begin 
+						tmp_QR <= diffQ - diffR;
+						diffQ_prev <= diffQ;
+						diffR_prev <= diffR;
+						i2f <= 1;
+						state <= state1;
+					end else begin
+						state <= state1;
+					end
+				end
+			endcase
 		end
 	end
 	always @(posedge clk or posedge reset) begin
 		if(reset) begin
 			tmp_RQ <= 32'b0;
+			i2f <= 0;
+			state <= state0;
 		end else begin 
-			tmp_RQ <= diffR - diffQ;
+			case (state)
+				state0:  begin
+					if(!(diffQ == 0 && diffR == 0)) begin
+						tmp_RQ <= diffR - diffQ;
+						i2f <= 1;
+						diffQ_prev <= diffQ;
+						diffR_prev <= diffR;
+						state <= state1;
+					end else begin
+						state <= state0;
+					end
+				end
+				state1: begin
+					if((diffQ_prev != diffQ) || (diffR_prev != diffR)) begin 
+						tmp_RQ <= diffR - diffQ;
+						diffQ_prev <= diffQ;
+						diffR_prev <= diffR;
+						i2f <= 1;
+						state <= state1;
+					end else begin
+						state <= state1;
+					end
+				end
+
+			endcase
 		end	
 	end
 	
@@ -94,14 +148,15 @@ module computeScorepp(
 
 	wire ioutput_en, iinput_a_ack;
 	reg iinput_a_stb, ioutput_z_ack;
-    reg [31:0] absDiff, A, min;
+    reg [31:0] absDiff, min;
 	always @(posedge clk or posedge reset) begin
 		if(reset)begin
 			absDiff <= 32'd0;
 			min <= 32'b0;
 			iinput_a_stb <= 0;
-		end else if(iinput_a_ack == 0)begin
+		end else if(iinput_a_ack == 1 && i2f == 1)begin
 			iinput_a_stb <= 1;
+			i2f <= 0;
 			if(diffR > diffQ) begin
 				absDiff <= tmp_RQ;
 				min <= diffQ;
@@ -111,13 +166,7 @@ module computeScorepp(
 			end
 		end
 	end
-	always @(posedge clk or posedge reset) begin
-		if(reset) begin
-			A <= 32'd0;
-		end else begin
-			A <= (min < W) ? min : W;
-		end	
-	end
+
 
 	wire moutput_en, minput_a_ack, minput_b_ack;
 	reg moutput_z_ack;
@@ -142,7 +191,7 @@ module computeScorepp(
 		.input_a_stb(iinput_a_stb),
 		.output_z_ack(ioutput_z_ack),
 		.clk(clk),
-		.rst(rst_i2f),
+		.rst(reset),
 		.output_z(float_absDiff_inter),
 		.input_a_ack(iinput_a_ack),
 		.output_z_stb(ioutput_en)
@@ -154,8 +203,6 @@ module computeScorepp(
 		end else if(ioutput_en && minput_a_ack == 0)begin
 			float_absDiff <= float_absDiff_inter;
 			ioutput_z_ack <= 1;
-		end else begin
-			float_absDiff <= 32'b0;
 		end
 	end
 
@@ -240,6 +287,14 @@ module computeScorepp(
 		end	
 	end
 
+	reg [31:0] A;
+	always @(posedge clk or posedge reset) begin
+		if(reset) begin
+			A <= 32'd0;
+		end else begin
+			A <= (min < W) ? min : W;
+		end	
+	end
 	reg [31:0] B;
 	always @(posedge clk or posedge reset) begin
 		if(reset) begin

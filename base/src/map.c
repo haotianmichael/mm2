@@ -266,7 +266,7 @@ static mm128_t *collect_seed_hits(void *km, const mm_mapopt_t *opt, int max_occ,
 			if (is_self) p->y |= MM_SEED_SELF;
 		}
 	}
-
+	/*
 	if (opt->chain_dump_in.fp || opt->chain_dump_out.fp) {
         pthread_mutex_lock(&(opt->chain_dump_in.mutex));
         pthread_mutex_lock(&opt->chain_dump_out.mutex);
@@ -295,7 +295,7 @@ static mm128_t *collect_seed_hits(void *km, const mm_mapopt_t *opt, int max_occ,
         }
         pthread_mutex_unlock(&(opt->chain_dump_in.mutex));
         pthread_mutex_unlock(&opt->chain_dump_out.mutex);
-    }
+    }*/
 	kfree(km, m);
 	radix_sort_128x(a, a + (*n_a));
 	return a;
