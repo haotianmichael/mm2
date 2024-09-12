@@ -97,7 +97,7 @@ module computeScorepp(
 	always @(posedge clk or posedge reset) begin
 		if(reset) begin
 			mult_result <= 0;	
-		end else if(foutput_en)begin
+		end else begin
 			mult_result <= (absDiff >> 3) + (absDiff >> 6) + (absDiff >> 7);
 		end	
 	end
