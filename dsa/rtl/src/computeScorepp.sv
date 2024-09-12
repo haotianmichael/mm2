@@ -10,11 +10,7 @@ module computeScorepp(
 	output reg [31:0] result
 );
 
-    parameter [31:0] CONST_15 = 32'h3E19999A;  // 15 * 0.01 = 0.15
-    parameter [31:0] CONST_21 = 32'h3E6B851F;  // 21 * 0.01 = 0.21
-    parameter [31:0] CONST_25 = 32'h3E800000;  // 25 * 0.01 = 0.25
-    parameter [31:0] CONST_31 = 32'h3EA1C28F;  // 31 * 0.01 = 0.31
-
+  
     reg [31:0] diffR, diffQ;
 	reg [31:0] tmpRXY, tmpRYX;
 	always @(posedge clk or posedge reset) begin
@@ -64,99 +60,28 @@ module computeScorepp(
 
 
 	reg [31:0] tmp_RQ, tmp_QR;
-	reg [31:0] diffQ_prev, diffR_prev;
-	reg i2f;
-	reg state;
-	parameter state0 = 1'b0, state1 = 1'b1;
 	always @(posedge clk or posedge reset) begin
 		if(reset) begin
 			tmp_QR <= 32'b0;
-			i2f <= 0;
-			state <= state0;
 		end else begin
-			case (state)
-				state0:  begin
-					if(!(diffQ == 0 && diffR == 0)) begin
-						tmp_QR <= diffQ - diffR;
-						i2f <= 1;
-						diffQ_prev <= diffQ;
-						diffR_prev <= diffR;
-						state <= state1;
-					end else begin
-						state <= state0;
-					end
-				end
-				state1: begin
-					if((diffQ_prev != diffQ) || (diffR_prev != diffR)) begin 
-						tmp_QR <= diffQ - diffR;
-						diffQ_prev <= diffQ;
-						diffR_prev <= diffR;
-						i2f <= 1;
-						state <= state1;
-					end else begin
-						state <= state1;
-					end
-				end
-			endcase
+			tmp_QR <= diffQ - diffR;	
 		end
 	end
 	always @(posedge clk or posedge reset) begin
 		if(reset) begin
 			tmp_RQ <= 32'b0;
-			i2f <= 0;
-			state <= state0;
 		end else begin 
-			case (state)
-				state0:  begin
-					if(!(diffQ == 0 && diffR == 0)) begin
-						tmp_RQ <= diffR - diffQ;
-						i2f <= 1;
-						diffQ_prev <= diffQ;
-						diffR_prev <= diffR;
-						state <= state1;
-					end else begin
-						state <= state0;
-					end
-				end
-				state1: begin
-					if((diffQ_prev != diffQ) || (diffR_prev != diffR)) begin 
-						tmp_RQ <= diffR - diffQ;
-						diffQ_prev <= diffQ;
-						diffR_prev <= diffR;
-						i2f <= 1;
-						state <= state1;
-					end else begin
-						state <= state1;
-					end
-				end
-
-			endcase
+			tmp_RQ <= diffR - diffQ;	
 		end	
 	end
 	
-	/**************************************************************
-	 @Computed Value 
-		||riX - riY| - |qiX - qiY||	——> absDiff
-		min{|riX - riY|, |qiX - qiY|, W} ——> min
 
-	 @Floating Computing
-		1. specifying FLOATING CONSTANT. 
-		2. INT to 32FLOAT
-		3. FLOAT MULOp
-		4. 32FLOAT to INT
-	**************************************************************/
-
-	wire ioutput_en, iinput_a_ack;
-	reg iinput_a_stb, ioutput_z_ack;
     reg [31:0] absDiff, min;
 	always @(posedge clk or posedge reset) begin
 		if(reset)begin
 			absDiff <= 32'd0;
 			min <= 32'b0;
-			iinput_a_stb <= 0;
-		end else if(iinput_a_ack == 1 && i2f == 1)begin
-			iinput_a_stb <= 1;
-			i2f <= 0;
+		end else begin
 			if(diffR > diffQ) begin
 				absDiff <= tmp_RQ;
 				min <= diffQ;
@@ -168,92 +93,14 @@ module computeScorepp(
 	end
 
 
-	wire moutput_en, minput_a_ack, minput_b_ack;
-	reg moutput_z_ack;
-	reg [31:0] float_W;
-	always @(posedge clk or posedge reset) begin
-		if(reset) begin
-			float_W <= 0;	
-		end else if(minput_b_ack)begin
-			case (W_avg)
-				15:  float_W <= CONST_15;
-				21:  float_W <= CONST_21;
-				25:  float_W <= CONST_25;
-				31:  float_W <= CONST_31;
-				default:  float_W <= CONST_15;
-			endcase
-		end
-	end
-
-	reg [31:0] float_absDiff, float_absDiff_inter;
-	int2float i2fuut(
-		.input_a(absDiff),
-		.input_a_stb(iinput_a_stb),
-		.output_z_ack(ioutput_z_ack),
-		.clk(clk),
-		.rst(reset),
-		.output_z(float_absDiff_inter),
-		.input_a_ack(iinput_a_ack),
-		.output_z_stb(ioutput_en)
-	);
-	always @(posedge clk or posedge reset) begin
-		if(reset)begin
-			float_absDiff <= 32'b0;
-			ioutput_z_ack <= 0;
-		end else if(ioutput_en && minput_a_ack == 0)begin
-			float_absDiff <= float_absDiff_inter;
-			ioutput_z_ack <= 1;
-		end
-	end
-
-    reg [31:0] float_mult_result;
-	wire [31:0] float_mult_result_inter;
-	multiplier mul_uut(
-		.input_a(float_absDiff),
-		.input_b(float_W),
-		.input_a_stb(1'b1),
-		.input_b_stb(1'b1),
-		.output_z_ack(moutput_z_ack),
-		.clk(clk),
-		.rst(ioutput_en),
-		.output_z(float_mult_result_inter),
-		.output_z_stb(moutput_en),
-		.input_a_ack(minput_a_ack),
-		.input_b_ack(minput_b_ack)
-	);
-	always @(posedge clk or posedge reset) begin
-		if(reset) begin
-			float_mult_result <= 0;
-			moutput_z_ack <= 0;
-		end else if(moutput_en && finput_a_ack == 0)begin
-			float_mult_result <= float_mult_result_inter;  
-			moutput_z_ack <= 1;
-		end	
-	end
-
-	wire foutput_en, finput_a_ack;
-	reg foutput_z_ack;
-	reg [31:0] mult_result_inter, mult_result;
-	float2int f2iuut(
-		.input_a(float_mult_result),
-		.input_a_stb(1'b1),
-		.output_z_ack(foutput_z_ack),
-		.clk(clk),
-		.rst(rst),
-		.output_z(mult_result_inter),
-		.output_z_stb(foutput_en),
-		.input_a_ack(finput_a_ack)
-	);
+	reg [31:0] mult_result;
 	always @(posedge clk or posedge reset) begin
 		if(reset) begin
 			mult_result <= 0;	
-			foutput_z_ack <= 0;
 		end else if(foutput_en)begin
-			mult_result <= mult_result_inter;
-			foutput_z_ack <= 1;
+			mult_result <= (absDiff >> 3) + (absDiff >> 6) + (absDiff >> 7);
 		end	
 	end
-
 
 
     wire [4:0] log2_val;

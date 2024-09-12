@@ -1,1 +1,5 @@
-` dc_shell -no_log -f dc_synthesis.tcl
+# Design Compiler 
+` dc_shell -no_log -f dc_synthesis.tcl 
+
+# OpenROAD
+

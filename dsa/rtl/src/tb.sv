@@ -2,13 +2,12 @@ module tb;
 
 	reg [31:0] riX, riY, qiX, qiY, W, W_avg;
 	wire [31:0] result;
-	reg clk, reset, rst_i2f;
+	reg clk, reset;
 	reg [7:0] cycle_count;
 
 
 	computeScorepp uut(
     .clk(clk),
-	.rst_i2f(rst_i2f),
     .reset(reset),
 		.riX(riX),
 		.riY(riY),
@@ -20,7 +19,6 @@ module tb;
 	);
 
 	initial begin
-
 		clk = 0;
 	    reset = 0;
 	end
@@ -38,10 +36,6 @@ module tb;
 		W = 32'd40;
 		W_avg = 32'd40;
 		cycle_count = 0;
-		#35;   // for take the tmp_RQ at the right timing.
-		rst_i2f = 1;
-		#20;
-		rst_i2f = 0;
 		$display("Cycle: %d, Result: %d", cycle_count, result);
 
 		@(posedge clk);
