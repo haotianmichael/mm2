@@ -9,7 +9,7 @@ module computeScorepp(
 	input wire [31:0] W_avg,
 	output reg [31:0] result
 );
-
+	import floatTb::*;
   
     reg [31:0] diffR, diffQ;
 	reg [31:0] tmpRXY, tmpRYX;
@@ -76,7 +76,7 @@ module computeScorepp(
 	end
 	
 
-    reg [31:0] absDiff, min;
+    reg [15:0] absDiff, min;
 	always @(posedge clk or posedge reset) begin
 		if(reset)begin
 			absDiff <= 32'd0;
@@ -93,12 +93,12 @@ module computeScorepp(
 	end
 
 
-	reg [31:0] mult_result;
+	reg [15:0] mult_result;
 	always @(posedge clk or posedge reset) begin
 		if(reset) begin
 			mult_result <= 0;	
 		end else begin
-			mult_result <= (absDiff >> 3) + (absDiff >> 6) + (absDiff >> 7);
+			mult_result <= floatTable[absDiff];
 		end	
 	end
 
