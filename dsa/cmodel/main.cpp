@@ -1,4 +1,5 @@
 #include <systemc.h>
+#include <iostream>
 #include "sc.h"
 
 

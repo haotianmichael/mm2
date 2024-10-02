@@ -1,16 +1,21 @@
-#ifndef ScCompute_MODULE_H
-#define ScCompute_MODULE_H
+#ifndef ScCompute_H
+#define ScCompute_H
 
 #include <systemc.h>
-#include <iostream>
+#define WIDTH 32
 
 SC_MODULE(ScCompute) {
 
+    sc_in<bool> clk, rst;
+    sc_in<sc_int<WIDTH> > riX, riY, qiX, qiY;
+    sc_in<sc_int<WIDTH> > W, W_avg;
+    sc_out<sc_int<WIDTH> > result;
+
     SC_CTOR(ScCompute) {
-        SC_THREAD(process);
+        SC_METHOD(compute);
     }
 
-    void process();
+    void compute();
 
 };
 
