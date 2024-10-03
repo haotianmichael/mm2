@@ -2,7 +2,10 @@
 #include "ilog2.h"
 
 SC_MODULE(Tb) {
-    /*Signal Generator For Testing Simulator-Module*/
+/*
+    Ilog2 Module:
+        @generate result after 7cycles of input (same as rtl-version)
+*/
     sc_in<bool> clk;
     sc_out<bool> reset;
     sc_out<sc_uint<32>> input_signal;

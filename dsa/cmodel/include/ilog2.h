@@ -23,8 +23,7 @@ SC_MODULE(ilog2) {
     sc_signal<sc_uint<5> > stage4_logtable_value;
     sc_signal<sc_uint<5> > stage5_log2;
    
-    sc_signal<sc_uint<4> > LogTable256[256];
-    /*= {
+    sc_uint<4>  LogTable256[256] = {
         0, 0, 1, 1, 2, 2, 2, 2,
         3, 3, 3, 3, 3, 3, 3, 3,
         4, 4, 4, 4, 4, 4, 4, 4,
@@ -57,34 +56,34 @@ SC_MODULE(ilog2) {
         7, 7, 7, 7, 7, 7, 7, 7,
         7, 7, 7, 7, 7, 7, 7, 7,
         7, 7, 7, 7, 7, 7, 7, 7
-    };*/
+    };
 
     SC_CTOR(ilog2) {
         SC_THREAD(initialize);
         sensitive_pos << clk;
-        sensitive_pos << rst;
+        async_reset_signal_is(rst, true);
 
         SC_THREAD(stage1);
         sensitive_pos << clk;
-        sensitive_pos << rst;
+        async_reset_signal_is(rst, true);
 
         SC_THREAD(stage2);
         sensitive_pos << clk;
-        sensitive_pos << rst;
+        async_reset_signal_is(rst, true);
 
         SC_THREAD(stage3);
         sensitive_pos << clk;
-        sensitive_pos << rst;
+        async_reset_signal_is(rst, true);
 
         SC_THREAD(stage4);
         sensitive_pos << clk;
-        sensitive_pos << rst;
+        async_reset_signal_is(rst, true);
 
         SC_THREAD(end);
         sensitive_pos << clk;
-        sensitive_pos << rst;
+        async_reset_signal_is(rst, true);
 
-        // initialize LUT
+/*       
 LogTable256[0] = 0;
 LogTable256[1] = 0;
 LogTable256[2] = 1;
@@ -342,6 +341,7 @@ LogTable256[253] = 7;
 LogTable256[254] = 7;
 LogTable256[255] = 7;
 }
+*/
 
     void initialize();
     void stage1();

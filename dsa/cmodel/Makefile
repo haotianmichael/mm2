@@ -3,7 +3,7 @@ CXX = g++-11
 CXXFLAGS = -I$(SYSTEMC_HOME)/include -I./include -L$(SYSTEMC_HOME)/lib-linux64 -lsystemc -lm
 
 # Source File and Target File
-SRCS = $(wildcard *.cpp)
+SRCS = $(wildcard src/*.cpp)
 OBJS = $(SRCS:.cpp=.o)
 
 #  Executable FileName
