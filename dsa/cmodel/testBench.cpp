@@ -26,7 +26,9 @@ SC_MODULE(Tb) {
         reset.write(0);
         wait(5, SC_NS);
         reset.write(1);
-        wait(100, SC_NS); 
+        wait(10, SC_NS); 
+        reset.write(0);
+        wait(100, SC_NS);
     }
 
 };
