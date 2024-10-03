@@ -112,13 +112,13 @@ void ScCompute::abs() {
 }
 
 
-void ScCompute::mult() {
+void ScCompute::get_mult() {
     while(true) {
         wait();
         if(rst.read()) {
             mult.write(0);
         }else {
-            mult.write(flut.read_value(absDiff.read()));
+            mult.write(flut->FLUT[absDiff.read()]);
         }
     }
 }
@@ -140,7 +140,7 @@ void ScCompute::get_partialSum() {
         if(rst.read()) {
             partialSum.write(0);
         }else {
-            partialSum.write(mult.read() + log2_res.read());
+            partialSum.write(mult.read() + log_res.read());
         }
     }
 }
@@ -164,7 +164,7 @@ void ScCompute::getB() {
         if(rst.read()) {
             B.write(0);
         }else {
-            B.write((absDiff.read() == 0) ? 0 : partialSum);
+            B.write((absDiff.read() == 0) ? sc_dt::sc_uint<32>(0) : partialSum);
         }
     }
 }

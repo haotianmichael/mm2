@@ -16,7 +16,7 @@ all: $(TARGET)
 $(TARGET): $(OBJS)
 	$(CXX) -o $@ $^ $(CXXFLAGS)
 
-%.o: %.cpp
+%.o: src/%.cpp
 	$(CXX) -c $< $(CXXFLAGS)
 
 clean:

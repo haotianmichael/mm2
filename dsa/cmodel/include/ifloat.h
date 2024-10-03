@@ -5,7 +5,7 @@
 
 SC_MODULE(FloatLUT) {
 
-    sc_uint<16> FLUT[5000] = {
+    sc_uint<16> FLUT[5001] = {
 0, 0, 0, 0, 0, 0, 0, 1, 1, 1,
 1, 1, 1, 1, 2, 2, 2, 2, 2, 2,
 3, 3, 3, 3, 3, 3, 3, 4, 4, 4,
@@ -509,16 +509,8 @@ SC_MODULE(FloatLUT) {
 750
 };
     SC_CTOR(FloatLUT) {
-        SC_METHOD(read_value);
     }
-
-    sc_uint<16> read_value(int index){
-        if(index >= 0 && index <= 5000) {
-            return FLUT[index]; 
-        }else {
-            return -1;
-        }
-    }
+  
 };
 
 #endif

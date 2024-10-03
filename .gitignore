@@ -14,3 +14,4 @@ gem5/*img
 gem5/Minor
 gem5/DMinor
 third-party/
+.vscode/

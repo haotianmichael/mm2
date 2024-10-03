@@ -82,7 +82,7 @@ SC_MODULE(ilog2) {
         SC_THREAD(end);
         sensitive_pos << clk;
         async_reset_signal_is(rst, true);
-
+    }
 /*       
 LogTable256[0] = 0;
 LogTable256[1] = 0;

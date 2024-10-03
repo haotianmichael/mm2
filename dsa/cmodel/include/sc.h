@@ -9,9 +9,9 @@
 SC_MODULE(ScCompute) {
 
     sc_in<bool> clk, rst;
-    sc_in<sc_int<WIDTH> > riX, riY, qiX, qiY;
-    sc_in<sc_int<WIDTH> > W, W_avg;
-    sc_out<sc_int<WIDTH> > result;
+    sc_in<sc_uint<WIDTH> > riX, riY, qiX, qiY;
+    sc_in<sc_uint<WIDTH> > W, W_avg;
+    sc_out<sc_uint<WIDTH> > result;
 
     /*pipeline port*/
     sc_signal<sc_uint<WIDTH> > tmpRXY, tmpRYX;
@@ -25,12 +25,12 @@ SC_MODULE(ScCompute) {
     void gapQ();
 
     sc_signal<sc_uint<WIDTH> > tmpQR, tmpRQ;
-    sc_signal<sc_uint<16> >  absDiff, min;
+    sc_signal<sc_uint<WIDTH> >  absDiff, min;
     sc_signal<sc_uint<16> > mult;
     void tQR();
     void tRQ();
     void abs();
-    void mult();
+    void get_mult();
 
 
     sc_signal<sc_uint<5> > log2_val;
@@ -51,8 +51,8 @@ SC_MODULE(ScCompute) {
 
         /*ilog2*/
         ilog2_cal = new ilog2("Log2Calculator");
-        ilog2_cal.clk(clk);
-        ilog2_cal.rst(rst);
+        ilog2_cal->clk(clk);
+        ilog2_cal->rst(rst);
         ilog2_cal->in(absDiff);
         ilog2_cal->outlog2(log2_val);
 
@@ -60,48 +60,48 @@ SC_MODULE(ScCompute) {
         flut = new FloatLUT("FloatLookUpTable"); 
 
 
-        SC_THREAD(rXY());
+        SC_THREAD(rXY);
         sensitive_pos << clk;
         async_reset_signal_is(rst, true); 
 
-        SC_THREAD(rYX());
+        SC_THREAD(rYX);
         sensitive_pos << clk;
         async_reset_signal_is(rst, true); 
 
-        SC_THREAD(gapR());
+        SC_THREAD(gapR);
         sensitive_pos << clk;
         async_reset_signal_is(rst, true); 
 
-        SC_THREAD(qXY());
+        SC_THREAD(qXY);
         sensitive_pos << clk;
         async_reset_signal_is(rst, true); 
 
-        SC_THREAD(qXY());
+        SC_THREAD(qYX);
         sensitive_pos << clk;
         async_reset_signal_is(rst, true); 
 
 
-        SC_THREAD(gapQ());
+        SC_THREAD(gapQ);
         sensitive_pos << clk;
         async_reset_signal_is(rst, true); 
 
-        SC_THREAD(tRQ());
+        SC_THREAD(tRQ);
         sensitive_pos << clk;
         async_reset_signal_is(rst, true); 
 
-        SC_THREAD(tQR());
+        SC_THREAD(tQR);
         sensitive_pos << clk;
         async_reset_signal_is(rst, true); 
 
-        SC_THREAD(abs());
+        SC_THREAD(abs);
         sensitive_pos << clk;
         async_reset_signal_is(rst, true); 
 
-        SC_THREAD(mult());
+        SC_THREAD(get_mult);
         sensitive_pos << clk;
         async_reset_signal_is(rst, true); 
 
-        SC_THREAD(log_result());
+        SC_THREAD(get_log);
         sensitive_pos << clk;
         async_reset_signal_is(rst, true); 
 

@@ -3,8 +3,8 @@
 
 SC_MODULE(Tb) {
 /*
-    Ilog2 Module:
-        @generate result after 7cycles of input (same as rtl-version)
+    ScComupte Module:
+        @generate result after 15cycles of input (same as rtl-version)
 */
     sc_in<bool> clk;
     sc_out<bool> reset;
