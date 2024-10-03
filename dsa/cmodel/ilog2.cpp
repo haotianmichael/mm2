@@ -47,7 +47,7 @@ void ilog2::stage3() {
     if(rst.read()) {
         stage4_logtable_value.write(0);
     }else if(valid){
-        stage4_logtable_value.write(LogTable256[stage3_indx].read());
+        stage4_logtable_value.write(LogTable256[stage3_indx.read()].read());
     }
 }
 

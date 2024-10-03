@@ -36,7 +36,7 @@ SC_MODULE(Top) {
     }
 
     ~Top() {
-        delete pipeline; // 释放内存
+        delete ilog2_cal; // 释放内存
     }
 };
 
