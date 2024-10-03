@@ -60,32 +60,74 @@ SC_MODULE(ilog2) {
     };*/
 
     SC_CTOR(ilog2) {
-        SC_METHOD(initialize);
+        SC_THREAD(initialize);
         sensitive_pos << clk;
         sensitive_pos << rst;
 
-        SC_METHOD(stage1);
+        SC_THREAD(stage1);
         sensitive_pos << clk;
         sensitive_pos << rst;
 
-        SC_METHOD(stage2);
+        SC_THREAD(stage2);
         sensitive_pos << clk;
         sensitive_pos << rst;
 
-        SC_METHOD(stage3);
+        SC_THREAD(stage3);
         sensitive_pos << clk;
         sensitive_pos << rst;
 
-        SC_METHOD(stage4);
+        SC_THREAD(stage4);
         sensitive_pos << clk;
         sensitive_pos << rst;
 
-        SC_METHOD(end);
+        SC_THREAD(end);
         sensitive_pos << clk;
         sensitive_pos << rst;
 
         // initialize LUT
-LogTable256[0] = 0; LogTable256[1] = 0; LogTable256[2] = 1; LogTable256[3] = 1; LogTable256[4] = 2; LogTable256[5] = 2; LogTable256[6] = 2; LogTable256[7] = 2; LogTable256[8] = 3; LogTable256[9] = 3; LogTable256[10] = 3; LogTable256[11] = 3; LogTable256[12] = 3; LogTable256[13] = 3; LogTable256[14] = 3; LogTable256[15] = 3; LogTable256[16] = 4; LogTable256[17] = 4; LogTable256[18] = 4; LogTable256[19] = 4; LogTable256[20] = 4; LogTable256[21] = 4; LogTable256[22] = 4; LogTable256[23] = 4; LogTable256[24] = 4; LogTable256[25] = 4; LogTable256[26] = 4; LogTable256[27] = 4; LogTable256[28] = 4; LogTable256[29] = 4; LogTable256[30] = 4; LogTable256[31] = 4; LogTable256[32] = 5; LogTable256[33] = 5; LogTable256[34] = 5; LogTable256[35] = 5; LogTable256[36] = 5; LogTable256[37] = 5; LogTable256[38] = 5; LogTable256[39] = 5; LogTable256[40] = 5; LogTable256[41] = 5; LogTable256[42] = 5;
+LogTable256[0] = 0;
+LogTable256[1] = 0;
+LogTable256[2] = 1;
+LogTable256[3] = 1; 
+LogTable256[4] = 2; 
+LogTable256[5] = 2; 
+LogTable256[6] = 2; 
+LogTable256[7] = 2; 
+LogTable256[8] = 3; 
+LogTable256[9] = 3; 
+LogTable256[10] = 3; 
+LogTable256[11] = 3; 
+LogTable256[12] = 3; 
+LogTable256[13] = 3; 
+LogTable256[14] = 3; 
+LogTable256[15] = 3; 
+LogTable256[16] = 4; 
+LogTable256[17] = 4; 
+LogTable256[18] = 4;
+LogTable256[19] = 4; 
+LogTable256[20] = 4; 
+LogTable256[21] = 4; 
+LogTable256[22] = 4; 
+LogTable256[23] = 4; 
+LogTable256[24] = 4; 
+LogTable256[25] = 4; 
+LogTable256[26] = 4; 
+LogTable256[27] = 4; 
+LogTable256[28] = 4; 
+LogTable256[29] = 4; 
+LogTable256[30] = 4; 
+LogTable256[31] = 4; 
+LogTable256[32] = 5; 
+LogTable256[33] = 5;
+LogTable256[34] = 5; 
+LogTable256[35] = 5; 
+LogTable256[36] = 5; 
+LogTable256[37] = 5; 
+LogTable256[38] = 5; 
+LogTable256[39] = 5; 
+LogTable256[40] = 5; 
+LogTable256[41] = 5; 
+LogTable256[42] = 5;
 LogTable256[43] = 5;
 LogTable256[44] = 5;
 LogTable256[45] = 5;

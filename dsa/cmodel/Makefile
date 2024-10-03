@@ -1,26 +1,24 @@
-# 编译器和编译选项
+# Compiler And Flag
 CXX = g++-11
 CXXFLAGS = -I$(SYSTEMC_HOME)/include -I./include -L$(SYSTEMC_HOME)/lib-linux64 -lsystemc -lm
 
-# 源文件和目标文件
+# Source File and Target File
 SRCS = $(wildcard *.cpp)
 OBJS = $(SRCS:.cpp=.o)
 
-# 可执行文件名
+#  Executable FileName
 TARGET = simChain
 
-# 默认目标
+# Default Targe 
 all: $(TARGET)
 
-# 链接目标
+# Linking Target
 $(TARGET): $(OBJS)
 	$(CXX) -o $@ $^ $(CXXFLAGS)
 
-# 编译源文件
 %.o: %.cpp
 	$(CXX) -c $< $(CXXFLAGS)
 
-# 清理目标
 clean:
 	rm -f $(OBJS) $(TARGET)
 
