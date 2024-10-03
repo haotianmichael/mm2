@@ -1,0 +1,9 @@
+# Simulator for mm2Chain
+* Build: Makefile
+* Env: SystemC3.0.0
+* Simulation: GTKWave 
+
+# Usage
+make  
+./simChain
+gtkwave wave.vcd

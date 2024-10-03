@@ -46,6 +46,7 @@ int sc_main(int argc, char* argv[]) {
     ilog2_cal.clk(clk);
     ilog2_cal.rst(rst);
     ilog2_cal.in(input);
+    ilog2_cal.outlog2(output);
 
     Tb tb("Tb");
     tb.clk(clk);
