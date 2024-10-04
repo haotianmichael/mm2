@@ -61,64 +61,64 @@ SC_MODULE(ScCompute) {
 
 
         SC_THREAD(rXY);
-        sensitive_pos << clk;
+        sensitive << clk.pos();
         async_reset_signal_is(rst, true); 
 
         SC_THREAD(rYX);
-        sensitive_pos << clk;
+        sensitive << clk.pos();
         async_reset_signal_is(rst, true); 
 
         SC_THREAD(gapR);
-        sensitive_pos << clk;
+        sensitive << clk.pos();
         async_reset_signal_is(rst, true); 
 
         SC_THREAD(qXY);
-        sensitive_pos << clk;
+        sensitive << clk.pos();
         async_reset_signal_is(rst, true); 
 
         SC_THREAD(qYX);
-        sensitive_pos << clk;
+        sensitive << clk.pos();
         async_reset_signal_is(rst, true); 
 
 
         SC_THREAD(gapQ);
-        sensitive_pos << clk;
+        sensitive << clk.pos();
         async_reset_signal_is(rst, true); 
 
         SC_THREAD(tRQ);
-        sensitive_pos << clk;
+        sensitive << clk.pos();
         async_reset_signal_is(rst, true); 
 
         SC_THREAD(tQR);
-        sensitive_pos << clk;
+        sensitive << clk.pos();
         async_reset_signal_is(rst, true); 
 
         SC_THREAD(abs);
-        sensitive_pos << clk;
+        sensitive << clk.pos();
         async_reset_signal_is(rst, true); 
 
         SC_THREAD(get_mult);
-        sensitive_pos << clk;
+        sensitive << clk.pos();
         async_reset_signal_is(rst, true); 
 
         SC_THREAD(get_log);
-        sensitive_pos << clk;
+        sensitive << clk.pos();
         async_reset_signal_is(rst, true); 
 
         SC_THREAD(get_partialSum);
-        sensitive_pos << clk;
+        sensitive << clk.pos();
         async_reset_signal_is(rst, true);
 
         SC_THREAD(getA);
-        sensitive_pos << clk;
+        sensitive << clk.pos();
         async_reset_signal_is(rst, true);
 
         SC_THREAD(getB);
-        sensitive_pos << clk;
+        sensitive << clk.pos();
         async_reset_signal_is(rst, true);
 
         SC_THREAD(compute);
-        sensitive_pos << clk;
+        sensitive << clk.pos();
         async_reset_signal_is(rst, true);
 
     }
