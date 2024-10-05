@@ -6,7 +6,7 @@
 #include "sc.h"
 #include "inputgenerator.h"
 
-#define RegFileNum 65
+#define RegFileNum 64
 
 /*Anchor (do only within one read)*/
 SC_MODULE(Anchor) {
@@ -24,7 +24,17 @@ SC_MODULE(Comparator) {
     sc_in<sc_uint<WIDTH> > cmpA, cmpB;
     sc_out<sc_uint<WIDTH> > bigger;
 
-    void compare();
+    void compare(){
+          while(true) {
+             wait();
+            if(rst.read()) {
+                 bigger.write(0);
+            }else {
+                 bigger.write(cmpA.read() > cmpB.read() 
+                    ? cmpA.read() : cmpB.read());
+            }
+        } 
+    }
     SC_CTOR(Comparator) {
         SC_THREAD(compare);
         sensitive << clk.pos();
@@ -36,7 +46,7 @@ SC_MODULE(HLane) {
     
     sc_in<bool> clk, rst;
     sc_in<sc_int<32> > id;   // Id of each Lane within one HCU (1-65)
-    sc_in<sc_uint<32> > cmpA;  // input of this lane's  comparator
+    sc_in<sc_uint<32> > lastCmp;  // input of this lane's  comparator
     sc_out<sc_uint<WIDTH> > biggerScore;  // output of this lane/input of next lane's comparator
     sc_signal<sc_uint<WIDTH> > computeResult; // result of ScCompute
 
@@ -66,15 +76,8 @@ SC_MODULE(HLane) {
         comparator = new Comparator("comparator");
         comparator->clk(clk);
         comparator->rst(rst);
-        if(id.read() == 0) {
-            comparator->cmpA(computeResult);
-            sc_signal<sc_uint<32> > tmp_cmpB;
-            comparator->cmpB(tmp_cmpB);
-            tmp_cmpB.write(static_cast<sc_uint<WIDTH> >(-1));
-        }else {
-            comparator->cmpA(computeResult);
-            comparator->cmpB(cmpA);
-        }
+        comparator->cmpA(computeResult);
+        comparator->cmpB(lastCmp);
         comparator->bigger(biggerScore);
 
         SC_THREAD(process);
@@ -88,11 +91,16 @@ SC_MODULE(HLane) {
 SC_MODULE(HCU) {
 
     sc_in<bool> clk, rst;
-    sc_in<sc_uint<WIDTH> > inArray[RegFileNum];
-    sc_out<sc_uint<WIDTH> > outArray[RegFileNum];
+    sc_in<sc_uint<WIDTH> > riXArray[RegFileNum + 1];
+    sc_in<sc_uint<WIDTH> > riYArray[RegFileNum + 1];
+    sc_in<sc_uint<WIDTH> > qiXArray[RegFileNum + 1];
+    sc_in<sc_uint<WIDTH> > qiYArray[RegFileNum + 1];
+    sc_in<sc_uint<WIDTH> > W;
+    sc_out<sc_uint<WIDTH> > Hout;
 
+    /* HCU has 64 Lane, 65 InputAnchor*/
     HLane* hlane[RegFileNum];
-    InputGenerator* inputGenerator; 
+    //InputGenerator* inputGenerator; 
 
 
     SC_CTOR(HCU){}
