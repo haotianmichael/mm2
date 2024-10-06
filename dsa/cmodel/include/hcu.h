@@ -5,7 +5,7 @@
 #include <string.h>
 #include "sc.h"
 
-#define RegFileNum 64
+#define LaneWIDTH  64
 
 /*Anchor (do only within one read)*/
 SC_MODULE(Anchor) {
@@ -90,15 +90,13 @@ SC_MODULE(HLane) {
 SC_MODULE(HCU) {
 
     sc_in<bool> clk, rst;
-    sc_in<sc_uint<WIDTH> > riArray[RegFileNum + 1];
-    sc_in<sc_uint<WIDTH> > qiArray[RegFileNum + 1];
+    sc_in<sc_uint<WIDTH> > riArray[LaneWIDTH + 1];
+    sc_in<sc_uint<WIDTH> > qiArray[LaneWIDTH + 1];
     sc_in<sc_uint<WIDTH> > W;
     sc_out<sc_uint<WIDTH> > Hout;
 
     /* HCU has 64 Lane, 65 InputAnchor*/
-    HLane* hlane[RegFileNum];
-    //InputGenerator* inputGenerator; 
-
+    HLane* hlane[LaneWIDTH];
 
     SC_CTOR(HCU){}
 };

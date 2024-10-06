@@ -7,9 +7,9 @@ int sc_main(int argc, char* argv[]) {
     sc_clock clk("clk", 10, SC_NS);
     sc_signal<bool> rst;
 
-    sc_signal<sc_uint<32> > ri[WIDTH];
-    sc_signal<sc_uint<32> > qi[WIDTH];
-    sc_signal<sc_uint<32> > w[WIDTH];
+    sc_signal<sc_uint<32> > ri[InputLaneWIDTH];
+    sc_signal<sc_uint<32> > qi[InputLaneWIDTH];
+    sc_signal<sc_uint<32> > w[InputLaneWIDTH];
     sc_signal<sc_uint<32> > result;
 
     sc_trace_file *fp;   // Create VCD file
@@ -19,7 +19,7 @@ int sc_main(int argc, char* argv[]) {
     InputGenerator ing("InputGenerator");    
     ing.clk(clk);
     ing.rst(rst);
-    for(int i = 0; i < WIDTH; i ++) {
+    for(int i = 0; i < InputLaneWIDTH; i ++) {
         ing.ri_out[i](ri[i]);
         ing.qi_out[i](qi[i]);
         ing.w_out[i](w[i]);
@@ -28,7 +28,7 @@ int sc_main(int argc, char* argv[]) {
     BCU bcu("BCU"); 
     bcu.clk(clk);
     bcu.rst(rst);
-    for(int i = 0; i < WIDTH; i ++) {
+    for(int i = 0; i < InputLaneWIDTH; i ++) {
         bcu.riArray[i](ri[i]);
         bcu.qiArray[i](qi[i]);
     }
@@ -39,14 +39,14 @@ int sc_main(int argc, char* argv[]) {
     sc_trace(fp, rst, "rst");
     sc_trace(fp, result, "result");
     sc_trace(fp, bcu.W, "span");
-    for(int i = 0; i < WIDTH; i ++) {
+    for(int i = 0; i < InputLaneWIDTH; i ++) {
         std::ostringstream riName;
         riName << "riArray-" << i;
         sc_trace(fp, bcu.riArray[i], riName.str());
         riName.str("");
     }
      
-    for(int i = 0; i < WIDTH; i ++) {
+    for(int i = 0; i < InputLaneWIDTH; i ++) {
         std::ostringstream qiName;
         qiName << "riArray-" << i;
         sc_trace(fp, bcu.qiArray[i], qiName.str());

@@ -14,7 +14,7 @@ struct BCU : public HCU{
     SC_CTOR(BCU) : HCU("HCU") {
         std::ostringstream hlaneName;
         sc_signal<sc_uint<WIDTH> > tmpIn;
-        for(int i = 0; i < RegFileNum; i ++) {
+        for(int i = 0; i < LaneWIDTH; i ++) {
             // initialize inputArray into 0
             riArray[i](tmpIn);
             qiArray[i](tmpIn);
@@ -24,15 +24,15 @@ struct BCU : public HCU{
             // initialize Hlane
             hlaneName << "HLane" << i;
             sc_signal<sc_int<WIDTH> > tmpI;
-            sc_signal<sc_uint<WIDTH> > laneResult[RegFileNum];
+            sc_signal<sc_uint<WIDTH> > laneResult[LaneWIDTH];
             hlane[i] = new HLane(hlaneName.str().c_str());
             hlane[i]->clk(clk);
             hlane[i]->rst(rst);
             hlane[i]->id(tmpI);
             tmpI.write(static_cast<sc_int<32> >(i));
             // BCU Wiring
-            hlane[i]->inputA->ri(riArray[RegFileNum]);
-            hlane[i]->inputA->qi(qiArray[RegFileNum]);
+            hlane[i]->inputA->ri(riArray[LaneWIDTH]);
+            hlane[i]->inputA->qi(qiArray[LaneWIDTH]);
             hlane[i]->inputA->W(W);
             hlane[i]->inputB->ri(riArray[i]);
             hlane[i]->inputB->qi(qiArray[i]);
@@ -50,7 +50,7 @@ struct BCU : public HCU{
             }
             // BCU's out every cycle
             if(i == 63) {
-                Hout(hlane[i]->biggerScore); 
+                Hout.write(hlane[i]->biggerScore); 
             }
         }
       
