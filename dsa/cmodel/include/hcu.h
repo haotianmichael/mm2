@@ -97,6 +97,8 @@ SC_MODULE(HCU) {
 
     /* HCU has 64 Lane, 65 InputAnchor*/
     HLane* hlane[LaneWIDTH];
+    /* Registers for staging Lane's output for 1 cycle*/
+    sc_signal<sc_uint<WIDTH> >  biggerScore[LaneWIDTH + 1];
 
     SC_CTOR(HCU){}
 };

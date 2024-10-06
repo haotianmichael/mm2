@@ -29,8 +29,8 @@ struct BCU : public HCU{
             hlane[i]->inputB->ri(riArray[i]);
             hlane[i]->inputB->qi(qiArray[i]);
             hlane[i]->inputB->W(W);
-            sc_signal<sc_uint<32> > constLastCmp;
             if(i == 0) {
+                sc_signal<sc_uint<32> > constLastCmp;
                 hlane[i]->lastCmp(constLastCmp); 
                 constLastCmp.write(static_cast<sc_uint<32> >(-1));
             }else {
@@ -38,14 +38,11 @@ struct BCU : public HCU{
                 @Simulation Spot:
                     biggerScore[i-1] and biggerScore[i] output at the same cycle, so biggerScore[i] use the value of biggerScore[i-1] which is in last 1 cycle.
                 */
-                hlane[i]->lastCmp(hlane[i-1]->biggerScore);
+                hlane[i]->lastCmp(biggerScore[i-1]);
             }
-            // BCU's out every cycle
-            if(i == 63) {
-                Hout.write(hlane[i]->biggerScore); 
-            }
-        }
-      
+            hlane[i]->biggerScore(biggerScore[i]);
+       }
+       Hout(biggerScore[LaneWIDTH]);
     }
 
 };
