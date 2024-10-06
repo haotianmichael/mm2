@@ -19,22 +19,32 @@ SC_MODULE(InputGenerator) {
     int cycle_count;
 
     void shift_elements() {
-        if(!rst.read()) {
         while (true) {
             wait(); 
-            for (int i = InputLaneWIDTH-1; i >= cycle_count; i--) {
-                ri_out[i].write(ri[i - cycle_count]);
-                qi_out[i].write(qi[i - cycle_count]);
-                w_out[i].write(w[i - cycle_count]);
+            if(!rst.read()) {
+                if(cycle_count < InputLaneWIDTH) {
+                    for (int i = InputLaneWIDTH-1; i >= cycle_count; i--) {
+                        ri_out[i].write(ri[i - cycle_count]);
+                        qi_out[i].write(qi[i - cycle_count]);
+                        w_out[i].write(w[i - cycle_count]);
+                    }
+                    for(int i = 0; i < cycle_count; i++) {
+                        ri_out[i].write(static_cast<sc_uint<32>>(-1));
+                        qi_out[i].write(static_cast<sc_uint<32>>(-1));
+                        w_out[i].write(static_cast<sc_uint<32>>(-1));
+                    }
+                    cycle_count++;
+                }else {
+                    for(int i = 0; i < InputLaneWIDTH; i++) {
+                        ri_out[i].write(static_cast<sc_uint<32>>(-1));
+                        qi_out[i].write(static_cast<sc_uint<32>>(-1));
+                        w_out[i].write(static_cast<sc_uint<32>>(-1));
+                    }
+                }
+            }else {
+                cycle_count = 0;
             }
-            for(int i = 0; i < cycle_count; i++) {
-                ri_out[i].write(static_cast<sc_uint<32>>(-1));
-                qi_out[i].write(static_cast<sc_uint<32>>(-1));
-                w_out[i].write(static_cast<sc_uint<32>>(-1));
-            }
-            cycle_count++;
         }
-       }
     }
 
     SC_CTOR(InputGenerator) : cycle_count(0) {

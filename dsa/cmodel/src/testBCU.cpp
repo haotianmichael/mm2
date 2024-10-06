@@ -6,7 +6,10 @@
 int sc_main(int argc, char* argv[]) {
     sc_clock clk("clk", 10, SC_NS);
     sc_signal<bool> rst;
-
+     rst.write(1);
+     wait(10, SC_NS); 
+     rst.write(0);
+     wait(100, SC_NS);
     sc_signal<sc_uint<32> > ri[InputLaneWIDTH];
     sc_signal<sc_uint<32> > qi[InputLaneWIDTH];
     sc_signal<sc_uint<32> > w[InputLaneWIDTH];
