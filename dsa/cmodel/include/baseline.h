@@ -13,18 +13,10 @@ struct BCU : public HCU{
     */
     SC_CTOR(BCU) : HCU("HCU") {
         std::ostringstream hlaneName;
-        sc_signal<sc_uint<WIDTH> > tmpIn;
+        sc_signal<sc_int<WIDTH> > tmpI;
         for(int i = 0; i < LaneWIDTH; i ++) {
-            // initialize inputArray into 0
-            riArray[i](tmpIn);
-            qiArray[i](tmpIn);
-            Hout(tmpIn);
-            W(tmpIn);
-            tmpIn.write(static_cast<sc_uint<WIDTH> >(-1));
             // initialize Hlane
             hlaneName << "HLane" << i;
-            sc_signal<sc_int<WIDTH> > tmpI;
-            sc_signal<sc_uint<WIDTH> > laneResult[LaneWIDTH];
             hlane[i] = new HLane(hlaneName.str().c_str());
             hlane[i]->clk(clk);
             hlane[i]->rst(rst);
