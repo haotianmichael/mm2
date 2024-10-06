@@ -4,7 +4,6 @@
 #include <sstream>
 #include <string.h>
 #include "sc.h"
-#include "inputgenerator.h"
 
 #define RegFileNum 64
 
@@ -91,10 +90,8 @@ SC_MODULE(HLane) {
 SC_MODULE(HCU) {
 
     sc_in<bool> clk, rst;
-    sc_in<sc_uint<WIDTH> > riXArray[RegFileNum + 1];
-    sc_in<sc_uint<WIDTH> > riYArray[RegFileNum + 1];
-    sc_in<sc_uint<WIDTH> > qiXArray[RegFileNum + 1];
-    sc_in<sc_uint<WIDTH> > qiYArray[RegFileNum + 1];
+    sc_in<sc_uint<WIDTH> > riArray[RegFileNum + 1];
+    sc_in<sc_uint<WIDTH> > qiArray[RegFileNum + 1];
     sc_in<sc_uint<WIDTH> > W;
     sc_out<sc_uint<WIDTH> > Hout;
 
