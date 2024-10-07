@@ -45,8 +45,8 @@ SC_MODULE(HLane) {
     
     sc_in<bool> clk, rst;
     sc_in<sc_int<32> > id;   // Id of each Lane within one HCU (1-65)
-    sc_in<sc_uint<32> > lastCmp;  // input of this lane's  comparator
-    sc_out<sc_uint<WIDTH> > biggerScore;  // output of this lane/input of next lane's comparator
+    sc_signal<sc_uint<32> > lastCmp;  // input of this lane's  comparator
+    sc_signal<sc_uint<WIDTH> > biggerScore;  // output of this lane/input of next lane's comparator
 
     /*pipeline*/
     Anchor* inputA;  
@@ -99,42 +99,8 @@ SC_MODULE(HCU) {
     HLane* hlane[LaneWIDTH];
     /* Registers for staging Lane's output for 1 cycle*/
     sc_signal<sc_uint<WIDTH> >  regBiggerScore[LaneWIDTH + 1];
-    /*Constant Value*/
-    sc_signal<sc_int<WIDTH> > tmpI;
-    sc_signal<sc_uint<32> > constLastCmp;
-
-    SC_CTOR(HCU){
-            std::ostringstream hlaneName;
-        for(int i = 0; i < LaneWIDTH; i ++) {
-            // initialize Hlane
-            hlaneName << "HLane" << i;
-            hlane[i] = new HLane(hlaneName.str().c_str());
-            hlane[i]->clk(clk);
-            hlane[i]->rst(rst);
-            hlane[i]->id(tmpI);
-            tmpI.write(static_cast<sc_int<32> >(i));
-            // BCU Wiring
-            hlane[i]->inputA->ri(riArray[LaneWIDTH]);
-            hlane[i]->inputA->qi(qiArray[LaneWIDTH]);
-            hlane[i]->inputA->W(W);
-            hlane[i]->inputB->ri(riArray[i]);
-            hlane[i]->inputB->qi(qiArray[i]);
-            hlane[i]->inputB->W(W);
-            if(i == 0) {
-                hlane[i]->lastCmp(constLastCmp); 
-                constLastCmp.write(static_cast<sc_uint<32> >(-1));
-            }else {
-                /*
-                @Simulation Spot:
-                    biggerScore[i-1] and biggerScore[i] output at the same cycle, so biggerScore[i] use the value of biggerScore[i-1] which is in last 1 cycle.
-                */
-                hlane[i]->lastCmp(regBiggerScore[i-1]);
-            }
-            hlane[i]->biggerScore(regBiggerScore[i]);
-            hlaneName.str("");
-       }
-       Hout(regBiggerScore[LaneWIDTH]);
-    }
+  
+    SC_CTOR(HCU){}
 };
 
 /*Main Chaining Unit for every anchor */

@@ -24,7 +24,7 @@ int sc_main(int argc, char* argv[]) {
         ing.w_out[i](w[i]);
     }
 
-    HCU bcu("BCU"); 
+    BCU bcu("BCU"); 
     bcu.clk(clk);
     bcu.rst(rst);
     for(int i = 0; i < InputLaneWIDTH; i ++) {
