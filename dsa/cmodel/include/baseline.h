@@ -30,7 +30,6 @@ struct BCU : public HCU{
             hlane[i]->inputB->W(W);
             hlaneName.str("");
        }
-       Hout(regBiggerScore[LaneWIDTH - 1]);
 
        void process();
        sensitive << clk.pos();

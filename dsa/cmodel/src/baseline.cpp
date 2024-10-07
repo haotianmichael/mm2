@@ -21,6 +21,7 @@ void BCU::process() {
                     regBiggerScore[i].write(hlane[i-1]->biggerScore);
                 }
             }
+            Hout.write(regBiggerScore[LaneWIDTH - 1]);
         }
     }
 }
