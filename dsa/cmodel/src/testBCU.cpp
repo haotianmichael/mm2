@@ -6,10 +6,6 @@
 int sc_main(int argc, char* argv[]) {
     sc_clock clk("clk", 10, SC_NS);
     sc_signal<bool> rst;
-     rst.write(1);
-     wait(10, SC_NS); 
-     rst.write(0);
-     wait(100, SC_NS);
     sc_signal<sc_uint<32> > ri[InputLaneWIDTH];
     sc_signal<sc_uint<32> > qi[InputLaneWIDTH];
     sc_signal<sc_uint<32> > w[InputLaneWIDTH];
@@ -28,7 +24,7 @@ int sc_main(int argc, char* argv[]) {
         ing.w_out[i](w[i]);
     }
 
-    BCU bcu("BCU"); 
+    HCU bcu("BCU"); 
     bcu.clk(clk);
     bcu.rst(rst);
     for(int i = 0; i < InputLaneWIDTH; i ++) {

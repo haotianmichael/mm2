@@ -67,6 +67,5 @@ SC_MODULE(InputGenerator) {
                 i++;
             }
         }
-        infile.close();
     }
 };
