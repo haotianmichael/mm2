@@ -62,8 +62,8 @@ SC_MODULE(InputGenerator) {
             int val1, val2, val3;
             if (iss >> val1 >> val2 >> val3) {
                 ri[i].write(val1);
-                qi[i].write(val2);
-                w[i].write(val3);
+                qi[i].write(val3);
+                w[i].write(val2);
                 i++;
             }
         }

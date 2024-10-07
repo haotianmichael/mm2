@@ -2,6 +2,26 @@
 #include "baseline.h"
 #include "inputgenerator.h"
 
+SC_MODULE(Tb) {
+
+    sc_in<bool> clk;
+    sc_out<bool> reset;
+
+    SC_CTOR(Tb) {
+        sensitive_neg << clk;
+        SC_THREAD(reset_generator);
+    }
+
+    void reset_generator() {
+        reset.write(0);
+        wait(5, SC_NS);
+        reset.write(1);
+        wait(5, SC_NS);
+        reset.write(0);
+        wait(100, SC_NS);
+    }
+};
+
 /*BCU Module*/
 int sc_main(int argc, char* argv[]) {
     sc_clock clk("clk", 10, SC_NS);
@@ -14,6 +34,10 @@ int sc_main(int argc, char* argv[]) {
     sc_trace_file *fp;   // Create VCD file
     fp = sc_create_vcd_trace_file("wave");   // open(fp), create wave.vcd file
     fp->set_time_unit(1, SC_NS);  // set tracing resolution to ns
+
+    Tb tb("Tb");
+    tb.clk(clk);
+    tb.reset(rst);
 
     InputGenerator ing("InputGenerator");    
     ing.clk(clk);
@@ -38,19 +62,14 @@ int sc_main(int argc, char* argv[]) {
     sc_trace(fp, rst, "rst");
     sc_trace(fp, result, "result");
     sc_trace(fp, bcu.W, "span");
-    for(int i = 0; i < InputLaneWIDTH; i ++) {
-        std::ostringstream riName;
-        riName << "riArray-" << i;
-        sc_trace(fp, bcu.riArray[i], riName.str());
-        riName.str("");
-    }
-     
-    for(int i = 0; i < InputLaneWIDTH; i ++) {
-        std::ostringstream qiName;
-        qiName << "riArray-" << i;
-        sc_trace(fp, bcu.qiArray[i], qiName.str());
-        qiName.str("");
-    }
+    sc_trace(fp, bcu.riArray[64], "riArray64");
+    sc_trace(fp, bcu.riArray[63], "riArray63");
+    sc_trace(fp, bcu.qiArray[64], "qiArray64");
+    sc_trace(fp, bcu.qiArray[63], "qiArray63");
+
+    sc_trace(fp, bcu.hlane[63], "hlane63");
+    sc_trace(fp, bcu.hlane[64], "hlane64");
+    sc_trace(fp, bcu.regBiggerScore[64], "regBiggerScore");
 
     sc_trace(fp, bcu.Hout, "Hout");
 

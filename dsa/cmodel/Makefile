@@ -1,6 +1,6 @@
 # Compiler And Flag
 CXX = g++-11
-CXXFLAGS = -I$(SYSTEMC_HOME)/include -I./include -L$(SYSTEMC_HOME)/lib-linux64 -lsystemc -lm
+CXXFLAGS = -g -O0 -I$(SYSTEMC_HOME)/include -I./include -L$(SYSTEMC_HOME)/lib-linux64 -lsystemc -lm
 
 # Source File and Target File
 SRCS = $(wildcard src/*.cpp)
