@@ -8,8 +8,8 @@ SC_MODULE(Tb) {
     sc_out<bool> reset;
 
     SC_CTOR(Tb) {
-        sensitive_neg << clk;
         SC_THREAD(reset_generator);
+        sensitive << clk.neg();
     }
 
     void reset_generator() {
@@ -66,10 +66,6 @@ int sc_main(int argc, char* argv[]) {
     sc_trace(fp, bcu.riArray[63], "riArray63");
     sc_trace(fp, bcu.qiArray[64], "qiArray64");
     sc_trace(fp, bcu.qiArray[63], "qiArray63");
-
-    sc_trace(fp, bcu.hlane[63], "hlane63");
-    sc_trace(fp, bcu.hlane[64], "hlane64");
-    sc_trace(fp, bcu.regBiggerScore[64], "regBiggerScore");
 
     sc_trace(fp, bcu.Hout, "Hout");
 

@@ -3,7 +3,7 @@
 
 #include <sstream>
 #include <string.h>
-#include "sc.h"
+#include <cmath>
 
 #define LaneWIDTH  64
 
@@ -13,27 +13,59 @@ struct Anchor {
     sc_in<sc_uint<WIDTH> > W;
 };
 
+/*ScoreCompute*/
+SC_MODULE(Score) {
+    sc_in<bool> rst;
+    sc_in<sc_uint<WIDTH> > riX, riY, qiX, qiY;
+    sc_in<sc_uint<WIDTH> > W, W_avg;
+    sc_out<sc_uint<WIDTH> > result;
+
+    sc_uint<WIDTH>  absDiff;
+    sc_uint<WIDTH> abs;
+    void compute() {
+        while(true) {
+            if(rst.read()) {
+                result.write(0);
+            }else {
+                absDiff = fabs(fabs(riX-riY) - fabs(qiX - qiY));
+                uint tmpB = (uint)(absDiff * 15 * 0.01 + 0.5 * (log(absDiff)/log10(2.0)));
+                uint B = absDiff == 0 ? 0 : tmpB;
+                uint tmpA = (fabs(riX - riY) > fabs(qiX - qiY)) ? fabs(qiX - qiY) : fabs(riX - riY);
+                uint A = tmpA > W ? W : tmpA;
+                result.write(sc_static<sc_uint<WIDTH> >(A - B));
+            }
+            wait(1, SC_NS);
+        }
+    }
+
+
+    SC_CTOR(Score) {
+        SC_THREAD(comupte());
+    }
+};
+
+
 /*Comparatot*/
 SC_MODULE(Comparator) {
 
-    sc_in<bool> clk, rst;
+    sc_in<bool> rst;
     sc_in<sc_uint<WIDTH> > cmpA, cmpB;
     sc_out<sc_uint<WIDTH> > bigger;
 
     void compare(){
           while(true) {
-             wait();
             if(rst.read()) {
                  bigger.write(0);
             }else {
                  bigger.write(cmpA.read() > cmpB.read() 
                     ? cmpA.read() : cmpB.read());
             }
+            wait(1, SC_NS);
         } 
     }
+
     SC_CTOR(Comparator) {
         SC_THREAD(compare);
-        sensitive << clk.pos();
     } 
 };
 
@@ -48,7 +80,7 @@ SC_MODULE(HLane) {
     /*pipeline*/
     Anchor inputA;  
     Anchor inputB;
-    ScCompute *compute;
+    Score *compute;
     sc_signal<sc_uint<WIDTH> > computeResult; // result of ScCompute
     Comparator *comparator;
 
@@ -57,7 +89,6 @@ SC_MODULE(HLane) {
         
 
         compute = new ScCompute("compute");
-        compute->clk(clk);
         compute->rst(rst);
         compute->riX(inputA.ri);
         compute->riY(inputB.ri);
@@ -68,7 +99,6 @@ SC_MODULE(HLane) {
         compute->result(computeResult);
 
         comparator = new Comparator("comparator");
-        comparator->clk(clk);
         comparator->rst(rst);
         comparator->cmpA(computeResult);
         comparator->cmpB(lastCmp);
