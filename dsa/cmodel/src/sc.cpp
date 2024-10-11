@@ -118,7 +118,11 @@ void ScCompute::get_mult() {
         if(rst.read()) {
             mult.write(0);
         }else {
-            mult.write(flut->FLUT[absDiff.read()]);
+            if(absDiff.read() < 5000) {
+                mult.write(flut->FLUT[absDiff.read()]);
+            }else {
+               mult.write(0);
+            }
         }
     }
 }

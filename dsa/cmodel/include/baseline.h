@@ -22,12 +22,12 @@ struct BCU : public HCU{
             hlane[i]->id(tmpI);
             tmpI.write(static_cast<sc_int<32> >(i));
             // BCU Wiring
-            hlane[i]->inputA->ri(riArray[LaneWIDTH]);
-            hlane[i]->inputA->qi(qiArray[LaneWIDTH]);
-            hlane[i]->inputA->W(W);
-            hlane[i]->inputB->ri(riArray[i]);
-            hlane[i]->inputB->qi(qiArray[i]);
-            hlane[i]->inputB->W(W);
+            hlane[i]->inputA.ri(riArray[LaneWIDTH]);
+            hlane[i]->inputA.qi(qiArray[LaneWIDTH]);
+            hlane[i]->inputA.W(W);
+            hlane[i]->inputB.ri(riArray[i]);
+            hlane[i]->inputB.qi(qiArray[i]);
+            hlane[i]->inputB.W(W);
             hlaneName.str("");
        }
 

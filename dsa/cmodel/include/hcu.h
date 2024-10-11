@@ -8,12 +8,9 @@
 #define LaneWIDTH  64
 
 /*Anchor (do only within one read)*/
-SC_MODULE(Anchor) {
-
+struct Anchor {
     sc_in<sc_uint<WIDTH> > ri, qi;
     sc_in<sc_uint<WIDTH> > W;
-    // seg_id when come to inter-read.
-    SC_CTOR(Anchor) {}
 };
 
 /*Comparatot*/
@@ -49,8 +46,8 @@ SC_MODULE(HLane) {
     sc_signal<sc_uint<WIDTH> > biggerScore;  // output of this lane/input of next lane's comparator
 
     /*pipeline*/
-    Anchor* inputA;  
-    Anchor* inputB;
+    Anchor inputA;  
+    Anchor inputB;
     ScCompute *compute;
     sc_signal<sc_uint<WIDTH> > computeResult; // result of ScCompute
     Comparator *comparator;
@@ -58,18 +55,16 @@ SC_MODULE(HLane) {
     void process();
     SC_CTOR(HLane) {
         
-        inputA = new Anchor("inputA");
-        inputB = new Anchor("inputB");
 
         compute = new ScCompute("compute");
         compute->clk(clk);
         compute->rst(rst);
-        compute->riX(inputA->ri);
-        compute->riY(inputB->ri);
-        compute->qiX(inputA->qi);
-        compute->qiY(inputB->qi);
-        compute->W(inputA->W);   // inputA has the same span with inputB
-        compute->W_avg(inputA->W);
+        compute->riX(inputA.ri);
+        compute->riY(inputB.ri);
+        compute->qiX(inputA.qi);
+        compute->qiY(inputB.qi);
+        compute->W(inputA.W);   // inputA has the same span with inputB
+        compute->W_avg(inputA.W);
         compute->result(computeResult);
 
         comparator = new Comparator("comparator");
