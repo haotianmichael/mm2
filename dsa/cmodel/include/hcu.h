@@ -121,7 +121,7 @@ SC_MODULE(HCU) {
     sc_in<bool> clk, rst;
     sc_in<sc_uint<WIDTH> > riArray[LaneWIDTH + 1];
     sc_in<sc_uint<WIDTH> > qiArray[LaneWIDTH + 1];
-    sc_in<sc_uint<WIDTH> > W;
+    sc_in<sc_uint<WIDTH> > W[LaneWIDTH + 1];
 
     /* HCU has 64 Lane, 65 InputAnchor*/
     HLane* hlane[LaneWIDTH];

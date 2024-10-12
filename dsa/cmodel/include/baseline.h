@@ -29,10 +29,10 @@ struct BCU : public HCU{
             // BCU Wiring
             hlane[i]->inputA.ri(riArray[LaneWIDTH]);
             hlane[i]->inputA.qi(qiArray[LaneWIDTH]);
-            hlane[i]->inputA.W(W);
+            hlane[i]->inputA.W(W[LaneWIDTH]);
             hlane[i]->inputB.ri(riArray[i]);
             hlane[i]->inputB.qi(qiArray[i]);
-            hlane[i]->inputB.W(W);
+            hlane[i]->inputB.W(W[LaneWIDTH]);
 
             hlane[i]->lastCmp(regBiggerScore[i]); 
             if(i > 0) {

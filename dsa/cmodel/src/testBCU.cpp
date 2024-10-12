@@ -54,18 +54,18 @@ int sc_main(int argc, char* argv[]) {
     for(int i = 0; i < InputLaneWIDTH; i ++) {
         bcu.riArray[i](ri[i]);
         bcu.qiArray[i](qi[i]);
+        bcu.W[i](w[i]);
     }
-    bcu.W(w[0]);  // span remain same.
 
     sc_trace(fp, clk, "clk");
     sc_trace(fp, rst, "rst");
-    sc_trace(fp, bcu.W, "span");
-    sc_trace(fp, bcu.riArray[64], "riArray64");
-    sc_trace(fp, bcu.riArray[0], "riArray63");
-    sc_trace(fp, bcu.qiArray[64], "qiArray64");
-    sc_trace(fp, bcu.qiArray[0], "qiArray63");
+    sc_trace(fp, bcu.W[64], "span");
+    sc_trace(fp, bcu.riArray[64], "riX");
+    sc_trace(fp, bcu.riArray[63], "riY");
+    sc_trace(fp, bcu.qiArray[64], "qiX");
+    sc_trace(fp, bcu.qiArray[63], "qiY");
 
-    sc_trace(fp, bcu.regBiggerScore[LaneWIDTH], "result"); 
+    sc_trace(fp, bcu.regBiggerScore[LaneWIDTH], "result[64]"); 
 
     sc_start(1000, SC_NS); 
     sc_close_vcd_trace_file(fp); 
