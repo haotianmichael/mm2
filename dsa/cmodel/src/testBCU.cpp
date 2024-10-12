@@ -16,7 +16,7 @@ SC_MODULE(Tb) {
         reset.write(0);
         wait(5, SC_NS);
         reset.write(1);
-        wait(5, SC_NS);
+        wait(10, SC_NS);
         reset.write(0);
         wait(100, SC_NS);
     }
@@ -48,6 +48,26 @@ int sc_main(int argc, char* argv[]) {
         ing.w_out[i](w[i]);
     }
 
+    Hlane hlane("hlane");
+    hlane.clk(clk);
+    hlane.rst(rst);
+    hlane.inputA->ri(ri[LaneWIDTH]);
+    hlane.inputA->qi(qi[LaneWIDTH]);
+    hlane.inputA->W(w[LaneWIDTH]);
+    hlane.inputB->ri(ri[0]);
+    hlane.inputB->qi(qi[0]);
+    hlane.inputB->W(w[0]);
+    hlane.computeResult(result);
+
+    sc_trace(fp, clk, "clk");
+    sc_trace(fp, rst, "rst");
+    sc_trace(fp, hlane.compute->riX, "HriX");
+    sc_trace(fp, hlane.compute->riY, "HriY");
+    sc_trace(fp, hlane.compute->qiX, "HqiX");
+    sc_trace(fp, hlane.compute->qiY, "qiY");
+    sc_trace(fp, hlane.compute->result, "Hresult");
+
+/*
     BCU bcu("BCU"); 
     bcu.clk(clk);
     bcu.rst(rst);
@@ -68,6 +88,7 @@ int sc_main(int argc, char* argv[]) {
     sc_trace(fp, bcu.qiArray[63], "qiArray63");
 
     sc_trace(fp, bcu.Hout, "Hout");
+    */
 
     sc_start(1000, SC_NS); 
     sc_close_vcd_trace_file(fp); 

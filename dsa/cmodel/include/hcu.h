@@ -1,12 +1,13 @@
 #ifndef HCU_H
 #define HCU_H
 
+#include <systemc.h>
 #include <sstream>
 #include <string.h>
 #include <cmath>
 
 #define LaneWIDTH  64
-
+#define WIDTH 32
 /*Anchor (do only within one read)*/
 struct Anchor {
     sc_in<sc_uint<WIDTH> > ri, qi;
@@ -20,19 +21,23 @@ SC_MODULE(Score) {
     sc_in<sc_uint<WIDTH> > W, W_avg;
     sc_out<sc_uint<WIDTH> > result;
 
-    sc_uint<WIDTH>  absDiff;
-    sc_uint<WIDTH> abs;
+    double  absDiff;
     void compute() {
         while(true) {
             if(rst.read()) {
                 result.write(0);
             }else {
-                absDiff = fabs(fabs(riX-riY) - fabs(qiX - qiY));
-                uint tmpB = (uint)(absDiff * 15 * 0.01 + 0.5 * (log(absDiff)/log10(2.0)));
-                uint B = absDiff == 0 ? 0 : tmpB;
-                uint tmpA = (fabs(riX - riY) > fabs(qiX - qiY)) ? fabs(qiX - qiY) : fabs(riX - riY);
-                uint A = tmpA > W ? W : tmpA;
-                result.write(sc_static<sc_uint<WIDTH> >(A - B));
+                absDiff = fabs(fabs(riX.read().to_double()-riY.read().to_double()) - fabs(qiX.read().to_double() - qiY.read().to_double()));
+                double tmpB = (uint)(absDiff * 15 * 0.01 + 0.5 * (log(absDiff)/log10(2.0)));
+                double B = absDiff == 0 ? 0 : tmpB;
+                double tmpA = (fabs(riX.read().to_double() - riY.read().to_double()) > fabs(qiX.read().to_double() - qiY.read().to_double())) ? fabs(qiX.read().to_double() - qiY.read().to_double()) : fabs(riX.read().to_double() - riY.read().to_double());
+                double A;
+                if(tmpA > W.read().to_double()) {
+                    A = W.read().to_double();
+                }else {
+                    A = tmpA;
+                }
+                result.write(static_cast<sc_uint<WIDTH> >(A - B));
             }
             wait(1, SC_NS);
         }
@@ -40,7 +45,7 @@ SC_MODULE(Score) {
 
 
     SC_CTOR(Score) {
-        SC_THREAD(comupte());
+        SC_THREAD(compute);
     }
 };
 
@@ -73,7 +78,7 @@ SC_MODULE(Comparator) {
 SC_MODULE(HLane) {
     
     sc_in<bool> clk, rst;
-    sc_in<sc_int<32> > id;   // Id of each Lane within one HCU (1-65)
+    //sc_in<sc_int<32> > id;   // Id of each Lane within one HCU (1-65)
     sc_signal<sc_uint<32> > lastCmp;  // input of this lane's  comparator
     sc_signal<sc_uint<WIDTH> > biggerScore;  // output of this lane/input of next lane's comparator
 
@@ -81,14 +86,14 @@ SC_MODULE(HLane) {
     Anchor inputA;  
     Anchor inputB;
     Score *compute;
-    sc_signal<sc_uint<WIDTH> > computeResult; // result of ScCompute
+    sc_out<sc_uint<WIDTH> > computeResult; // result of ScCompute
     Comparator *comparator;
 
     void process();
     SC_CTOR(HLane) {
         
 
-        compute = new ScCompute("compute");
+        compute = new Score("compute");
         compute->rst(rst);
         compute->riX(inputA.ri);
         compute->riY(inputB.ri);
@@ -97,12 +102,13 @@ SC_MODULE(HLane) {
         compute->W(inputA.W);   // inputA has the same span with inputB
         compute->W_avg(inputA.W);
         compute->result(computeResult);
-
+        /*
         comparator = new Comparator("comparator");
         comparator->rst(rst);
         comparator->cmpA(computeResult);
         comparator->cmpB(lastCmp);
         comparator->bigger(biggerScore);
+        */
 
         SC_THREAD(process);
         sensitive << clk.pos();

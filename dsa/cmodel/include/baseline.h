@@ -19,7 +19,7 @@ struct BCU : public HCU{
             hlane[i] = new HLane(hlaneName.str().c_str());
             hlane[i]->clk(clk);
             hlane[i]->rst(rst);
-            hlane[i]->id(tmpI);
+            //hlane[i]->id(tmpI);
             tmpI.write(static_cast<sc_int<32> >(i));
             // BCU Wiring
             hlane[i]->inputA.ri(riArray[LaneWIDTH]);
