@@ -91,7 +91,6 @@ SC_MODULE(HLane) {
     void process();
     SC_CTOR(HLane) {
         
-
         compute = new Score("compute");
         compute->rst(rst);
         compute->riX(inputA.ri);
@@ -123,7 +122,6 @@ SC_MODULE(HCU) {
     sc_in<sc_uint<WIDTH> > riArray[LaneWIDTH + 1];
     sc_in<sc_uint<WIDTH> > qiArray[LaneWIDTH + 1];
     sc_in<sc_uint<WIDTH> > W;
-    sc_out<sc_uint<WIDTH> > Hout;
 
     /* HCU has 64 Lane, 65 InputAnchor*/
     HLane* hlane[LaneWIDTH];

@@ -29,7 +29,6 @@ int sc_main(int argc, char* argv[]) {
     sc_signal<sc_uint<32> > ri[InputLaneWIDTH];
     sc_signal<sc_uint<32> > qi[InputLaneWIDTH];
     sc_signal<sc_uint<32> > w[InputLaneWIDTH];
-    sc_signal<sc_uint<32> > result;
 
     sc_trace_file *fp;   // Create VCD file
     fp = sc_create_vcd_trace_file("wave");   // open(fp), create wave.vcd file
@@ -57,19 +56,16 @@ int sc_main(int argc, char* argv[]) {
         bcu.qiArray[i](qi[i]);
     }
     bcu.W(w[0]);  // span remain same.
-    bcu.Hout(result);
 
     sc_trace(fp, clk, "clk");
     sc_trace(fp, rst, "rst");
-    sc_trace(fp, result, "result");
     sc_trace(fp, bcu.W, "span");
     sc_trace(fp, bcu.riArray[64], "riArray64");
     sc_trace(fp, bcu.riArray[0], "riArray63");
     sc_trace(fp, bcu.qiArray[64], "qiArray64");
     sc_trace(fp, bcu.qiArray[0], "qiArray63");
 
-    sc_trace(fp, bcu.Hout, "Hout");
-    
+    sc_trace(fp, bcu.regBiggerScore[LaneWIDTH], "result"); 
 
     sc_start(1000, SC_NS); 
     sc_close_vcd_trace_file(fp); 

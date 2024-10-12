@@ -38,9 +38,11 @@ struct BCU : public HCU{
             if(i > 0) {
                 hlane[i-1]->biggerScore(regBiggerScore[i]);
             }
+            if(i == 63) {
+                hlane[i]->biggerScore(regBiggerScore[i+1]);
+            }
             hlaneName.str("");
         }
-        Hout(hlane[LaneWIDTH - 1]->biggerScore);
 
         void updateRegBiggerScore();
         sensitive << clk.pos();
