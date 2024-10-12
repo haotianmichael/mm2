@@ -28,7 +28,7 @@ SC_MODULE(Score) {
                 result.write(0);
             }else {
                 absDiff = fabs(fabs(riX.read().to_double()-riY.read().to_double()) - fabs(qiX.read().to_double() - qiY.read().to_double()));
-                double tmpB = (uint)(absDiff * 15 * 0.01 + 0.5 * (log(absDiff)/log10(2.0)));
+                double tmpB = (uint)(absDiff * 15 * 0.01 + 0.5 * (log(absDiff)/log(2.0)));
                 double B = absDiff == 0 ? 0 : tmpB;
                 double tmpA = (fabs(riX.read().to_double() - riY.read().to_double()) > fabs(qiX.read().to_double() - qiY.read().to_double())) ? fabs(qiX.read().to_double() - qiY.read().to_double()) : fabs(riX.read().to_double() - riY.read().to_double());
                 double A;
