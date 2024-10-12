@@ -50,7 +50,7 @@ SC_MODULE(Score) {
 };
 
 
-/*Comparatot*/
+/*Comparator*/
 SC_MODULE(Comparator) {
 
     sc_in<bool> rst;
@@ -78,15 +78,15 @@ SC_MODULE(Comparator) {
 SC_MODULE(HLane) {
     
     sc_in<bool> clk, rst;
-    //sc_in<sc_int<32> > id;   // Id of each Lane within one HCU (1-65)
+    sc_in<sc_int<32> > id;   // Id of each Lane within one HCU (1-65)
     sc_signal<sc_uint<32> > lastCmp;  // input of this lane's  comparator
-    sc_signal<sc_uint<WIDTH> > biggerScore;  // output of this lane/input of next lane's comparator
+    sc_signal<sc_uint<WIDTH> > computeResult; // result of ScCompute
+    sc_out<sc_uint<WIDTH> > biggerScore;  // output of this lane/input of next lane's comparator
 
     /*pipeline*/
     Anchor inputA;  
     Anchor inputB;
     Score *compute;
-    sc_out<sc_uint<WIDTH> > computeResult; // result of ScCompute
     Comparator *comparator;
 
     void process();
@@ -102,13 +102,13 @@ SC_MODULE(HLane) {
         compute->W(inputA.W);   // inputA has the same span with inputB
         compute->W_avg(inputA.W);
         compute->result(computeResult);
-        /*
+        
         comparator = new Comparator("comparator");
         comparator->rst(rst);
         comparator->cmpA(computeResult);
         comparator->cmpB(lastCmp);
         comparator->bigger(biggerScore);
-        */
+        
 
         SC_THREAD(process);
         sensitive << clk.pos();
