@@ -22,7 +22,7 @@ SC_MODULE(Tb) {
     }
 };
 
-/*BCU Module*/
+/*HLane Module*/
 int sc_main(int argc, char* argv[]) {
     sc_clock clk("clk", 10, SC_NS);
     sc_signal<bool> rst;

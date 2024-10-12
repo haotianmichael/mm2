@@ -43,7 +43,6 @@ SC_MODULE(Score) {
         }
     }
 
-
     SC_CTOR(Score) {
         SC_THREAD(compute);
     }
@@ -60,7 +59,7 @@ SC_MODULE(Comparator) {
     void compare(){
           while(true) {
             if(rst.read()) {
-                 bigger.write(0);
+                 bigger.write(-1);
             }else {
                  bigger.write(cmpA.read() > cmpB.read() 
                     ? cmpA.read() : cmpB.read());
@@ -79,7 +78,7 @@ SC_MODULE(HLane) {
     
     sc_in<bool> clk, rst;
     sc_in<sc_int<32> > id;   // Id of each Lane within one HCU (1-65)
-    sc_signal<sc_uint<32> > lastCmp;  // input of this lane's  comparator
+    sc_in<sc_uint<32> > lastCmp;  // input of this lane's  comparator
     sc_signal<sc_uint<WIDTH> > computeResult; // result of ScCompute
     sc_out<sc_uint<WIDTH> > biggerScore;  // output of this lane/input of next lane's comparator
 

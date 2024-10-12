@@ -10,7 +10,12 @@ struct BCU : public HCU{
     sc_signal<sc_int<WIDTH> > tmpI;
     sc_signal<sc_uint<32> > constLastCmp;
 
-    void process();
+    void updateRegBiggerScore() {
+        for(int i = 0; i < LaneWIDTH - 1; i ++){
+            regBiggerScore[i + 1] = hlane[i]->biggerScore.read();
+        }
+    }
+
     SC_CTOR(BCU) : HCU("HCU") {
         std::ostringstream hlaneName;
         for(int i = 0; i < LaneWIDTH; i ++) {
@@ -28,11 +33,17 @@ struct BCU : public HCU{
             hlane[i]->inputB.ri(riArray[i]);
             hlane[i]->inputB.qi(qiArray[i]);
             hlane[i]->inputB.W(W);
-            hlaneName.str("");
-       }
 
-       void process();
-       sensitive << clk.pos();
+            hlane[i]->lastCmp(regBiggerScore[i]); 
+            if(i > 0) {
+                hlane[i-1]->biggerScore(regBiggerScore[i]);
+            }
+            hlaneName.str("");
+        }
+        Hout(hlane[LaneWIDTH - 1]->biggerScore);
+
+        void updateRegBiggerScore();
+        sensitive << clk.pos();
     }
 };
 
