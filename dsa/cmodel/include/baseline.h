@@ -10,6 +10,15 @@ struct BCU : public HCU{
     sc_signal<sc_int<WIDTH> > tmpI;
     sc_signal<sc_uint<32> > constLastCmp;
 
+    sc_event ri_qi_updated;
+
+    void monitor_ri_qi_updates() {
+        while(true) {
+            wait();
+            ri_qi_updated.notify();
+        }
+    }
+
     void updateRegBiggerScore() {
         for(int i = 0; i < LaneWIDTH - 1; i ++){
             regBiggerScore[i + 1] = hlane[i]->biggerScore.read();
@@ -44,8 +53,14 @@ struct BCU : public HCU{
             hlaneName.str("");
         }
 
+        SC_THREAD(monitor_ri_qi_updates);
+        for(int i =0; i < LaneWIDTH; i ++) {
+            sensitive << riArray[i] << qiArray[i];
+        }
+
         void updateRegBiggerScore();
-        sensitive << clk.pos();
+        SC_METHOD(updateRegBiggerScore);
+        sensitive << ri_qi_updated;
     }
 };
 
