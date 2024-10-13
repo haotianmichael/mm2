@@ -59,19 +59,16 @@ SC_MODULE(Comparator) {
     sc_out<sc_int<WIDTH> > bigger;
 
     void compare(){
-          while(true) {
-            if(rst.read()) {
-                 bigger.write(-1);
-            }else {
-                 bigger.write(cmpA.read() > cmpB.read() 
-                    ? cmpA.read() : cmpB.read());
-            }
-            wait(1, SC_NS);
-        } 
+        if(rst.read()) {
+            bigger.write(-1);
+        }else {
+            bigger.write(cmpA.read() > cmpB.read() 
+              ? cmpA.read() : cmpB.read());
+        }
     }
 
     SC_CTOR(Comparator) {
-        SC_THREAD(compare);
+        SC_METHOD(compare);
         sensitive << clk.pos();
     } 
 };

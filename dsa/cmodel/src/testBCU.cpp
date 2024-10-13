@@ -57,18 +57,26 @@ int sc_main(int argc, char* argv[]) {
         bcu.W[i](w[i]);
     }
 
-    sc_trace(fp, clk, "clk");
-    sc_trace(fp, rst, "rst");
-    sc_trace(fp, bcu.W[64], "span");
-    sc_trace(fp, bcu.riArray[64], "riX");
-    sc_trace(fp, bcu.riArray[63], "riY");
-    sc_trace(fp, bcu.qiArray[64], "qiX");
-    sc_trace(fp, bcu.qiArray[63], "qiY");
-    sc_trace(fp, bcu.regBiggerScore[LaneWIDTH], "result[64]"); 
-    sc_trace(fp, bcu.hlane[63]->biggerScore, "biggerScore");
-    sc_trace(fp, bcu.hlane[63]->comparator->cmpB, "cmpB");
-    sc_trace(fp, bcu.hlane[63]->comparator->cmpA, "cmpA");
-    sc_trace(fp, bcu.hlane[63]->comparator->bigger, "bigger");
+   sc_trace(fp, clk, "clk");
+   sc_trace(fp, rst, "rst");
+   for(int i =0 ;  i < LaneWIDTH + 1; i ++) {
+        std::ostringstream pe_name;
+        pe_name << "riArray(" << i << ")";
+        sc_trace(fp,bcu.riArray[i],pe_name.str());
+        pe_name.str("");
+    }
+    for(int i =0 ;  i < LaneWIDTH; i ++) {
+        std::ostringstream pe_name;
+        pe_name << "result(" << i << ")";
+        sc_trace(fp,bcu.hlane[i]->biggerScore,pe_name.str());
+        pe_name.str("");
+    }
+    for(int i =0 ;  i < LaneWIDTH + 1; i ++) {
+        std::ostringstream pe_name;
+        pe_name << "regBiggerScore(" << i << ")";
+        sc_trace(fp,bcu.regBiggerScore[i],pe_name.str());
+        pe_name.str("");
+    }
     sc_trace(fp, bcu.score_updated, "score_updated");
 
 
