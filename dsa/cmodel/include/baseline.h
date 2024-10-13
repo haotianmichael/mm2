@@ -26,7 +26,7 @@ struct BCU : public HCU{
         while(true) {
             wait();
             if(!rst.read()) {
-                ri_qi_updated.notify();
+                score_updated.notify();
             }
         }
     }

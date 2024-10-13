@@ -39,7 +39,7 @@ SC_MODULE(Score) {
                 }
                 result.write(static_cast<sc_uint<WIDTH> >(A - B));
             }
-            wait(10, SC_NS);
+            wait(5, SC_NS);
         }
     }
 
@@ -65,7 +65,7 @@ SC_MODULE(Comparator) {
                  bigger.write(cmpA.read() > cmpB.read() 
                     ? cmpA.read() : cmpB.read());
             }
-            wait(10, SC_NS);
+            wait(1, SC_NS);
         } 
     }
 
@@ -82,7 +82,7 @@ SC_MODULE(HLane) {
     sc_in<sc_int<32> > id;   // Id of each Lane within one HCU (1-65)
     sc_in<sc_uint<32> > lastCmp;  // input of this lane's  comparator
     sc_signal<sc_uint<WIDTH> > computeResult; // result of ScCompute
-    sc_out<sc_uint<WIDTH> > biggerScore;  // output of this lane/input of next lane's comparator
+    sc_signal<sc_uint<WIDTH> > biggerScore;  // output of this lane/input of next lane's comparator
 
     /*pipeline*/
     Anchor inputA;  

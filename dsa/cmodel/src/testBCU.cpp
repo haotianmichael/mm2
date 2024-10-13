@@ -64,8 +64,8 @@ int sc_main(int argc, char* argv[]) {
     sc_trace(fp, bcu.riArray[63], "riY");
     sc_trace(fp, bcu.qiArray[64], "qiX");
     sc_trace(fp, bcu.qiArray[63], "qiY");
-
     sc_trace(fp, bcu.regBiggerScore[LaneWIDTH], "result[64]"); 
+    sc_trace(fp, bcu.hlane[63]->biggerScore, "biggerScore");
 
     sc_start(1000, SC_NS); 
     sc_close_vcd_trace_file(fp); 
