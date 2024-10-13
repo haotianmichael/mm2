@@ -10,17 +10,29 @@ struct BCU : public HCU{
     sc_signal<sc_int<WIDTH> > tmpI;
     sc_signal<sc_uint<32> > constLastCmp;
 
-    sc_event ri_qi_updated;
+    sc_event score_updated;
 
-    void monitor_ri_qi_updates() {
+    void initializeRegBiggerScore() {
+        while(true){
+            wait();
+            if(rst.read()) {
+                for(int i = 0; i < LaneWIDTH + 1; i ++) {
+                    regBiggerScore[i].write(static_cast<sc_uint<WIDTH> >(-1));
+                }
+            }
+        }
+    }
+    void monitor_sc_updates() {
         while(true) {
             wait();
-            ri_qi_updated.notify();
+            if(!rst.read()) {
+                ri_qi_updated.notify();
+            }
         }
     }
 
     void updateRegBiggerScore() {
-        for(int i = 0; i < LaneWIDTH - 1; i ++){
+        for(int i = 0; i < LaneWIDTH; i ++){
             regBiggerScore[i + 1] = hlane[i]->biggerScore.read();
         }
     }
@@ -41,26 +53,21 @@ struct BCU : public HCU{
             hlane[i]->inputA.W(W[LaneWIDTH]);
             hlane[i]->inputB.ri(riArray[i]);
             hlane[i]->inputB.qi(qiArray[i]);
-            hlane[i]->inputB.W(W[LaneWIDTH]);
+            hlane[i]->inputB.W(W[i]);
 
             hlane[i]->lastCmp(regBiggerScore[i]); 
-            if(i > 0) {
-                hlane[i-1]->biggerScore(regBiggerScore[i]);
-            }
-            if(i == 63) {
-                hlane[i]->biggerScore(regBiggerScore[i+1]);
-            }
             hlaneName.str("");
         }
 
-        SC_THREAD(monitor_ri_qi_updates);
+        SC_THREAD(monitor_sc_updates);
         for(int i =0; i < LaneWIDTH; i ++) {
-            sensitive << riArray[i] << qiArray[i];
+            sensitive << hlane[i]->biggerScore;
         }
 
-        void updateRegBiggerScore();
-        SC_METHOD(updateRegBiggerScore);
-        sensitive << ri_qi_updated;
+        SC_THREAD(updateRegBiggerScore);
+        sensitive << score_updated;
+
+        SC_THREAD(initializeRegBiggerScore);
     }
 };
 

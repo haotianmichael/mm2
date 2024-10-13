@@ -43,6 +43,11 @@ SC_MODULE(InputGenerator) {
                 }
             }else {
                 cycle_count = 0;
+                for(int i = 0; i < InputLaneWIDTH; i++) {
+                    ri_out[i].write(static_cast<sc_uint<32>>(-1));
+                    qi_out[i].write(static_cast<sc_uint<32>>(-1));
+                    w_out[i].write(static_cast<sc_uint<32>>(-1));
+                }
             }
         }
     }

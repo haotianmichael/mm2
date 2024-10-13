@@ -39,12 +39,13 @@ SC_MODULE(Score) {
                 }
                 result.write(static_cast<sc_uint<WIDTH> >(A - B));
             }
-            wait(1, SC_NS);
+            wait(10, SC_NS);
         }
     }
 
     SC_CTOR(Score) {
         SC_THREAD(compute);
+        sensitive << riX << riY << qiX << qiY << W;
     }
 };
 
@@ -64,12 +65,13 @@ SC_MODULE(Comparator) {
                  bigger.write(cmpA.read() > cmpB.read() 
                     ? cmpA.read() : cmpB.read());
             }
-            wait(1, SC_NS);
+            wait(10, SC_NS);
         } 
     }
 
     SC_CTOR(Comparator) {
         SC_THREAD(compare);
+        sensitive << cmpA << cmpB;
     } 
 };
 
@@ -127,6 +129,7 @@ SC_MODULE(HCU) {
     HLane* hlane[LaneWIDTH];
     /* Registers for staging Lane's output for 1 cycle*/
     sc_signal<sc_uint<WIDTH> >  regBiggerScore[LaneWIDTH + 1];
+    sc_signal<sc_uint<WIDTH> > tmpBiggerScore[LaneWIDTH + 1];
   
     SC_CTOR(HCU){}
 };
