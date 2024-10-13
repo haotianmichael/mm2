@@ -8,13 +8,13 @@
 SC_MODULE(InputGenerator) {
     sc_in<bool> clk;      
     sc_in<bool> rst;
-    sc_signal<sc_uint<32> > ri[InputLaneWIDTH];
-    sc_signal<sc_uint<32> > qi[InputLaneWIDTH];
-    sc_signal<sc_uint<32> > w[InputLaneWIDTH];
+    sc_signal<sc_int<32> > ri[InputLaneWIDTH];
+    sc_signal<sc_int<32> > qi[InputLaneWIDTH];
+    sc_signal<sc_int<32> > w[InputLaneWIDTH];
 
-    sc_out<sc_uint<32>> ri_out[InputLaneWIDTH];
-    sc_out<sc_uint<32>> qi_out[InputLaneWIDTH];
-    sc_out<sc_uint<32>> w_out[InputLaneWIDTH];
+    sc_out<sc_int<32>> ri_out[InputLaneWIDTH];
+    sc_out<sc_int<32>> qi_out[InputLaneWIDTH];
+    sc_out<sc_int<32>> w_out[InputLaneWIDTH];
 
     int cycle_count;
 
@@ -29,24 +29,24 @@ SC_MODULE(InputGenerator) {
                         w_out[i].write(w[i - cycle_count]);
                     }
                     for(int i = 0; i < cycle_count; i++) {
-                        ri_out[i].write(static_cast<sc_uint<32>>(-1));
-                        qi_out[i].write(static_cast<sc_uint<32>>(-1));
-                        w_out[i].write(static_cast<sc_uint<32>>(-1));
+                        ri_out[i].write(static_cast<sc_int<32>>(-1));
+                        qi_out[i].write(static_cast<sc_int<32>>(-1));
+                        w_out[i].write(static_cast<sc_int<32>>(-1));
                     }
                     cycle_count++;
                 }else {
                     for(int i = 0; i < InputLaneWIDTH; i++) {
-                        ri_out[i].write(static_cast<sc_uint<32>>(-1));
-                        qi_out[i].write(static_cast<sc_uint<32>>(-1));
-                        w_out[i].write(static_cast<sc_uint<32>>(-1));
+                        ri_out[i].write(static_cast<sc_int<32>>(-1));
+                        qi_out[i].write(static_cast<sc_int<32>>(-1));
+                        w_out[i].write(static_cast<sc_int<32>>(-1));
                     }
                 }
             }else {
                 cycle_count = 0;
                 for(int i = 0; i < InputLaneWIDTH; i++) {
-                    ri_out[i].write(static_cast<sc_uint<32>>(-1));
-                    qi_out[i].write(static_cast<sc_uint<32>>(-1));
-                    w_out[i].write(static_cast<sc_uint<32>>(-1));
+                    ri_out[i].write(static_cast<sc_int<32>>(-1));
+                    qi_out[i].write(static_cast<sc_int<32>>(-1));
+                    w_out[i].write(static_cast<sc_int<32>>(-1));
                 }
             }
         }

@@ -26,9 +26,9 @@ SC_MODULE(Tb) {
 int sc_main(int argc, char* argv[]) {
     sc_clock clk("clk", 10, SC_NS);
     sc_signal<bool> rst;
-    sc_signal<sc_uint<32> > ri[InputLaneWIDTH];
-    sc_signal<sc_uint<32> > qi[InputLaneWIDTH];
-    sc_signal<sc_uint<32> > w[InputLaneWIDTH];
+    sc_signal<sc_int<32> > ri[InputLaneWIDTH];
+    sc_signal<sc_int<32> > qi[InputLaneWIDTH];
+    sc_signal<sc_int<32> > w[InputLaneWIDTH];
 
     sc_trace_file *fp;   // Create VCD file
     fp = sc_create_vcd_trace_file("wave");   // open(fp), create wave.vcd file
@@ -66,6 +66,11 @@ int sc_main(int argc, char* argv[]) {
     sc_trace(fp, bcu.qiArray[63], "qiY");
     sc_trace(fp, bcu.regBiggerScore[LaneWIDTH], "result[64]"); 
     sc_trace(fp, bcu.hlane[63]->biggerScore, "biggerScore");
+    sc_trace(fp, bcu.hlane[63]->comparator->cmpB, "cmpB");
+    sc_trace(fp, bcu.hlane[63]->comparator->cmpA, "cmpA");
+    sc_trace(fp, bcu.hlane[63]->comparator->bigger, "bigger");
+    sc_trace(fp, bcu.score_updated, "score_updated");
+
 
     sc_start(1000, SC_NS); 
     sc_close_vcd_trace_file(fp); 

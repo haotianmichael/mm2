@@ -8,7 +8,7 @@ struct BCU : public HCU{
     
      /*Constant Value*/
     sc_signal<sc_int<WIDTH> > tmpI;
-    sc_signal<sc_uint<32> > constLastCmp;
+    sc_signal<sc_int<32> > constLastCmp;
 
     sc_event score_updated;
 
@@ -17,7 +17,7 @@ struct BCU : public HCU{
             wait();
             if(rst.read()) {
                 for(int i = 0; i < LaneWIDTH + 1; i ++) {
-                    regBiggerScore[i].write(static_cast<sc_uint<WIDTH> >(-1));
+                    regBiggerScore[i].write(static_cast<sc_int<WIDTH> >(0));
                 }
             }
         }
@@ -32,8 +32,13 @@ struct BCU : public HCU{
     }
 
     void updateRegBiggerScore() {
-        for(int i = 0; i < LaneWIDTH; i ++){
-            regBiggerScore[i + 1] = hlane[i]->biggerScore.read();
+        while(true) {
+            wait();
+            if(!rst.read()) {
+                for(int i = 0; i < LaneWIDTH; i ++){
+                      regBiggerScore[i + 1].write(hlane[i]->biggerScore.read());
+                }
+            }
         }
     }
 

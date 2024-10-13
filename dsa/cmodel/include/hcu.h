@@ -10,16 +10,16 @@
 #define WIDTH 32
 /*Anchor (do only within one read)*/
 struct Anchor {
-    sc_in<sc_uint<WIDTH> > ri, qi;
-    sc_in<sc_uint<WIDTH> > W;
+    sc_in<sc_int<WIDTH> > ri, qi;
+    sc_in<sc_int<WIDTH> > W;
 };
 
 /*ScoreCompute*/
 SC_MODULE(Score) {
     sc_in<bool> rst;
-    sc_in<sc_uint<WIDTH> > riX, riY, qiX, qiY;
-    sc_in<sc_uint<WIDTH> > W, W_avg;
-    sc_out<sc_uint<WIDTH> > result;
+    sc_in<sc_int<WIDTH> > riX, riY, qiX, qiY;
+    sc_in<sc_int<WIDTH> > W, W_avg;
+    sc_out<sc_int<WIDTH> > result;
 
     double  absDiff;
     void compute() {
@@ -37,7 +37,7 @@ SC_MODULE(Score) {
                 }else {
                     A = tmpA;
                 }
-                result.write(static_cast<sc_uint<WIDTH> >(A - B));
+                result.write(static_cast<sc_int<WIDTH> >(A - B));
             }
             wait(5, SC_NS);
         }
@@ -54,8 +54,9 @@ SC_MODULE(Score) {
 SC_MODULE(Comparator) {
 
     sc_in<bool> rst;
-    sc_in<sc_uint<WIDTH> > cmpA, cmpB;
-    sc_out<sc_uint<WIDTH> > bigger;
+    sc_in<bool> clk;
+    sc_in<sc_int<WIDTH> > cmpA, cmpB;
+    sc_out<sc_int<WIDTH> > bigger;
 
     void compare(){
           while(true) {
@@ -71,7 +72,7 @@ SC_MODULE(Comparator) {
 
     SC_CTOR(Comparator) {
         SC_THREAD(compare);
-        sensitive << cmpA << cmpB;
+        sensitive << clk.pos();
     } 
 };
 
@@ -80,9 +81,9 @@ SC_MODULE(HLane) {
     
     sc_in<bool> clk, rst;
     sc_in<sc_int<32> > id;   // Id of each Lane within one HCU (1-65)
-    sc_in<sc_uint<32> > lastCmp;  // input of this lane's  comparator
-    sc_signal<sc_uint<WIDTH> > computeResult; // result of ScCompute
-    sc_signal<sc_uint<WIDTH> > biggerScore;  // output of this lane/input of next lane's comparator
+    sc_in<sc_int<32> > lastCmp;  // input of this lane's  comparator
+    sc_signal<sc_int<WIDTH> > computeResult; // result of ScCompute
+    sc_signal<sc_int<WIDTH> > biggerScore;  // output of this lane/input of next lane's comparator
 
     /*pipeline*/
     Anchor inputA;  
@@ -104,6 +105,7 @@ SC_MODULE(HLane) {
         compute->result(computeResult);
         
         comparator = new Comparator("comparator");
+        comparator->clk(clk);
         comparator->rst(rst);
         comparator->cmpA(computeResult);
         comparator->cmpB(lastCmp);
@@ -121,15 +123,15 @@ SC_MODULE(HLane) {
 SC_MODULE(HCU) {
 
     sc_in<bool> clk, rst;
-    sc_in<sc_uint<WIDTH> > riArray[LaneWIDTH + 1];
-    sc_in<sc_uint<WIDTH> > qiArray[LaneWIDTH + 1];
-    sc_in<sc_uint<WIDTH> > W[LaneWIDTH + 1];
+    sc_in<sc_int<WIDTH> > riArray[LaneWIDTH + 1];
+    sc_in<sc_int<WIDTH> > qiArray[LaneWIDTH + 1];
+    sc_in<sc_int<WIDTH> > W[LaneWIDTH + 1];
 
     /* HCU has 64 Lane, 65 InputAnchor*/
     HLane* hlane[LaneWIDTH];
     /* Registers for staging Lane's output for 1 cycle*/
-    sc_signal<sc_uint<WIDTH> >  regBiggerScore[LaneWIDTH + 1];
-    sc_signal<sc_uint<WIDTH> > tmpBiggerScore[LaneWIDTH + 1];
+    sc_signal<sc_int<WIDTH> >  regBiggerScore[LaneWIDTH + 1];
+    sc_signal<sc_int<WIDTH> > tmpBiggerScore[LaneWIDTH + 1];
   
     SC_CTOR(HCU){}
 };
