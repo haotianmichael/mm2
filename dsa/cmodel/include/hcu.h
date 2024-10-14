@@ -27,18 +27,22 @@ SC_MODULE(Score) {
             if(rst.read()) {
                 result.write(0);
             }else {
-                absDiff = fabs(fabs(riX.read().to_double()-riY.read().to_double()) - fabs(qiX.read().to_double() - qiY.read().to_double()));
-                double tmpB = (uint)(absDiff * 15 * 0.01 + 0.5 * (log(absDiff)/log(2.0)));
-                double B = absDiff == 0 ? 0 : tmpB;
-                double tmpA = (fabs(riX.read().to_double() - riY.read().to_double()) > fabs(qiX.read().to_double() - qiY.read().to_double())) ? fabs(qiX.read().to_double() - qiY.read().to_double()) : fabs(riX.read().to_double() - riY.read().to_double());
-                double A;
-                if(tmpA > W.read().to_double()) {
-                    A = W.read().to_double();
+                if(riX.read() < 0 || riY.read() < 0 || qiX.read() < 0 || qiY.read() < 0) {
+                    result.write(0);
                 }else {
-                    A = tmpA;
+                    absDiff = fabs(fabs(riX.read().to_double()-riY.read().to_double()) - fabs(qiX.read().to_double() - qiY.read().to_double()));
+                    double tmpB = (int)(absDiff * 15 * 0.01 + 0.5 * (log(absDiff)/log(2.0)));
+                    double B = absDiff == 0 ? 0 : tmpB;
+                    double tmpA = (fabs(riX.read().to_double() - riY.read().to_double()) > fabs(qiX.read().to_double() - qiY.read().to_double())) ? fabs(qiX.read().to_double() - qiY.read().to_double()) : fabs(riX.read().to_double() - riY.read().to_double());
+                    double A;
+                    if(tmpA > W.read().to_double()) {
+                       A = W.read().to_double();
+                    }else {
+                       A = tmpA;
+                    }
+                    result.write(static_cast<sc_int<WIDTH> >(A - B));
                 }
-                result.write(static_cast<sc_int<WIDTH> >(A - B));
-            }
+           }
             wait(5, SC_NS);
         }
     }

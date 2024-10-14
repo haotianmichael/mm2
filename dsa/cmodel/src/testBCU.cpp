@@ -65,16 +65,22 @@ int sc_main(int argc, char* argv[]) {
         sc_trace(fp,bcu.riArray[i],pe_name.str());
         pe_name.str("");
     }
-    for(int i =0 ;  i < LaneWIDTH; i ++) {
+   for(int i =0 ;  i < LaneWIDTH + 1; i ++) {
         std::ostringstream pe_name;
-        pe_name << "result(" << i << ")";
-        sc_trace(fp,bcu.hlane[i]->biggerScore,pe_name.str());
+        pe_name << "qiArray(" << i << ")";
+        sc_trace(fp,bcu.qiArray[i],pe_name.str());
         pe_name.str("");
     }
     for(int i =0 ;  i < LaneWIDTH + 1; i ++) {
         std::ostringstream pe_name;
         pe_name << "regBiggerScore(" << i << ")";
         sc_trace(fp,bcu.regBiggerScore[i],pe_name.str());
+        pe_name.str("");
+    }
+    for(int i =0 ;  i < LaneWIDTH; i ++) {
+        std::ostringstream pe_name;
+        pe_name << "result(" << i << ")";
+        sc_trace(fp,bcu.hlane[i]->biggerScore,pe_name.str());
         pe_name.str("");
     }
     sc_trace(fp, bcu.score_updated, "score_updated");
