@@ -137,23 +137,4 @@ SC_MODULE(HCU) {
     SC_CTOR(HCU){}
 };
 
-/*Main Chaining Unit for every anchor */
-struct MCU : public HCU{
-
-    void process();
-
-    SC_CTOR(MCU) : HCU("HCU"){
-        SC_THREAD(process);
-        sensitive << clk.pos();
-    }
-};
-
-/*Extensive Chaining Unit for every anchor whose range exceeds 65*/
-struct ECU : public HCU{
-
-    SC_CTOR(ECU) : HCU("HCU") {
-
-    }
-};
-
 #endif

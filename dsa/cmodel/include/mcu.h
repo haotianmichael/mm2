@@ -1,10 +1,13 @@
-#ifndef BASELINE_H
-#define BASELINE_H
+#ifndef MCU_H 
+#define MCU_H
 
 #include <hcu.h>
 
-/*Baseline of FCCM*/
-struct BCU : public HCU{
+/*
+    @Baseline of FCCM
+    @Main Chaining Unit for every anchor 
+*/
+struct MCU : public HCU{
     
      /*Constant Value*/
     sc_signal<sc_int<WIDTH> > tmpI;
@@ -42,7 +45,7 @@ struct BCU : public HCU{
         }
     }
 
-    SC_CTOR(BCU) : HCU("HCU") {
+    SC_CTOR(MCU) : HCU("HCU") {
         std::ostringstream hlaneName;
         for(int i = 0; i < LaneWIDTH; i ++) {
             // initialize Hlane
@@ -52,7 +55,7 @@ struct BCU : public HCU{
             hlane[i]->rst(rst);
             hlane[i]->id(tmpI);
             tmpI.write(static_cast<sc_int<32> >(i));
-            // BCU Wiring
+            // MCU Wiring
             hlane[i]->inputA.ri(riArray[LaneWIDTH]);
             hlane[i]->inputA.qi(qiArray[LaneWIDTH]);
             hlane[i]->inputA.W(W[LaneWIDTH]);

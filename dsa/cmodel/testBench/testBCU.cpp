@@ -1,5 +1,5 @@
 #include <systemc.h>
-#include "baseline.h"
+#include "mcu.h"
 #include "inputgenerator.h"
 
 SC_MODULE(Tb) {
@@ -22,7 +22,7 @@ SC_MODULE(Tb) {
     }
 };
 
-/*BCU Module*/
+/*MCU Module*/
 int sc_main(int argc, char* argv[]) {
     sc_clock clk("clk", 10, SC_NS);
     sc_signal<bool> rst;
@@ -48,13 +48,13 @@ int sc_main(int argc, char* argv[]) {
     }
 
 
-    BCU bcu("BCU"); 
-    bcu.clk(clk);
-    bcu.rst(rst);
+    MCU mcu("MCU"); 
+    mcu.clk(clk);
+    mcu.rst(rst);
     for(int i = 0; i < InputLaneWIDTH; i ++) {
-        bcu.riArray[i](ri[i]);
-        bcu.qiArray[i](qi[i]);
-        bcu.W[i](w[i]);
+        mcu.riArray[i](ri[i]);
+        mcu.qiArray[i](qi[i]);
+        mcu.W[i](w[i]);
     }
 
    sc_trace(fp, clk, "clk");
@@ -62,28 +62,28 @@ int sc_main(int argc, char* argv[]) {
    for(int i =0 ;  i < LaneWIDTH + 1; i ++) {
         std::ostringstream pe_name;
         pe_name << "riArray(" << i << ")";
-        sc_trace(fp,bcu.riArray[i],pe_name.str());
+        sc_trace(fp,mcu.riArray[i],pe_name.str());
         pe_name.str("");
     }
    for(int i =0 ;  i < LaneWIDTH + 1; i ++) {
         std::ostringstream pe_name;
         pe_name << "qiArray(" << i << ")";
-        sc_trace(fp,bcu.qiArray[i],pe_name.str());
+        sc_trace(fp,mcu.qiArray[i],pe_name.str());
         pe_name.str("");
     }
     for(int i =0 ;  i < LaneWIDTH + 1; i ++) {
         std::ostringstream pe_name;
         pe_name << "regBiggerScore(" << i << ")";
-        sc_trace(fp,bcu.regBiggerScore[i],pe_name.str());
+        sc_trace(fp,mcu.regBiggerScore[i],pe_name.str());
         pe_name.str("");
     }
     for(int i =0 ;  i < LaneWIDTH; i ++) {
         std::ostringstream pe_name;
         pe_name << "result(" << i << ")";
-        sc_trace(fp,bcu.hlane[i]->biggerScore,pe_name.str());
+        sc_trace(fp,mcu.hlane[i]->biggerScore,pe_name.str());
         pe_name.str("");
     }
-    sc_trace(fp, bcu.score_updated, "score_updated");
+    sc_trace(fp, mcu.score_updated, "score_updated");
 
 
     sc_start(1000, SC_NS); 

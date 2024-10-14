@@ -1,5 +1,5 @@
 #include <systemc.h>
-#include "baseline.h"
+#include "mcu.h"
 #include "inputgenerator.h"
 
 SC_MODULE(Tb) {
