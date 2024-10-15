@@ -9,8 +9,7 @@
 SC_MODULE(InputGenerator) {
     sc_in<bool> clk;      
     sc_in<bool> rst;
-    bool lt64;
-    sc_in<sc_int<32> > UpperBound;  // 1659 
+    sc_in<sc_int<32> > UpperBound; 
     sc_signal<sc_int<32> > ri[MAX_SEGLENGTH];
     sc_signal<sc_int<32> > qi[MAX_SEGLENGTH];
     sc_signal<sc_int<32> > w[MAX_SEGLENGTH];
@@ -28,7 +27,6 @@ SC_MODULE(InputGenerator) {
         std::string line;
         int i = 0; 
         if(UpperBound.read() <= InputLaneWIDTH){
-            lt64 = true;
             while (std::getline(infile, line) && i < InputLaneWIDTH) {
                  std::istringstream iss(line);
                  int val1, val2, val3;
@@ -40,7 +38,6 @@ SC_MODULE(InputGenerator) {
                  }
             }
         }else {
-            lt64 = false;
             while(std::getline(infile, line) && i < UpperBound.read()) {
                 std::istringstream iss(line);
                 int val1, val2, val3;
@@ -55,10 +52,10 @@ SC_MODULE(InputGenerator) {
     }
 
     void shift_elements() {
-        while(true && !lt64) {
+        while(true) {
             wait();
             if(!rst.read()) {
-                if(lt64) {
+                if(UpperBound.read() <= InputLaneWIDTH) {
                       if(cycle_count <= InputLaneWIDTH) {
                             for(int i = 0; i < (InputLaneWIDTH - cycle_count); i ++) {
                                  ri_out[i].write(ri[i + cycle_count]);

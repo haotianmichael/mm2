@@ -17,6 +17,12 @@ SC_MODULE(Tb) {
         reset.write(0);
         wait(5, SC_NS);
         reset.write(1);
+        /*
+            in2.txt: UpperBound  = 1695
+            in.txt: UpperBound = 65
+            1. change UpperBound
+            2. change filename
+        */
         UB.write(static_cast<sc_int<32> >(1659));
         wait(10, SC_NS);
         reset.write(0);
