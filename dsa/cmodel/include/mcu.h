@@ -47,7 +47,7 @@ struct MCU : public HCU{
 
     SC_CTOR(MCU) : HCU("HCU") {
         std::ostringstream hlaneName;
-        for(int i = 0; i < LaneWIDTH; i ++) {
+        for(int i = 1; i < LaneWIDTH; i ++) {
             // initialize Hlane
             hlaneName << "HLane" << i;
             hlane[i] = new HLane(hlaneName.str().c_str());
@@ -56,9 +56,9 @@ struct MCU : public HCU{
             hlane[i]->id(tmpI);
             tmpI.write(static_cast<sc_int<32> >(i));
             // MCU Wiring
-            hlane[i]->inputA.ri(riArray[LaneWIDTH]);
-            hlane[i]->inputA.qi(qiArray[LaneWIDTH]);
-            hlane[i]->inputA.W(W[LaneWIDTH]);
+            hlane[i]->inputA.ri(riArray[0]);
+            hlane[i]->inputA.qi(qiArray[0]);
+            hlane[i]->inputA.W(W[0]);
             hlane[i]->inputB.ri(riArray[i]);
             hlane[i]->inputB.qi(qiArray[i]);
             hlane[i]->inputB.W(W[i]);
