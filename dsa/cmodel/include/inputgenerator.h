@@ -8,7 +8,6 @@
 SC_MODULE(InputGenerator) {
     sc_in<bool> clk;      
     sc_in<bool> rst;
-    sc_in<sc_int<32> > UpperBound;
     sc_signal<sc_int<32> > ri[InputLaneWIDTH];
     sc_signal<sc_int<32> > qi[InputLaneWIDTH];
     sc_signal<sc_int<32> > w[InputLaneWIDTH];
@@ -23,7 +22,7 @@ SC_MODULE(InputGenerator) {
         while (true) {
             wait(); 
             if(!rst.read()) {
-                if(cycle_count < InputLaneWIDTH) {
+                if(cycle_count <= InputLaneWIDTH) {
                     for(int i = 0; i < (InputLaneWIDTH - cycle_count); i ++) {
                             ri_out[i].write(ri[i + cycle_count]);
                             qi_out[i].write(qi[i + cycle_count]);

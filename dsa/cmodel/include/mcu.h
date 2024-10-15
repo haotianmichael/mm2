@@ -20,7 +20,7 @@ struct MCU : public HCU{
             wait();
             if(rst.read()) {
                 for(int i = 0; i < LaneWIDTH + 1; i ++) {
-                    regBiggerScore[i].write(static_cast<sc_int<WIDTH> >(0));
+                    regBiggerScore[i].write(static_cast<sc_int<WIDTH> >(-1));
                 }
             }
         }
@@ -39,7 +39,7 @@ struct MCU : public HCU{
             wait();
             if(!rst.read()) {
                 for(int i = 0; i < LaneWIDTH; i ++){
-                      regBiggerScore[i + 1].write(hlane[i]->biggerScore.read());
+                      regBiggerScore[i].write(hlane[i]->biggerScore.read());
                 }
             }
         }
@@ -47,7 +47,7 @@ struct MCU : public HCU{
 
     SC_CTOR(MCU) : HCU("HCU") {
         std::ostringstream hlaneName;
-        for(int i = 1; i < LaneWIDTH; i ++) {
+        for(int i = 0; i < LaneWIDTH; i ++) {
             // initialize Hlane
             hlaneName << "HLane" << i;
             hlane[i] = new HLane(hlaneName.str().c_str());
@@ -59,11 +59,11 @@ struct MCU : public HCU{
             hlane[i]->inputA.ri(riArray[0]);
             hlane[i]->inputA.qi(qiArray[0]);
             hlane[i]->inputA.W(W[0]);
-            hlane[i]->inputB.ri(riArray[i]);
-            hlane[i]->inputB.qi(qiArray[i]);
-            hlane[i]->inputB.W(W[i]);
+            hlane[i]->inputB.ri(riArray[i+1]);
+            hlane[i]->inputB.qi(qiArray[i+1]);
+            hlane[i]->inputB.W(W[i+1]);
 
-            hlane[i]->lastCmp(regBiggerScore[i]); 
+            hlane[i]->lastCmp(regBiggerScore[i+1]); 
             hlaneName.str("");
         }
 

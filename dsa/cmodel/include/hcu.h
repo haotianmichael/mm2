@@ -132,7 +132,6 @@ SC_MODULE(HCU) {
     HLane* hlane[LaneWIDTH];
     /* Registers for staging Lane's output for 1 cycle*/
     sc_signal<sc_int<WIDTH> >  regBiggerScore[LaneWIDTH + 1];
-    sc_signal<sc_int<WIDTH> > tmpBiggerScore[LaneWIDTH + 1];
   
     SC_CTOR(HCU){}
 };
