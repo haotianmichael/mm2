@@ -5,11 +5,12 @@
 #include <string>
 #define InputLaneWIDTH  65
 #define MAX_SEGLENGTH   5000
+#define UpperBound 1659
+#define SHIFT_ALL 1
 
 SC_MODULE(InputGenerator) {
     sc_in<bool> clk;      
     sc_in<bool> rst;
-    sc_signal<sc_int<32> > UpperBound;  // for every segment
     sc_signal<sc_int<32> > ri[MAX_SEGLENGTH];
     sc_signal<sc_int<32> > qi[MAX_SEGLENGTH];
     sc_signal<sc_int<32> > w[MAX_SEGLENGTH];
@@ -21,7 +22,7 @@ SC_MODULE(InputGenerator) {
     int cycle_count;
 
     void shift_elements_lt64() {
-        while (true) {
+        while (true && !SHIFT_ALL) {
             wait(); 
             if(!rst.read()) {
                 if(cycle_count <= InputLaneWIDTH) {
@@ -55,14 +56,14 @@ SC_MODULE(InputGenerator) {
     }
 
     void shift_elements_all() {
-        while(true) {
+        while(true && SHIFT_ALL) {
             wait();
             if(!rst.read()) {
                 if(cycle_count <= UpperBound-65) {
                     for(int i = 0; i < InputLaneWIDTH; i ++) {
                         ri_out[i].write(ri[i + cycle_count]);
                         qi_out[i].write(qi[i + cycle_count]);
-                        w[i].write(w[i + cycle_count])):
+                        w[i].write(w[i + cycle_count]);
                     }
                     cycle_count ++;
                 }else if(cycle_count > UpperBound-65 && cycle_count < UpperBound) {
@@ -104,7 +105,7 @@ SC_MODULE(InputGenerator) {
         sensitive << clk.pos();
 
         // read file
-        std::string filename("data/in.txt");
+        std::string filename("data/in2.txt");
         std::ifstream infile(filename);
         std::string line;
         int i = 0; 
