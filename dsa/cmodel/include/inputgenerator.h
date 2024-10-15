@@ -63,23 +63,23 @@ SC_MODULE(InputGenerator) {
                     for(int i = 0; i < InputLaneWIDTH; i ++) {
                         ri_out[i].write(ri[i + cycle_count]);
                         qi_out[i].write(qi[i + cycle_count]);
-                        w[i].write(w[i + cycle_count]);
+                        w_out[i].write(w[i + cycle_count]);
                     }
                     cycle_count ++;
                 }else if(cycle_count > UpperBound-65 && cycle_count < UpperBound) {
                     for(int i = 0; i < UpperBound-cycle_count; i ++) {
                         ri_out[i].write(ri[i + cycle_count]);
                         qi_out[i].write(qi[i + cycle_count]);
-                        w[i].write(w[i + cycle_count]);
+                        w_out[i].write(w[i + cycle_count]);
                     }
-                    for(int i = UpperBound-1; i >= (UpperBound-cycle_count); i --) {
+                    for(int i = InputLaneWIDTH-1; i > (UpperBound-cycle_count); i --) {
                         ri_out[i].write(static_cast<sc_int<32> >(-1));
                         qi_out[i].write(static_cast<sc_int<32> >(-1));
-                        w[i].write(static_cast<sc_int<32> >(-1));
+                        w_out[i].write(static_cast<sc_int<32> >(-1));
                     }
                     cycle_count ++;
                 }else {
-                    for(int i = 0; i < UpperBound; i++) {
+                    for(int i = 0; i < InputLaneWIDTH; i++) {
                          ri_out[i].write(static_cast<sc_int<32>>(-1));
                          qi_out[i].write(static_cast<sc_int<32>>(-1));
                          w_out[i].write(static_cast<sc_int<32>>(-1));
