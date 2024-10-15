@@ -6,6 +6,7 @@ SC_MODULE(Tb) {
 
     sc_in<bool> clk;
     sc_out<bool> reset;
+    sc_out<sc_int<32> > UB;
 
     SC_CTOR(Tb) {
         SC_THREAD(reset_generator);
@@ -16,6 +17,7 @@ SC_MODULE(Tb) {
         reset.write(0);
         wait(5, SC_NS);
         reset.write(1);
+        UB.write(static_cast<sc_int<32> >(1659));
         wait(10, SC_NS);
         reset.write(0);
         wait(100, SC_NS);
@@ -29,6 +31,7 @@ int sc_main(int argc, char* argv[]) {
     sc_signal<sc_int<32> > ri[InputLaneWIDTH];
     sc_signal<sc_int<32> > qi[InputLaneWIDTH];
     sc_signal<sc_int<32> > w[InputLaneWIDTH];
+    sc_signal<sc_int<32> > tmpUB;
 
     sc_trace_file *fp;   // Create VCD file
     fp = sc_create_vcd_trace_file("wave");   // open(fp), create wave.vcd file
@@ -37,10 +40,12 @@ int sc_main(int argc, char* argv[]) {
     Tb tb("Tb");
     tb.clk(clk);
     tb.reset(rst);
+    tb.UB(tmpUB);
 
     InputGenerator ing("InputGenerator");    
     ing.clk(clk);
     ing.rst(rst);
+    ing.UpperBound(tmpUB);
     for(int i = 0; i < InputLaneWIDTH; i ++) {
         ing.ri_out[i](ri[i]);
         ing.qi_out[i](qi[i]);

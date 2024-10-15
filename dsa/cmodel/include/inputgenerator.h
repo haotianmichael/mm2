@@ -5,12 +5,12 @@
 #include <string>
 #define InputLaneWIDTH  65
 #define MAX_SEGLENGTH   5000
-#define UpperBound 1659
-#define SHIFT_ALL 1
 
 SC_MODULE(InputGenerator) {
     sc_in<bool> clk;      
     sc_in<bool> rst;
+    bool lt64;
+    sc_in<sc_int<32> > UpperBound;  // 1659 
     sc_signal<sc_int<32> > ri[MAX_SEGLENGTH];
     sc_signal<sc_int<32> > qi[MAX_SEGLENGTH];
     sc_signal<sc_int<32> > w[MAX_SEGLENGTH];
@@ -22,7 +22,7 @@ SC_MODULE(InputGenerator) {
     int cycle_count;
 
     void shift_elements_lt64() {
-        while (true && !SHIFT_ALL) {
+        while (true && lt64) {
             wait(); 
             if(!rst.read()) {
                 if(cycle_count <= InputLaneWIDTH) {
@@ -56,23 +56,23 @@ SC_MODULE(InputGenerator) {
     }
 
     void shift_elements_all() {
-        while(true && SHIFT_ALL) {
+        while(true && !lt64) {
             wait();
             if(!rst.read()) {
-                if(cycle_count <= UpperBound-65) {
+                if(cycle_count <= UpperBound.read()-65) {
                     for(int i = 0; i < InputLaneWIDTH; i ++) {
                         ri_out[i].write(ri[i + cycle_count]);
                         qi_out[i].write(qi[i + cycle_count]);
                         w_out[i].write(w[i + cycle_count]);
                     }
                     cycle_count ++;
-                }else if(cycle_count > UpperBound-65 && cycle_count < UpperBound) {
-                    for(int i = 0; i < UpperBound-cycle_count; i ++) {
+                }else if(cycle_count > UpperBound.read()-65 && cycle_count < UpperBound.read()) {
+                    for(int i = 0; i < UpperBound.read()-cycle_count; i ++) {
                         ri_out[i].write(ri[i + cycle_count]);
                         qi_out[i].write(qi[i + cycle_count]);
                         w_out[i].write(w[i + cycle_count]);
                     }
-                    for(int i = InputLaneWIDTH-1; i > (UpperBound-cycle_count); i --) {
+                    for(int i = InputLaneWIDTH-1; i > (UpperBound.read()-cycle_count); i --) {
                         ri_out[i].write(static_cast<sc_int<32> >(-1));
                         qi_out[i].write(static_cast<sc_int<32> >(-1));
                         w_out[i].write(static_cast<sc_int<32> >(-1));
@@ -109,7 +109,8 @@ SC_MODULE(InputGenerator) {
         std::ifstream infile(filename);
         std::string line;
         int i = 0; 
-        if(UpperBound <= InputLaneWIDTH){
+        if(UpperBound.read() <= InputLaneWIDTH){
+            lt64 = true;
             while (std::getline(infile, line) && i < InputLaneWIDTH) {
                  std::istringstream iss(line);
                  int val1, val2, val3;
@@ -121,7 +122,8 @@ SC_MODULE(InputGenerator) {
                  }
             }
         }else {
-            while(std::getline(infile, line) && i < UpperBound) {
+            lt64 = false;
+            while(std::getline(infile, line) && i < UpperBound.read()) {
                 std::istringstream iss(line);
                 int val1, val2, val3;
                 if(iss >> val1 >> val2 >> val3) {
