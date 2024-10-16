@@ -5,9 +5,8 @@
 #include <sstream>
 #include <string.h>
 #include <cmath>
+#include "helper.h"
 
-#define LaneWIDTH  64
-#define WIDTH 32
 /*Anchor (do only within one read)*/
 struct Anchor {
     sc_in<sc_int<WIDTH> > ri, qi;
@@ -81,8 +80,8 @@ SC_MODULE(Comparator) {
 SC_MODULE(HLane) {
     
     sc_in<bool> clk, rst;
-    sc_in<sc_int<32> > id;   // Id of each Lane within one HCU (1-65)
-    sc_in<sc_int<32> > lastCmp;  // input of this lane's  comparator
+    sc_in<sc_int<WIDTH> > id;   // Id of each Lane within one HCU (1-65)
+    sc_in<sc_int<WIDTH> > lastCmp;  // input of this lane's  comparator
     sc_signal<sc_int<WIDTH> > computeResult; // result of ScCompute
     sc_signal<sc_int<WIDTH> > biggerScore;  // output of this lane/input of next lane's comparator
 

@@ -1,22 +1,24 @@
+#ifndef INPUT_DISPATCH_H
+#define INPUT_DISPATCH_H
+
 #include <systemc.h>
 #include <vector>
 #include <fstream>
 #include <sstream>
 #include <string>
-#define InputLaneWIDTH  65
-#define MAX_SEGLENGTH   5000
+#include "helper.h"
 
 SC_MODULE(InputDispatcher) {
     sc_in<bool> clk;      
     sc_in<bool> rst;
-    sc_in<sc_int<32> > UpperBound; 
-    sc_signal<sc_int<32> > ri[MAX_SEGLENGTH];
-    sc_signal<sc_int<32> > qi[MAX_SEGLENGTH];
-    sc_signal<sc_int<32> > w[MAX_SEGLENGTH];
+    sc_in<sc_int<WIDTH> > UpperBound; 
+    sc_signal<sc_int<WIDTH> > ri[MAX_SEGLENGTH];
+    sc_signal<sc_int<WIDTH> > qi[MAX_SEGLENGTH];
+    sc_signal<sc_int<WIDTH> > w[MAX_SEGLENGTH];
 
-    sc_out<sc_int<32>> ri_out[InputLaneWIDTH];
-    sc_out<sc_int<32>> qi_out[InputLaneWIDTH];
-    sc_out<sc_int<32>> w_out[InputLaneWIDTH];
+    sc_out<sc_int<WIDTH>> ri_out[InputLaneWIDTH];
+    sc_out<sc_int<WIDTH>> qi_out[InputLaneWIDTH];
+    sc_out<sc_int<WIDTH>> w_out[InputLaneWIDTH];
 
     int cycle_count;
     SC_CTOR(InputDispatcher) : cycle_count(0) {
@@ -40,8 +42,8 @@ struct mcuInputDispatcher : InputDispatcher {
 
 struct ecuInputDispatcher : InputDispatcher {
 
-    sc_in<sc_int<32> > SBase;
-    sc_in<sc_int<32> > LBase; 
+    sc_in<sc_int<WIDTH> > SBase;
+    sc_in<sc_int<WIDTH> > LBase; 
 
     void initialize_data();
     void shift_data();
@@ -54,3 +56,4 @@ struct ecuInputDispatcher : InputDispatcher {
         sensitive << rst.pos();
     }
 };
+#endif

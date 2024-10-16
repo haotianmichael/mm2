@@ -18,7 +18,7 @@ SC_MODULE(HCU){
   
     /*Constant Value*/
     sc_signal<sc_int<WIDTH> > tmpI;
-    sc_signal<sc_int<32> > constLastCmp;
+    sc_signal<sc_int<WIDTH> > constLastCmp;
 
     /*Driven signal*/
     sc_event score_updated;
@@ -62,7 +62,7 @@ SC_MODULE(HCU){
             hlane[i]->clk(clk);
             hlane[i]->rst(rst);
             hlane[i]->id(tmpI);
-            tmpI.write(static_cast<sc_int<32> >(i));
+            tmpI.write(static_cast<sc_int<WIDTH> >(i));
             // HCU Wiring
             hlane[i]->inputA.ri(riArray[0]);
             hlane[i]->inputA.qi(qiArray[0]);
