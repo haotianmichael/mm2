@@ -1,38 +1,5 @@
 #include "inputDispatcher.h"
 
- void mcuInputDispatcher::initialize_data() {
-    wait();
-    std::string filename("data/in2.txt");
-    std::ifstream infile(filename);
-    std::string line;
-    int i = 0; 
-    if(UpperBound.read() <= InputLaneWIDTH){
-        while (std::getline(infile, line) && i < InputLaneWIDTH) {
-             std::istringstream iss(line);
-             int val1, val2, val3;
-             if (iss >> val1 >> val2 >> val3) {
-                ri[i].write(val1);
-                qi[i].write(val3);
-                w[i].write(val2);
-                i++;
-             }
-        }
-    }else {
-        while(std::getline(infile, line) && i < UpperBound.read()) {
-            std::istringstream iss(line);
-            int val1, val2, val3;
-            if(iss >> val1 >> val2 >> val3) {
-                ri[i].write(val1); 
-                qi[i].write(val3); 
-                w[i].write(val2); 
-                i++;
-            }
-        }
-    }
-}
-
-
-
 void mcuInputDispatcher::shift_data() {
     while(true) {
         wait();

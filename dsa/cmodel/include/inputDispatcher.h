@@ -8,6 +8,7 @@
 #include <string>
 #include "helper.h"
 
+/* InputDispatcher for Each Segment */
 SC_MODULE(InputDispatcher) {
     sc_in<bool> clk;      
     sc_in<bool> rst;
@@ -16,26 +17,27 @@ SC_MODULE(InputDispatcher) {
     sc_signal<sc_int<WIDTH> > qi[MAX_SEGLENGTH];
     sc_signal<sc_int<WIDTH> > w[MAX_SEGLENGTH];
 
-    sc_out<sc_int<WIDTH>> ri_out[InputLaneWIDTH];
-    sc_out<sc_int<WIDTH>> qi_out[InputLaneWIDTH];
-    sc_out<sc_int<WIDTH>> w_out[InputLaneWIDTH];
-
-    int cycle_count;
-    SC_CTOR(InputDispatcher) : cycle_count(0) {
+    void initialize_data() {
+   
+    }
+    SC_CTOR(InputDispatcher){
+        SC_THREAD(initialize_data);
+        sensitive << rst.pos();
     }
 };
  
 struct mcuInputDispatcher : InputDispatcher {
 
-    void initialize_data();
+    sc_out<sc_int<WIDTH>> ri_out[InputLaneWIDTH];
+    sc_out<sc_int<WIDTH>> qi_out[InputLaneWIDTH];
+    sc_out<sc_int<WIDTH>> w_out[InputLaneWIDTH];
+
+    int cycle_count;
     void shift_data();
     SC_CTOR(mcuInputDispatcher) :
-    InputDispatcher("InputDispatcher") {
+    InputDispatcher("mcuInputDispatcher"), cycle_count(0) {
         SC_THREAD(shift_data);
         sensitive << clk.pos();
-
-        SC_THREAD(initialize_data);
-        sensitive << rst.pos();
     }
 };
  
@@ -45,15 +47,15 @@ struct ecuInputDispatcher : InputDispatcher {
     sc_in<sc_int<WIDTH> > SBase;
     sc_in<sc_int<WIDTH> > LBase; 
 
-    void initialize_data();
+    sc_out<sc_int<WIDTH>> ri_out[InputLaneWIDTH + 1];
+    sc_out<sc_int<WIDTH>> qi_out[InputLaneWIDTH + 1];
+    sc_out<sc_int<WIDTH>> w_out[InputLaneWIDTH + 1];
+
     void shift_data();
     SC_CTOR(ecuInputDispatcher) :
-     InputDispatcher("InputDispatcher"){
+     InputDispatcher("ecuInputDispatcher"){
         SC_THREAD(shift_data);
         sensitive << clk.pos();
-
-        SC_THREAD(initialize_data);
-        sensitive << rst.pos();
     }
 };
 #endif
