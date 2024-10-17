@@ -18,15 +18,15 @@ void RangeCountUnit::takeOneReadAndCut() {
                 i++;
              }
         }
-        anchor_length.write(i);
+        anchorNum.write(i);
  
         // compute dynamic range and cut
         int rangeHeuristic[8] = {0, 16, 512, 1024, 2048, 3072, 4096, 5000};
-        for(int j = 0; j < anchor_length.read(); j ++) {
+        for(int j = 0; j < anchorNum.read(); j ++) {
             int end = j + 5000;
             for(int delta = 0; delta < 8; delta++) {
                 if(anchorRi[j+rangeHeuristic[delta]].read() - anchorRi[j].read() > 5000) {
-                    end = j + delta;
+                    end = j + rangeHeuristic[delta];
                     break;                    
                 }
             }
@@ -35,18 +35,17 @@ void RangeCountUnit::takeOneReadAndCut() {
                     end--;
                 } 
             }
-            //cut when range = 0
-            segmentLen[j] = end - j;
+            /*
+                1. range of anchor[j]'s successor is [j + 1, end]
+                2. cut when rangeLength = 0
+                3. max range of a segment is its UpperBound
+            */
+            anchorSuccessiveRange[j] = end - j + 1;
         }
-
-        // 每一个segment的长度是不是就是它的UpperBound
-        
-
-
         cutDone.write(true);
     }else {
         cutDone.write(false);
-        anchor_length.write(0);
+        anchorNum.write(0);
     }
        
 

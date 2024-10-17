@@ -13,12 +13,11 @@ SC_MODULE(RangeCountUnit) {
         @max segments length: 5000
     */
     sc_out<bool> cutDone;
-    sc_out<sc_int<WIDTH>> segNum;
-    sc_out<sc_int<WIDTH> > anchor_length;
+    sc_out<sc_int<WIDTH> > anchorNum;
     sc_out<sc_int<WIDTH> > anchorRi[MAX_READ_LENGTH];
     sc_out<sc_int<WIDTH> > anchorQi[MAX_READ_LENGTH];
     sc_out<sc_int<WIDTH> > anchorW[MAX_READ_LENGTH];
-    sc_out<sc_int<WIDTH>> segmentLen[MAX_SEG_NUM];
+    sc_out<sc_int<WIDTH>> anchorSuccessiveRange[MAX_READ_LENGTH];
 
     void takeOneReadAndCut();
     SC_CTOR(RangeCountUnit) {
