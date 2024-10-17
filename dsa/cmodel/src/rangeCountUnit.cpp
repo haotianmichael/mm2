@@ -21,31 +21,36 @@ void RangeCountUnit::takeOneReadAndCut() {
         anchorNum.write(i);
  
         // compute dynamic range and cut
+        // cut algorighm is strictly according to the software version.
         int rangeHeuristic[8] = {0, 16, 512, 1024, 2048, 3072, 4096, 5000};
         for(int j = 0; j < anchorNum.read(); j ++) {
             int end = j + 5000;
             for(int delta = 0; delta < 8; delta++) {
-                if(anchorRi[j+rangeHeuristic[delta]].read() - anchorRi[j].read() > 5000) {
+                if((j + rangeHeuristic[delta] >= anchorNum.read()) 
+                     || (anchorRi[j+rangeHeuristic[delta]].read() - anchorRi[j].read() > 5000)) {
                     end = j + rangeHeuristic[delta];
                     break;                    
                 }
             }
             while(end > j) {
-                if(anchorRi[end].read() - anchorRi[j].read() > 5000) {
+                if(end >= anchorNum.read() || anchorRi[end].read() - anchorRi[j].read() > 5000) {
                     end--;
                 } 
             }
             /*
                 1. range of anchor[j]'s successor is [j + 1, end]
-                2. cut when rangeLength = 0
+                2. cut when rangeLength = 1
                 3. max range of a segment is its UpperBound
             */
-            anchorSuccessiveRange[j] = end - j + 1;
+            anchorSuccessiveRange[j].write(end-j+1);
         }
         cutDone.write(true);
     }else {
         cutDone.write(false);
         anchorNum.write(0);
+        for(int i = 0; i < MAX_READ_LENGTH; i ++) {
+            anchorSuccessiveRange[i].write(-1);
+        }
     }
        
 
