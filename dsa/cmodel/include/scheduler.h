@@ -17,7 +17,7 @@ SC_MODULE(Scheduler) {
     sc_signal<sc_int<WIDTH> > wSegs[MAX_SEG_NUM][MAX_SEGLENGTH];
 
     sc_signal<bool> start;   // initialization done signal.
-    sc_signal<sc_int<WIDTH> > read_length;  // the length of read
+    sc_signal<sc_int<WIDTH> > anchor_length;  // the length of read
     sc_signal<sc_int<WIDTH>> segNum; // number of segments 
     sc_signal<sc_int<WIDTH> > anchorRi[MAX_READ_LENGTH];
     sc_signal<sc_int<WIDTH> > anchorQi[MAX_READ_LENGTH];
@@ -49,7 +49,7 @@ SC_MODULE(Scheduler) {
         rc = new RangeCountUnit("RangeCountUnit");
         rc->rst(rst);
         rc->cutDone(start);
-        rc->read_length(read_length);
+        rc->anchor_length(anchor_length);
         rc->segNum(segNum);
         for(int i = 0; i < MAX_READ_LENGTH; i ++) {
             rc->anchorRi[i](anchorRi[i]);
