@@ -20,11 +20,11 @@ void Scheduler::scheduler_pre() {
         wait();
         if(start.read()) {
            int segStart = 0, tmpSegNum = 0, i = 0;
+           riSegment newRi;
+           qiSegment newQi;
+           wSegment newW;
            for(; i < anchorNum.read(); i ++) {
-                riSegment newRi;
-                qiSegment newQi;
-                wSegment newW;
-                if(anchorSuccessiveRange[i].read() != 0) {
+               if(anchorSuccessiveRange[i].read() != 0) {
                    newRi.data[segStart] = anchorRi[i].read();
                    newQi.data[segStart] = anchorQi[i].read();
                    newW.data[segStart] = anchorW[i].read();
@@ -33,16 +33,22 @@ void Scheduler::scheduler_pre() {
                     newRi.upperBound = segStart;
                     newQi.upperBound = segStart;
                     newW.upperBound = segStart;
+                    riSegs.write(newRi);
+                    qiSegs.write(newQi);
+                    wSegs.write(newW);
                     tmpSegNum++;
                     segStart = 0;
                 }
-                // the last segments
-                if(i == anchorNum.read()) {
-                    newRi.upperBound = segStart;
-                    newQi.upperBound = segStart;
-                    newW.upperBound = segStart;
-                }
            } 
+           // the last segment
+           if(i == anchorNum.read()) {
+               newRi.upperBound = segStart;
+               newQi.upperBound = segStart;
+               newW.upperBound = segStart;
+               riSegs.write(newRi);
+               qiSegs.write(newQi);
+               wSegs.write(newW);
+           }
            segNum.write(static_cast<sc_int<WIDTH> >(tmpSegNum)); 
         }else {
             segNum.write(0);
