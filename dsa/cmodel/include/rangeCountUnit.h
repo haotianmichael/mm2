@@ -3,7 +3,6 @@
 
 #include <systemc.h>
 #include "hcu.h"
-#include "inputDispatcher.h"
 
 SC_MODULE(RangeCountUnit) {
 

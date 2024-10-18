@@ -8,8 +8,8 @@
 #include <string>
 #include "helper.h"
 
-/* InputDispatcher for Each Segment */
-SC_MODULE(InputDispatcher) {
+/* IODispatcher for Each Segment */
+SC_MODULE(IODispatcher) {
     sc_in<bool> clk;      
     sc_in<bool> rst;
     sc_in<sc_int<WIDTH> > UpperBound; 
@@ -20,13 +20,13 @@ SC_MODULE(InputDispatcher) {
     void initialize_data() {
    
     }
-    SC_CTOR(InputDispatcher){
+    SC_CTOR(IODispatcher){
         SC_THREAD(initialize_data);
         sensitive << rst.pos();
     }
 };
  
-struct mcuInputDispatcher : InputDispatcher {
+struct mcuIODispatcher : IODispatcher {
 
     sc_out<sc_int<WIDTH>> ri_out[InputLaneWIDTH];
     sc_out<sc_int<WIDTH>> qi_out[InputLaneWIDTH];
@@ -34,15 +34,15 @@ struct mcuInputDispatcher : InputDispatcher {
 
     int cycle_count;
     void shift_data();
-    SC_CTOR(mcuInputDispatcher) :
-    InputDispatcher("mcuInputDispatcher"), cycle_count(0) {
+    SC_CTOR(mcuIODispatcher) :
+    IODispatcher("mcuIODispatcher"), cycle_count(0) {
         SC_THREAD(shift_data);
         sensitive << clk.pos();
     }
 };
  
 
-struct ecuInputDispatcher : InputDispatcher {
+struct ecuIODispatcher : IODispatcher {
 
     sc_in<sc_int<WIDTH> > SBase;
     sc_in<sc_int<WIDTH> > LBase; 
@@ -52,8 +52,8 @@ struct ecuInputDispatcher : InputDispatcher {
     sc_out<sc_int<WIDTH>> w_out[InputLaneWIDTH + 1];
 
     void shift_data();
-    SC_CTOR(ecuInputDispatcher) :
-     InputDispatcher("ecuInputDispatcher"){
+    SC_CTOR(ecuIODispatcher) :
+     IODispatcher("ecuIODispatcher"){
         SC_THREAD(shift_data);
         sensitive << clk.pos();
     }

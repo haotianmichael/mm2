@@ -1,6 +1,6 @@
 #include <systemc.h>
 #include "hcu.h"
-#include "inputDispatcher.h"
+#include "ioDispatcher.h"
 
 SC_MODULE(Tb) {
 
@@ -48,7 +48,7 @@ int sc_main(int argc, char* argv[]) {
     tb.reset(rst);
     tb.UB(tmpUB);
 
-    mcuInputDispatcher ing("mcuInputDispatcher");    
+    mcuIODispatcher ing("mcuIODispatcher");    
     ing.clk(clk);
     ing.rst(rst);
     ing.UpperBound(tmpUB);

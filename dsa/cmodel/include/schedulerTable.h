@@ -3,6 +3,43 @@
 
 #include <helper.h>
 
+
+struct riSegment{
+    sc_int<WIDTH>  data[MAX_SEGLENGTH]; 
+    sc_int<WIDTH> upperBound;
+    friend std::ostream& operator<<(std::ostream& os, const riSegment& segment){
+        os << "riSegment: ";
+        for(int i =0; i < segment.upperBound; i ++) {
+            os << segment.data[i] << " "; 
+        }
+        return os;
+    }
+};
+
+struct qiSegment{
+    sc_int<WIDTH>  data[MAX_SEGLENGTH]; 
+    sc_int<WIDTH> upperBound;
+    friend std::ostream& operator<<(std::ostream& os, const qiSegment& segment) {
+        os << "qiSegment: ";
+        for(int i =0; i < segment.upperBound; i ++) {
+            os << segment.data[i] << " ";
+        }
+        return os;
+    }
+};
+
+struct wSegment{
+    sc_int<WIDTH>  data[MAX_SEGLENGTH]; 
+    sc_int<WIDTH> upperBound;
+    friend std::ostream& operator<<(std::ostream& os, const wSegment& segment) {
+        os << "wSegment: ";
+        for(int i = 0; i < segment.upperBound; i ++) {
+                os << segment.data[i] << " ";
+        }
+        return os;
+    }
+};
+
 struct SchedulerItem{
 
     sc_bit segID;
@@ -13,7 +50,6 @@ struct SchedulerItem{
     sc_int<WIDTH> SBase;
     sc_int<WIDTH> LBase;
 };
-
 
 struct SchedulerTable {
 

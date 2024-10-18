@@ -5,42 +5,9 @@
 #include "rangeCountUnit.h"
 #include "schedulerTable.h"
 #include "reductionPool.h"
+#include "ioDispatcher.h"
+#include "partialScorePool.h"
 
-struct riSegment{
-    sc_int<WIDTH>  data[MAX_SEGLENGTH]; 
-    sc_int<WIDTH> upperBound;
-    friend std::ostream& operator<<(std::ostream& os, const riSegment& segment){
-        os << "riSegment: ";
-        for(int i =0; i < segment.upperBound; i ++) {
-            os << segment.data[i] << " "; 
-        }
-        return os;
-    }
-};
-
-struct qiSegment{
-    sc_int<WIDTH>  data[MAX_SEGLENGTH]; 
-    sc_int<WIDTH> upperBound;
-    friend std::ostream& operator<<(std::ostream& os, const qiSegment& segment) {
-        os << "qiSegment: ";
-        for(int i =0; i < segment.upperBound; i ++) {
-            os << segment.data[i] << " ";
-        }
-        return os;
-    }
-};
-
-struct wSegment{
-    sc_int<WIDTH>  data[MAX_SEGLENGTH]; 
-    sc_int<WIDTH> upperBound;
-    friend std::ostream& operator<<(std::ostream& os, const wSegment& segment) {
-        os << "wSegment: ";
-        for(int i = 0; i < segment.upperBound; i ++) {
-                os << segment.data[i] << " ";
-        }
-        return os;
-    }
-};
 
 SC_MODULE(Scheduler) {
 
@@ -57,17 +24,21 @@ SC_MODULE(Scheduler) {
     // @RC Unit
     RangeCountUnit *rc;
 
-    // @Segments Queue (Two Ports)
+    // @SegmentsQueue (Two Ports)
     // UpperBound <= 65 elements  Lane[0, 64]
     sc_signal<sc_int<WIDTH>> segNumLong; // number of segments 
-    sc_fifo<riSegment> riSegsLong;  
-    sc_fifo<qiSegment> qiSegsLong;
-    sc_fifo<wSegment> wSegsLong;
+    sc_fifo<riSegment> riSegQueueLong;  
+    sc_fifo<qiSegment> qiSegQueueLong;
+    sc_fifo<wSegment> wSegQueueLong;
     // UpperBound > 65
     sc_signal<sc_int<WIDTH>> segNumShort;
-    sc_fifo<riSegment> riSegsShort; 
-    sc_fifo<qiSegment> qiSegsShort;
-    sc_fifo<wSegment> wSegsShort;
+    sc_fifo<riSegment> riSegQueueShort; 
+    sc_fifo<qiSegment> qiSegQueueShort;
+    sc_fifo<wSegment> wSegQueueShort;
+
+    // @PartialScoreQueue
+    sc_fifo<sc_int<WIDTH> > partialScoreQueue;
+
 
     // @SchedulerTable
     SchedulerTable schedulerTable;
@@ -76,7 +47,7 @@ SC_MODULE(Scheduler) {
     HCU *hcuPool[HCU_NUM];
 
     // @ReductionPool
-    ReductionPool * reductionPool;
+    ReductionPool *reductionPool;
 
     void scheduler_top();
     void scheduler_pre();
@@ -128,7 +99,7 @@ SC_MODULE(Scheduler) {
                // hcuPool[i]->W[j](static_cast<sc_int<WIDTH> >(-1));
             //}
             sc_bigint<TableWIDTH> mask = ~(1 << i); 
-            schedulerTable.HOCC &= mask;
+            schedulerTable.HOCC &= mask;  // HOCC transfer
             pe_name.str("");
         }
 

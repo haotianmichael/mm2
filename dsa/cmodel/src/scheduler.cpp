@@ -44,14 +44,14 @@ void Scheduler::scheduler_pre() {
                    newQi.upperBound = segStart;
                    newW.upperBound = segStart;
                    if(newW.upperBound <= InputLaneWIDTH) {
-                        riSegsShort.write(newRi);
-                        qiSegsShort.write(newQi);
-                        wSegsShort.write(newW);
+                        riSegQueueShort.write(newRi);
+                        qiSegQueueShort.write(newQi);
+                        wSegQueueShort.write(newW);
                         tmpSegShortNum++;
                    }else {
-                        riSegsLong.write(newRi);
-                        qiSegsLong.write(newQi);
-                        wSegsLong.write(newW);
+                        riSegQueueLong.write(newRi);
+                        qiSegQueueLong.write(newQi);
+                        wSegQueueLong.write(newW);
                         tmpSegLongNum++;
                    }
                    segStart = 0;
@@ -67,14 +67,14 @@ void Scheduler::scheduler_pre() {
                newQi.upperBound = segStart;
                newW.upperBound = segStart;
                if(newW.upperBound <= InputLaneWIDTH) {
-                    riSegsShort.write(newRi);
-                    qiSegsShort.write(newQi);
-                    wSegsShort.write(newW);
+                    riSegQueueShort.write(newRi);
+                    qiSegQueueShort.write(newQi);
+                    wSegQueueShort.write(newW);
                     tmpSegShortNum++;
                 }else {
-                    riSegsLong.write(newRi);
-                    qiSegsLong.write(newQi);
-                    wSegsLong.write(newW);
+                    riSegQueueLong.write(newRi);
+                    qiSegQueueLong.write(newQi);
+                    wSegQueueLong.write(newW);
                     tmpSegLongNum++;
                 }
            }
@@ -90,19 +90,54 @@ void Scheduler::scheduler_pre() {
 
 
 void Scheduler::scheduler_allocate() {
-    // 调度分配都是基于调度表, 把testHCU.cpp中的思路放到这里
+    // 调度树如何改变ROCC，调度器依据这个进行调度
+    // 考虑调度周期
     while(true) {
         wait();
         if(start.read()) {
             riSegment newRi;
             qiSegment newQi;
             wSegment newW; 
-           
-            newRi = riSegsLong.read();
-            newQi = qiSegsLong.read();
-            newW = wSegsLong.read();
-            sc_int<WIDTH> upperbound = newW.upperBound;
+            sc_int<WIDTH> upperbound;
+            if(schedulerTable.ROCC <= IdleThreshLow) { 
+                 // little idle reduction -> allocate shortPort
+                if(segNumShort.read() > 0) {
+                    newRi = riSegQueueShort.read();
+                    newQi = qiSegQueueShort.read();
+                    newW = wSegQueueShort.read();
+                    upperbound = newW.upperBound; 
+                    segNumShort.write(segNumShort.read() - 1);
+                }else if(segNumLong.read() > 0){
+                    newRi = riSegQueueLong.read();
+                    newQi = qiSegQueueLong.read();
+                    newW = wSegQueueLong.read();
+                    upperbound = newW.upperBound; 
+                    segNumLong.write(segNumLong.read() - 1);
+                } else {
 
+                }
+            }else {
+                // enough idle reduction -> allocate longPort
+                if(segNumLong.read() > 0) {
+                    newRi = riSegQueueLong.read();
+                    newQi = qiSegQueueLong.read();
+                    newW = wSegQueueLong.read();
+                    upperbound = newW.upperBound;  
+                    segNumLong.write(segNumLong.read() - 1);
+                }else if(segNumShort.read() > 0){
+                    newRi = riSegQueueShort.read();
+                    newQi = qiSegQueueShort.read();
+                    newW = wSegQueueShort.read();
+                    upperbound = newW.upperBound; 
+                    segNumShort.write(segNumShort.read() - 1);
+                }else {
+                    if(segNumLong.read() == 0 
+                         && segNumShort.read() == 0) {
+                         // allocation over 
+                         std::cout << "allocation over!" << std::endl;
+                    }
+                }
+            }       
         }else {
 
         }
@@ -111,7 +146,8 @@ void Scheduler::scheduler_allocate() {
 
 
 void Scheduler::scheduler_execute() {
-
+    // 设计如何映射inputDispatch来实现MCU/ECU的执行
+    //如何处理execute和allocate的并行执行
 
 
 }

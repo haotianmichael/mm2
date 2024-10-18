@@ -1,6 +1,6 @@
-#include "inputDispatcher.h"
+#include "ioDispatcher.h"
 
-void mcuInputDispatcher::shift_data() {
+void mcuIODispatcher::shift_data() {
     while(true) {
         wait();
         if(!rst.read()) {
