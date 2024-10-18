@@ -1,9 +1,10 @@
 #ifndef SCHEDULER_H
 #define SCHEDULER_H
 
-#include <systemc.h>
 #include "hcu.h"
 #include "rangeCountUnit.h"
+#include "schedulerTable.h"
+#include "reductionPool.h"
 
 struct riSegment{
     sc_int<WIDTH>  data[MAX_SEGLENGTH]; 
@@ -69,6 +70,13 @@ SC_MODULE(Scheduler) {
     sc_fifo<wSegment> wSegsShort;
 
     // @SchedulerTable
+    SchedulerTable schedulerTable;
+
+    // @HCU Pool
+    HCU *hcuPool[HCU_NUM];
+
+    // @ReductionPool
+    ReductionPool * reductionPool;
 
     void scheduler_top();
     void scheduler_pre();
@@ -107,6 +115,28 @@ SC_MODULE(Scheduler) {
             rc->anchorW[i](anchorW[i]);
             rc->anchorSuccessiveRange[i](anchorSuccessiveRange[i]);
         }
+
+        std::ostringstream pe_name;
+        for(int i = 0; i < HCU_NUM; i ++) {
+            pe_name << "hcuPool(" << i << ")";
+            hcuPool[i] = new HCU(pe_name.str().c_str());
+            hcuPool[i]->clk(clk);
+            hcuPool[i]->rst(rst);
+            //for(int j = 0; j < InputLaneWIDTH; j ++) {
+             //   hcuPool[i]->riArray[j](static_cast<sc_int<WIDTH> >(-1));
+              //  hcuPool[i]->qiArray[j](static_cast<sc_int<WIDTH> >(-1));
+               // hcuPool[i]->W[j](static_cast<sc_int<WIDTH> >(-1));
+            //}
+            sc_bigint<TableWIDTH> mask = ~(1 << i); 
+            schedulerTable.HOCC &= mask;
+            pe_name.str("");
+        }
+
+        reductionPool = new ReductionPool("ReductionPool");
+        reductionPool->clk(clk);
+        reductionPool->rst(rst);
+        schedulerTable(reductionPool->ROCC.read());  // () override for ROCC transfer
+
 	}
 
 };

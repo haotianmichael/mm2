@@ -97,6 +97,7 @@ void Scheduler::scheduler_allocate() {
             riSegment newRi;
             qiSegment newQi;
             wSegment newW; 
+           
             newRi = riSegsLong.read();
             newQi = qiSegsLong.read();
             newW = wSegsLong.read();
