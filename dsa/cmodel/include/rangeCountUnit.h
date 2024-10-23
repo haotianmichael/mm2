@@ -18,7 +18,7 @@ SC_MODULE(RangeCountUnit) {
     sc_out<sc_int<WIDTH> > anchorW[ReadNumProcessedOneTime][MAX_READ_LENGTH];
     sc_out<sc_int<WIDTH>> anchorSuccessiveRange[ReadNumProcessedOneTime][MAX_READ_LENGTH];
 
-    void takeOneReadAndCut();
+    void takeReadsAndCut();
     SC_CTOR(RangeCountUnit) {
         SC_THREAD(takeReadsAndCut);
         sensitive << rst.pos();

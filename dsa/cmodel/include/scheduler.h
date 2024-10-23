@@ -103,7 +103,6 @@ SC_MODULE(Scheduler) {
             hcuPool[i] = new HCU(pe_name.str().c_str());
             hcuPool[i]->clk(clk);
             hcuPool[i]->rst(rst);
-            hcuPool[i]->currentReadID(static_cast<sc_int<WIDTH> >(-1));
             //for(int j = 0; j < InputLaneWIDTH; j ++) {
              //   hcuPool[i]->riArray[j](static_cast<sc_int<WIDTH> >(-1));
               //  hcuPool[i]->qiArray[j](static_cast<sc_int<WIDTH> >(-1));
@@ -120,8 +119,8 @@ SC_MODULE(Scheduler) {
         //schedulerTable(reductionPool->ROCC.read());  // () override for ROCC transfer
 
         partialScoreQueue = new PartialScoreQueue("PartialScoreQueue");
-        partialScoreQueue.clk(clk);
-        partialScoreQueue.rst(rst);
+        partialScoreQueue->clk(clk);
+        partialScoreQueue->rst(rst);
 
 
 

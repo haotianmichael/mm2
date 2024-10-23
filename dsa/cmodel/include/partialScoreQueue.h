@@ -18,7 +18,9 @@ SC_MODULE(PartialScoreQueue) {
     // FIFO and fill the PSQTable
     sc_in<bool> clk, rst;
     PSTable psTable[MAX_SEG_NUM];   
+    SC_CTOR(PartialScoreQueue) {
 
+    }
 };
 
 #endif

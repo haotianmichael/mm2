@@ -10,7 +10,7 @@ struct riSegment{
     sc_int<WIDTH> readID;   // readID which this segment belongs to 
     friend std::ostream& operator<<(std::ostream& os, const riSegment& segment){
         os << "riSegment: ";
-        for(int i =0; i < segment.upperBound; i ++) {
+        for(int i =0; i < MAX_SEGLENGTH; i ++) {
             os << segment.data[i] << " "; 
         }
         return os;
@@ -22,7 +22,7 @@ struct qiSegment{
     sc_int<WIDTH> segID;   // segmentID
     friend std::ostream& operator<<(std::ostream& os, const qiSegment& segment) {
         os << "qiSegment: ";
-        for(int i =0; i < segment.upperBound; i ++) {
+        for(int i =0; i < MAX_SEGLENGTH; i ++) {
             os << segment.data[i] << " ";
         }
         return os;
@@ -51,7 +51,7 @@ struct SchedulerTime{
 
 struct SchedulerItem{
 
-    sc_bit issued = 0;
+    sc_bit issued;
     sc_int<WIDTH> readID;
     sc_int<WIDTH> segmentID;
     sc_int<WIDTH> UB;
@@ -68,16 +68,13 @@ struct SchedulerTable {
     std::list<SchedulerItem> schedulerItemList;
 
     void addItem(const SchedulerItem& item) {
-        SchedulerItemList.push_back(item);
+        schedulerItemList.push_back(item);
     }
 
     void removeItem(std::function<bool(const SchedulerItem&)> condition) {
-        SchedulerItemList.remove_if(condition);
+        schedulerItemList.remove_if(condition);
     }
 
-    void operator()(const sc_bigint<TableWIDTH>& ROCC_sig) {
-        ROCC = ROCC_sig;
-    }
 
 };
 

@@ -18,20 +18,16 @@
 #define IdleThreshLow 4
 #define ReadNumProcessedOneTime  1
 
-int countZerosInBigInt(const sc_dt::sc_bigint<TableWIDTH>& num) {
+int countIdle(const ReductionPool& rp) {
     int zeroCount = 0;
-    for (int i = 0; i < TableWIDTH; ++i) {
-        if (num[i] == 0) {
-            ++zeroCount;
-        }
-    }
+
     return zeroCount;
 }
 
-int newHCU(const HCU &hcuPool) {
+int newHCU(const HCU *hcuPool[HCU_NUM]) {
     int allo;
     for(int i = 0; i < HCU_NUM; i ++) {
-        if(hcuPool[i].currentReadID == -1) {
+        if(hcuPool[i]->currentReadID.read() == -1) {
             allo = i;
             break;
         }
