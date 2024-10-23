@@ -2,8 +2,6 @@
 #define HLane_H
 
 #include <systemc.h>
-#include <sstream>
-#include <string.h>
 #include <cmath>
 #include "helper.h"
 

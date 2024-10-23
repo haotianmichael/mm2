@@ -12,15 +12,15 @@ SC_MODULE(RangeCountUnit) {
         @max segments length: 5000
     */
     sc_out<bool> cutDone;
-    sc_out<sc_int<WIDTH> > anchorNum;
-    sc_out<sc_int<WIDTH> > anchorRi[MAX_READ_LENGTH];
-    sc_out<sc_int<WIDTH> > anchorQi[MAX_READ_LENGTH];
-    sc_out<sc_int<WIDTH> > anchorW[MAX_READ_LENGTH];
-    sc_out<sc_int<WIDTH>> anchorSuccessiveRange[MAX_READ_LENGTH];
+    sc_out<sc_int<WIDTH> > anchorNum[ReadNumProcessedOneTime];
+    sc_out<sc_int<WIDTH> > anchorRi[ReadNumProcessedOneTime][MAX_READ_LENGTH];
+    sc_out<sc_int<WIDTH> > anchorQi[ReadNumProcessedOneTime][MAX_READ_LENGTH];
+    sc_out<sc_int<WIDTH> > anchorW[ReadNumProcessedOneTime][MAX_READ_LENGTH];
+    sc_out<sc_int<WIDTH>> anchorSuccessiveRange[ReadNumProcessedOneTime][MAX_READ_LENGTH];
 
     void takeOneReadAndCut();
     SC_CTOR(RangeCountUnit) {
-        SC_THREAD(takeOneReadAndCut);
+        SC_THREAD(takeReadsAndCut);
         sensitive << rst.pos();
     }
 

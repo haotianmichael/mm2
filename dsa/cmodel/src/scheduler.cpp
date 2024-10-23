@@ -1,61 +1,55 @@
 #include <cassert>
 #include "scheduler.h"
 
-
-void Scheduler::scheduler_top() {
+void Scheduler::scheduler_hcu_pre() {
     while(true) {
         wait();
-        if(rst.read()) {
-            
-        }else {
-
-
+        if(readIdx >= ReadNumProcessedOneTime) {
+            return;
         }
-
-    }
-}
-
-
-void Scheduler::scheduler_pre() {
-    while(true) {
-        wait();
         if(start.read()) {
-           int segStart = 0, tmpSegLongNum = 0,tmpSegShortNum = 0, i = 0;
+           int segStart = 0, tmpSegLongNum = 0,tmpSegShortNum = 0, tmpSegID = 0;
            riSegment newRi;
            qiSegment newQi;
            wSegment newW;
+           assert(readIdx >= ReadNumProcessedOneTime && "Error: cutting operation exceeds the maximum");
            //FIXME: there are still a few UpperBound situations which is not covered here. 
-           for(; i < anchorNum.read(); i ++) {
-               assert(anchorSuccessiveRange[i].read() == 0 && "Error: successiveRange cannot be -1.");
-               if(anchorSuccessiveRange[i].read() != 1
-                   && anchorSuccessiveRange[i].read() != -1) {
-                   newRi.data[segStart] = anchorRi[i].read();
-                   newQi.data[segStart] = anchorQi[i].read();
-                   newW.data[segStart] = anchorW[i].read();
+           for(int i = 0; i < anchorNum[readIdx].read(); i ++) {
+               assert(anchorSuccessiveRange[readIdx][i].read() == 0 && "Error: successiveRange cannot be -1.");
+               if(anchorSuccessiveRange[readIdx][i].read() != 1
+                   && anchorSuccessiveRange[readIdx][i].read() != -1) {
+                   newRi.data[segStart] = anchorRi[readIdx][i].read();
+                   newQi.data[segStart] = anchorQi[readIdx][i].read();
+                   newW.data[segStart] = anchorW[readIdx][i].read();
                    segStart++;
-                }else if(anchorSuccessiveRange[i].read() == 1){   // range = 1 means segments ends with this anchor 
+               }else if(anchorSuccessiveRange[i].read() == 1){   // range = 1 means segments ends with this anchor 
                    // ending anchor still added
-                   newRi.data[segStart] = anchorRi[i].read();
-                   newQi.data[segStart] = anchorQi[i].read();
-                   newW.data[segStart] = anchorW[i].read();
+                   newRi.data[segStart] = anchorRi[readIdx][i].read();
+                   newQi.data[segStart] = anchorQi[readIdx][i].read();
+                   newW.data[segStart] = anchorW[readIdx][i].read();
                    segStart++;
 
-                   newRi.upperBound = segStart;
-                   newQi.upperBound = segStart;
+                   newRi.readId = readIdx;  
+                   if(segStart <= InputLaneWIDTH) {
+                           newQi.segID = tmpSegID << 1 | 0;   // shortSegments ends with 0
+                   }else {
+                           newQi.segID = tmpSegID << 1 | 1;
+                   }
                    newW.upperBound = segStart;
                    if(newW.upperBound <= InputLaneWIDTH) {
-                        riSegQueueShort.write(newRi);
-                        qiSegQueueShort.write(newQi);
-                        wSegQueueShort.write(newW);
-                        tmpSegShortNum++;
+                           riSegQueueShort.write(newRi);
+                           qiSegQueueShort.write(newQi);
+                           wSegQueueShort.write(newW);
+                           tmpSegShortNum++;
                    }else {
-                        riSegQueueLong.write(newRi);
-                        qiSegQueueLong.write(newQi);
-                        wSegQueueLong.write(newW);
-                        tmpSegLongNum++;
+                           riSegQueueLong.write(newRi);
+                           qiSegQueueLong.write(newQi);
+                           wSegQueueLong.write(newW);
+                           tmpSegLongNum++;
                    }
+                   tmpSegID++;
                    segStart = 0;
-                }
+               }
            } 
            /* 
            //the last segment
@@ -81,6 +75,7 @@ void Scheduler::scheduler_pre() {
            */
            segNumLong.write(static_cast<sc_int<WIDTH> >(tmpSegLongNum)); 
            segNumShort.write(static_cast<sc_int<WIDTH> >(tmpSegShortNum)); 
+           readIdx++;
         }else {
            segNumLong.write(0);
            segNumShort.write(0);
@@ -89,65 +84,232 @@ void Scheduler::scheduler_pre() {
 }
 
 
-void Scheduler::scheduler_allocate() {
-    // 调度树如何改变ROCC，调度器依据这个进行调度
-    // 考虑调度周期
+
+int fillTableOfLongSegments(sc_fifo<riSegment>& riSegQueueLong, sc_fifo<qiSegment>& qiSegQueueLong, sc_fifo<wSegment>& wSegQueueLong, sc_signal<sc_int<WIDTH>>& segNumLong) {
+
+    riSegment newRi;
+    qiSegment newQi;
+    wSegment newW; 
+    if((!riSegQueueLong.nb_read(newRi)) || (qiSegQueueLong.nb_read(newQi)) || (wSegQueueLong.nb_read(newW))) {
+        return -1;
+    }
+    sc_int<WIDTH> currentNum = segNumLong.read();
+    segNumLong.write(currentNum - 1);
+
+    SchedulerItem sItem = new SchedulerItem("sItem");
+    sItem.issued = 0;
+    sItem.readID = newRi.readID;
+    sItem.segmentID = newQi.segID >> 1;
+    sItem.UB = newW.upperBound;
+    assert(newW.upperBound < 66 && "Error: LongQueue's upperbound cannot be less than 66");
+    sItem.HCU_Total_NUM = 2 + (newW.upperBound - 66) / 65;
+    std::ostringstream pe_name;
+    for(int i = 0; i < sItem.HCU_Total_NUM; i ++) {
+        pe_name << "TimeList(" << i << ")";
+        SchedulerTime tl = new SchedulerTime(pe_name.str().c_str());
+        if(i = 0) {
+            tl.type = 1;  //mcu
+            tl.SBase = 0;
+            tl.LBase = sItem.UB;
+            tl.hcuID = -1;
+            tl.cycle = sc_time(0, SC_NS);   // C1 means same time with startTime
+        }else {
+            tl.type = 0;  //ecu
+            tl.SBase = i * 65;
+            tl.LBase = (i == sItem.HCU_Total_NUM - 1) ? sItem.UB : (i + 1) * 65 - 1;
+            tl.hcuID = -1;
+             //  C2 means 10ns after startTime;
+             //  C67 means 660ns after startTime, C132, C197;
+            tl.cycle = sc_time(((i - 1) * 65 + 1)*10, SC_NS);    
+        }
+        sItem.startTime  = sc_time(0, SC_NS);
+        sItem.TimeList.push_back(tl);
+    }
+    st.addItem(sItem); 
+    return 1;
+}
+
+int fillTableOfShortSegments(sc_fifo<riSegment>& riSegQueueShort, sc_fifo<qiSegment>& qiSegQueueShort, sc_fifo<wSegment>& wSegQueueShort, sc_signal<sc_int<WIDTH>>& segNumShort, SchedulerTable& st) {
+
+    riSegment newRi;
+    qiSegment newQi;
+    wSegment newW; 
+    if((!riSegQueueShort.nb_read(newRi)) || (qiSegQueueShort.nb_read(newQi)) || (wSegQueueShort.nb_read(newW))) {
+        return -1;
+    }
+    sc_int<WIDTH> currentNum = segNumShort.read();
+    segNumShort.write(currentNum - 1);
+
+    SchedulerItem sItem = new SchedulerItem("sItem");
+    sItem.issued = 0;
+    sItem.readID = newRi.readID;
+    sItem.segmentID = newQi.segID >> 1;
+    sItem.UB = newW.upperBound;
+    sItem.HCU_Total_NUM = 1;
+    SchedulerTime tl = new SchedulerTime("tl");
+    tl.cycle = sc_time(0, SC_NS);;
+    tl.hcuID = -1; 
+    tl.type = 1;
+    tl.SBase = 0;
+    tl.LBase = newW.upperBound;
+    sItem.startTime = sc_time(0, SC_NS);
+    sItem.TimeList.push_back(tl);
+    st.addItem(sItem); 
+    return 1;
+}
+
+void Scheduler::scheduler_hcu_fillTable() {
     while(true) {
         wait();
         if(start.read()) {
             riSegment newRi;
             qiSegment newQi;
             wSegment newW; 
-            sc_int<WIDTH> upperbound;
-            if(schedulerTable.ROCC <= IdleThreshLow) { 
+            // 加一些延迟，不然一次性都生成到调度表中了
+            if(countZerosInBigInt(schedulerTable.ROCC) <= IdleThreshLow) { 
                  // little idle reduction -> allocate shortPort
                 if(segNumShort.read() > 0) {
-                    newRi = riSegQueueShort.read();
-                    newQi = qiSegQueueShort.read();
-                    newW = wSegQueueShort.read();
-                    upperbound = newW.upperBound; 
-                    segNumShort.write(segNumShort.read() - 1);
-                }else if(segNumLong.read() > 0){
-                    newRi = riSegQueueLong.read();
-                    newQi = qiSegQueueLong.read();
-                    newW = wSegQueueLong.read();
-                    upperbound = newW.upperBound; 
-                    segNumLong.write(segNumLong.read() - 1);
+                    fillTableOfShortSegments(riSegQueueShort, qiSegQueueShort, wSegQueueShort, segNumShort, schedulerTable);
+                }else if(segNumLong.read() > 0) {
+                    fillTableOfLongSegments(riSegQueueLong, qiSegQueueLong, wSegQueueLong, segNumLong, schedulerTable;
                 } else {
-
+                    if(segNumLong.read() == 0 
+                         && segNumShort.read() == 0) {
+                            return ;
+                    }
                 }
             }else {
                 // enough idle reduction -> allocate longPort
                 if(segNumLong.read() > 0) {
-                    newRi = riSegQueueLong.read();
-                    newQi = qiSegQueueLong.read();
-                    newW = wSegQueueLong.read();
-                    upperbound = newW.upperBound;  
-                    segNumLong.write(segNumLong.read() - 1);
+                    fillTableOfLongSegments(riSegQueueLong, qiSegQueueLong, wSegQueueLong, segNumLong, schedulerTable);
                 }else if(segNumShort.read() > 0){
-                    newRi = riSegQueueShort.read();
-                    newQi = qiSegQueueShort.read();
-                    newW = wSegQueueShort.read();
-                    upperbound = newW.upperBound; 
-                    segNumShort.write(segNumShort.read() - 1);
+                    fillTableOfShortSegments(riSegQueueLong, qiSegQueueLong, wSegQueueLong, segNumShort, schedulerTable);
                 }else {
                     if(segNumLong.read() == 0 
                          && segNumShort.read() == 0) {
-                         // allocation over 
-                         std::cout << "allocation over!" << std::endl;
+                            return ;
                     }
                 }
             }       
+        }
+    }
+}
+
+
+
+int allocateHCU(HCU *hcuPool[HCU_NUM], const sc_int<WIDTH>& readID, const sc_int<WIDTH>& segID, const sc_time &startTime, SchedulerTime &item) {
+    
+    int allo = -1;
+    for(int i = 0; i < HCU_NUM; i ++) {
+        if(hcuPool[i]->currentReadID.read() == -1) {
+            hcuPool[i]->currentReadID.write(readID);
+            hcuPool[i]->currentSegID.write(segID);
+            hcuPool[i]->type.write(item.type);
+            hcuPool[i]->startTime.write(startTime);
+            item.hcuID = i;
+            allo = i;
+            break;
+        }
+    }
+    // Core Algorightm: Replacement Policy
+    if(allo == HCU_NUM) {
+        if(!item.type) {
+            allo = -2;   
         }else {
+            for(int i = 0; i < HCU_NUM; i ++) {
+                if(!hcuPool[i]->type) {
+                    hcuPool[i]->currentReadID.write(readID);
+                    hcuPool[i]->currentStepID.write(segID);
+                    hcuPool[i]->type.write(item.type);
+                    hcuPool[i]->startTime.write(startTime);
+                    item.hcuID = i;
+                    allo = i;
+                    break;
+                } 
+            }
+        }
+    }
+    return allo;
+}
+
+int freeHCU(HCU *hcuPool[HCU_NUM], SchedulerTime &item) {
+ 
+   // currentReadID不为-1以后判断是IODispatch还是释放
+   bool isfreeAll = fasle;
+   for(std::list<SchedulerTime>::iterator timeIt = item->TimeList.rbegi(); timeIt != it->TimeList.rend(); timeIt++) {
+
+
+   }
+
+   return isfreeAll; 
+}
+
+void Scheduler::scheduler_hcu_allocate() {
+    while(true) {
+        wait();
+        if(start.read()) {
+            for(std::list<SchedulerItem>::iterator it = schedulerTable.schedulerItemList.rbegin(); it != schedulerTable.schedulerItemList.rend(); ++it) {
+
+                std::list<SchedulerTime>::iterator timeIt = it->TimeList.rbegin();
+                if(it->issued) {
+                   // ecu allocation 
+                   sc_time st = sc_time_stamp();
+                   bool allAllocated = false;
+                   for(; timeIt != it->TimeList.rend(); ++timeIt) {
+                        if(timeIt->hcuID == -1) {
+                            if(!(timeIt->hcuID = allocateHCU(hcuPool, it->readID, it->segID, st, *timeIt))) {
+                                assert(timeIt->hcuID == -1 && timeIt->size() > 1 && "Error: Cannot stop ecu allocation util its over!");
+                            }
+                            if(!allAllocated) allAllocated = true;
+                        }
+                   }
+                   if(!allAllocated) {
+                       // all TimeLists are allocated. start free.
+                       freeHCU(hcuPool, *it);
+                  }
+                }else {
+                    // mcu allocation
+                    it->startTime = sc_time_stamp();   
+                    assert(timeIt->hcuID && "Error: mcu already allocated!");
+                    assert(!timeIt->type && " Error: mcu allocator cannot operates ecu!");
+                    if(!(timeIt->hcuID = allocateHCU(hcuPool, it->readID, it->segID, it->startTime, *timeIt))) {
+                        std::cout << "mcu allocation failed, wait for some time..." << std::endl;
+                        wiat(40, SC_NS);
+                    }
+                    it->issued = 1;
+                    if(it->HCU_Total_NUM > 1) it--;   // finish mcu, then continue allocate ecu of one segment.
+                }
+            } 
+        }
+    }
+}
+
+
+
+void Scheduler::scheduler_hcu_execute() {
+    // 根据调度表中的SBase和LBase来进行HCU和IODis的连接.映射到哈希表中
+    // 设计如何映射inputDispatch来实现MCU/ECU的执行
+    while(true) {
+        wait();
+        if(start.read()) {
+            for(int i = 0; i < InputLaneWIDTH; i ++) {
+                HCU &it = hcuPool[i]; 
+                // one cycle after hcu allocation
+                if(it.currentReadID) {
+
+
+                    
+
+                }
+            }            
 
         }
     }
 }
 
 
-void Scheduler::scheduler_execute() {
-    // 设计如何映射inputDispatch来实现MCU/ECU的执行
-    //如何处理execute和allocate的并行执行
+//查表，如果有满足条件的直接分配RT
+void Scheduler::scheduler_rt_checkTable() {
 
 
 }

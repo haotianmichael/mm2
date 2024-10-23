@@ -6,7 +6,7 @@
 #include "schedulerTable.h"
 #include "reductionPool.h"
 #include "ioDispatcher.h"
-#include "partialScorePool.h"
+#include "partialScoreQueue.h"
 
 
 SC_MODULE(Scheduler) {
@@ -15,11 +15,11 @@ SC_MODULE(Scheduler) {
     sc_in<bool> rst;
     sc_signal<bool> start;     // initialization done signal
 
-    sc_signal<sc_int<WIDTH> > anchorNum;  // number of anchors 
-    sc_signal<sc_int<WIDTH> > anchorRi[MAX_READ_LENGTH];
-    sc_signal<sc_int<WIDTH> > anchorQi[MAX_READ_LENGTH];
-    sc_signal<sc_int<WIDTH> > anchorW[MAX_READ_LENGTH];
-    sc_signal<sc_int<WIDTH>> anchorSuccessiveRange[MAX_READ_LENGTH];  // successive range of every anchor 
+    sc_signal<sc_int<WIDTH> > anchorNum[ReadNumProcessedOneTime];  // number of anchors 
+    sc_signal<sc_int<WIDTH> > anchorRi[ReadNumProcessedOneTime][MAX_READ_LENGTH];
+    sc_signal<sc_int<WIDTH> > anchorQi[ReadNumProcessedOneTime][MAX_READ_LENGTH];
+    sc_signal<sc_int<WIDTH> > anchorW[ReadNumProcessedOneTime][MAX_READ_LENGTH];
+    sc_signal<sc_int<WIDTH>> anchorSuccessiveRange[ReadNumProcessedOneTime][MAX_READ_LENGTH];  // successive range of every anchor 
     
     // @RC Unit
     RangeCountUnit *rc;
@@ -35,10 +35,10 @@ SC_MODULE(Scheduler) {
     sc_fifo<riSegment> riSegQueueShort; 
     sc_fifo<qiSegment> qiSegQueueShort;
     sc_fifo<wSegment> wSegQueueShort;
+    sc_int<WIDTH> readIdx = 0; //read which currently being cut
 
     // @PartialScoreQueue
-    sc_fifo<sc_int<WIDTH> > partialScoreQueue;
-
+    PartialScoreQueue *partialScoreQueue;
 
     // @SchedulerTable
     SchedulerTable schedulerTable;
@@ -49,42 +49,52 @@ SC_MODULE(Scheduler) {
     // @ReductionPool
     ReductionPool *reductionPool;
 
-    void scheduler_top();
-    void scheduler_pre();
-    void scheduler_execute();
-    void scheduler_allocate();
+    void scheduler_hcu_pre();
+    void scheduler_hcu_execute();
+    void scheduler_hcu_fillTable();
+    void scheduler_hcu_allocate();
+    void scheduler_rt_checkTable();
 
 	SC_CTOR(Scheduler) : 
-         riSegsLong(MAX_SEG_NUM), 
-         qiSegsLong(MAX_SEG_NUM), 
-         wSegsLong(MAX_SEG_NUM),
-         riSegsShort(MAX_SEG_NUM),
-         qiSegsShort(MAX_SEG_NUM),
-         wSegsShort(MAX_SEG_NUM) {
-
-        SC_THREAD(scheduler_top);
-        sensitive << clk.pos();
+         riSegQueueLong(MAX_SEG_NUM), 
+         qiSegQueueLong(MAX_SEG_NUM), 
+         wSegQueueLong(MAX_SEG_NUM),
+         riSegQueueShort(MAX_SEG_NUM),
+         qiSegQueueShort(MAX_SEG_NUM),
+         wSegQueueShort(MAX_SEG_NUM) {
 
         // prepare the segmentQueue
-        SC_THREAD(scheduler_pre);
+        // one read per cycle.(延时问题后续重新考虑)
+        SC_THREAD(scheduler_hcu_pre);
         sensitive << clk.pos();
 
-        // allocate HCU for every Segment
-        SC_THREAD(scheduler_allocate);
+        // fill SchedulerTable for every Segment based on SegQueue
+        SC_THREAD(scheduler_hcu_fillTable);
         sensitive << clk.pos();
 
-        SC_THREAD(scheduler_execute);
+        // allocate HCU for every Segment based on SchedulerTable
+        SC_THREAD(scheduler_hcu_allocate);
+        sensitive << clk.pos();
+
+        // HCU IO Wiring  and fill PSQTable
+        SC_THREAD(scheduler_hcu_execute);
+        sensitive << clk.pos();
+
+        // check PSQTable and allocate 
+        SC_THREAD(scheduler_rt_checkTable);
         sensitive << clk.pos();
 
         rc = new RangeCountUnit("RangeCountUnit");
         rc->rst(rst);
         rc->cutDone(start);
-        rc->anchorNum(anchorNum);
-        for(int i = 0; i < MAX_READ_LENGTH; i ++) {
-            rc->anchorRi[i](anchorRi[i]);
-            rc->anchorQi[i](anchorQi[i]);
-            rc->anchorW[i](anchorW[i]);
-            rc->anchorSuccessiveRange[i](anchorSuccessiveRange[i]);
+        for(int readIdx = 0; readIdx < ReadNumProcessedOneTime; readIdx++) {
+            rc->anchorNum[readIdx](anchorNum[readIdx]);
+            for(int i = 0; i < MAX_READ_LENGTH; i ++) {
+                rc->anchorRi[readIdx][i](anchorRi[readIdx][i]);
+                rc->anchorQi[readIdx][i](anchorQi[readIdx][i]);
+                rc->anchorW[readIdx][i](anchorW[readIdx][i]);
+                rc->anchorSuccessiveRange[readIdx][i](anchorSuccessiveRange[readIdx][i]);
+            }
         }
 
         std::ostringstream pe_name;
@@ -93,20 +103,28 @@ SC_MODULE(Scheduler) {
             hcuPool[i] = new HCU(pe_name.str().c_str());
             hcuPool[i]->clk(clk);
             hcuPool[i]->rst(rst);
+            hcuPool[i]->currentReadID(static_cast<sc_int<WIDTH> >(-1));
             //for(int j = 0; j < InputLaneWIDTH; j ++) {
              //   hcuPool[i]->riArray[j](static_cast<sc_int<WIDTH> >(-1));
               //  hcuPool[i]->qiArray[j](static_cast<sc_int<WIDTH> >(-1));
                // hcuPool[i]->W[j](static_cast<sc_int<WIDTH> >(-1));
             //}
-            sc_bigint<TableWIDTH> mask = ~(1 << i); 
-            schedulerTable.HOCC &= mask;  // HOCC transfer
+            //sc_bigint<TableWIDTH> mask = ~(1 << i); 
+            //schedulerTable.HOCC &= mask;  // HOCC transfer
             pe_name.str("");
         }
 
         reductionPool = new ReductionPool("ReductionPool");
         reductionPool->clk(clk);
         reductionPool->rst(rst);
-        schedulerTable(reductionPool->ROCC.read());  // () override for ROCC transfer
+        //schedulerTable(reductionPool->ROCC.read());  // () override for ROCC transfer
+
+        partialScoreQueue = new PartialScoreQueue("PartialScoreQueue");
+        partialScoreQueue.clk(clk);
+        partialScoreQueue.rst(rst);
+
+
+
 
 	}
 
