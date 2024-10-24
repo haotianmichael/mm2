@@ -114,7 +114,11 @@ int fillTableOfLongSegments(std::list<SchedulerItem>& st, sc_fifo<riSegment>& ri
         }else {
             tl.type = 0;  //ecu
             tl.SBase = i * 65;
-            tl.LBase = (i == sItem.HCU_Total_NUM - 1) ? sItem.UB : (i + 1) * 65 - 1;
+            if(i == sItem.HCU_Total_NUM - 1) {
+                tl.LBase = sItem.UB;
+            }else {
+                tl.LBase = (i + 1) * 65 - 1 ;
+            }
             tl.hcuID = -1;
              //  C2 means 10ns after startTime;
              //  C67 means 660ns after startTime, C132, C197;
@@ -156,6 +160,10 @@ int fillTableOfShortSegments(std::list<SchedulerItem> &st, sc_fifo<riSegment> &r
     return 1;
 }
 
+int countIdle(const ReductionPool& rp) {
+    int zeroCount = 0;
+    return zeroCount;
+}
 void Scheduler::scheduler_hcu_fillTable() {
     while(true) {
         wait();
@@ -164,7 +172,7 @@ void Scheduler::scheduler_hcu_fillTable() {
             qiSegment newQi;
             wSegment newW; 
             // 加一些延迟，不然一次性都生成到调度表中了
-            if(countIdle(reductionPool) <= IdleThreshLow) { 
+            if(countIdle(*reductionPool) <= IdleThreshLow) { 
                  // little idle reduction -> allocate shortPort
                 if(segNumShort.read() > 0) {
                     fillTableOfShortSegments(schedulerTable.schedulerItemList, riSegQueueShort, qiSegQueueShort, wSegQueueShort, segNumShort);
