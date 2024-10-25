@@ -13,6 +13,7 @@ SC_MODULE(IODispatcher) {
     sc_in<bool> clk;      
     sc_in<bool> rst;
     sc_in<sc_int<WIDTH> > UpperBound; 
+    sc_in<sc_int<WIDTH> > LowerBound;
     sc_signal<sc_int<WIDTH> > ri[MAX_SEGLENGTH];
     sc_signal<sc_int<WIDTH> > qi[MAX_SEGLENGTH];
     sc_signal<sc_int<WIDTH> > w[MAX_SEGLENGTH];
@@ -47,6 +48,7 @@ struct ecuIODispatcher : IODispatcher {
     sc_in<sc_int<WIDTH> > SBase;
     sc_in<sc_int<WIDTH> > LBase; 
 
+    sc_out<sc_int<WIDTH> > baseQueue[InputLaneWIDTH + 1];
     sc_out<sc_int<WIDTH>> ri_out[InputLaneWIDTH + 1];
     sc_out<sc_int<WIDTH>> qi_out[InputLaneWIDTH + 1];
     sc_out<sc_int<WIDTH>> w_out[InputLaneWIDTH + 1];

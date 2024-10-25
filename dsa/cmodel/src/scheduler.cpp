@@ -106,27 +106,21 @@ int fillTableOfLongSegments(std::list<SchedulerItem>& st, sc_fifo<riSegment>& ri
     for(int i = 0; i < sItem.HCU_Total_NUM; i ++) {
         SchedulerTime tl;
         if(i = 0) {
-            tl.type = 1;  //mcu
-            tl.SBase = 0;
-            tl.LBase = sItem.UB;
-            tl.hcuID = -1;
-            tl.cycle = sc_time(0, SC_NS);   // C1 means same time with startTime
-        }else {
-            tl.type = 0;  //ecu
+            tl.type = i == 0 ? 1 : 0;  //mcu & ecu
             tl.SBase = i * 65;
-            if(i == sItem.HCU_Total_NUM - 1) {
-                tl.LBase = sItem.UB;
-            }else {
-                tl.LBase = (i + 1) * 65 - 1 ;
-            }
+            tl.LBase = newW.upperBound;
             tl.hcuID = -1;
-             //  C2 means 10ns after startTime;
-             //  C67 means 660ns after startTime, C132, C197;
-            tl.cycle = sc_time(((i - 1) * 65 + 1)*10, SC_NS);    
+             // allocation cycle:
+             //  C(startTime)
+             //  C(startTime + 65)
+             //  C(startTime + 130) ....
+            tl.start_duration= sc_time(i * 650, SC_NS);    
         }
-        sItem.startTime  = sc_time(0, SC_NS);
-        sItem.TimeList.push_back(tl);
     }
+    // fill at real allocationTime
+    sItem.startTime  = sc_time(0, SC_NS); 
+    sItem.endTime = sc_time(0, SC_NS);
+    sItem.TimeList.push_back(tl);
     st.push_back(sItem);
     return 1;
 }
@@ -149,12 +143,14 @@ int fillTableOfShortSegments(std::list<SchedulerItem> &st, sc_fifo<riSegment> &r
     sItem.UB = newW.upperBound;
     sItem.HCU_Total_NUM = 1;
     SchedulerTime tl;
-    tl.cycle = sc_time(0, SC_NS);;
+    tl.start_duration= sc_time(0, SC_NS);
     tl.hcuID = -1; 
     tl.type = 1;
     tl.SBase = 0;
     tl.LBase = newW.upperBound;
-    sItem.startTime = sc_time(0, SC_NS);
+    // fill at real allocationTime
+    sItem.startTime = sc_time(0, SC_NS);  
+    sItem.endTime = sc_time(0, SC_NS);
     sItem.TimeList.push_back(tl);
     st.push_back(sItem);
     return 1;
@@ -203,15 +199,18 @@ void Scheduler::scheduler_hcu_fillTable() {
 
 
 
-int allocateHCU(HCU *hcuPool[HCU_NUM], const sc_int<WIDTH>& readID, const sc_int<WIDTH>& segID, const sc_time &startTime, SchedulerTime &item) {
+int allocateHCU(HCU *hcuPool[HCU_NUM], const sc_int<WIDTH>& readID, const sc_int<WIDTH>& segID, const sc_time &startTime, const sc_time &endTime, SchedulerTime &item) {
     
     int allo = -1;
     for(int i = 0; i < HCU_NUM; i ++) {
         if(hcuPool[i]->currentReadID.read() == -1) {
             hcuPool[i]->currentReadID.write(readID);
             hcuPool[i]->currentSegID.write(segID);
+            hcuPool[i]->LowerBound.write(item.SBase);
+            hcuPool[i]->UpperBound.write(item.LBase);
             hcuPool[i]->type.write(item.type);
-            hcuPool[i]->startTime.write(startTime);
+            hcuPool[i]->executeTime(startTime);
+            hcuPool[i]->freeTime.write(endTime);
             item.hcuID = i;
             allo = i;
             break;
@@ -219,15 +218,19 @@ int allocateHCU(HCU *hcuPool[HCU_NUM], const sc_int<WIDTH>& readID, const sc_int
     }
     // Core Algorightm: Replacement Policy
     if(allo == HCU_NUM) {
-        if(!item.type) {
+        if(item.type) {  // if mcu allocation failed, wait
             allo = -2;   
-        }else {
+        }else {    // if ecu allocation failed, replacing
             for(int i = 0; i < HCU_NUM; i ++) {
+                //if()  是否有刚启动不久的hcu（UB<=65）的，直接重新弄分配
                 if(!hcuPool[i]->type.read()) {
                     hcuPool[i]->currentReadID.write(readID);
                     hcuPool[i]->currentSegID.write(segID);
+                    hcuPool[i]->LowerBound.write(item.SBase);
+                    hcuPool[i]->UpperBound.write(item.LBase);
                     hcuPool[i]->type.write(item.type);
-                    hcuPool[i]->startTime.write(startTime);
+                    hcuPool[i]->executeTime(startTime);
+                    hcuPool[i]->freeTime.write(endTime);
                     item.hcuID = i;
                     allo = i;
                     break;
@@ -236,18 +239,6 @@ int allocateHCU(HCU *hcuPool[HCU_NUM], const sc_int<WIDTH>& readID, const sc_int
         }
     }
     return allo;
-}
-
-int freeHCU(HCU *hcuPool[HCU_NUM], SchedulerItem &item) {
- 
-   // currentReadID不为-1以后判断是IODispatch还是释放
-   bool isfreeAll = false;
-   for(auto timeIt = item.TimeList.rbegin(); timeIt != item.TimeList.rend(); timeIt++) {
-
-
-   }
-
-   return isfreeAll; 
 }
 
 void Scheduler::scheduler_hcu_allocate() {
@@ -260,28 +251,25 @@ void Scheduler::scheduler_hcu_allocate() {
                 if(it->issued) {
                    // ecu allocation 
                    sc_time st = sc_time_stamp();
-                   bool allAllocated = false;
                    for(; timeIt != it->TimeList.rend(); ++timeIt) {
-                        if(timeIt->hcuID == -1) {
-                            if(!(timeIt->hcuID = allocateHCU(hcuPool, it->readID, it->segmentID, st, *timeIt))) {
+                        // allocation cycle: C(startTime + 65)  C(startTime + 130) ...
+                        if(timeIt->hcuID == -1 && st - it->startTime == timeIt->start_duration) {
+                            if(!(timeIt->hcuID = allocateHCU(hcuPool, it->readID, it->segmentID, it->startTime + sc_time(10, SC_NS), it->endTime, *timeIt))) {
                                 assert(timeIt->hcuID == -1 && it->TimeList.size() > 1 && "Error: Cannot stop ecu allocation util its over!");
                             }
-                            if(!allAllocated) allAllocated = true;
                         }
-                   }
-                   if(!allAllocated) {
-                       // all TimeLists are allocated. start free.
-                       freeHCU(hcuPool, *it);
-                  }
+                    }
                 }else {
                     // mcu allocation
                     it->startTime = sc_time_stamp();   
+                    it->endTime = sc_time_stamp() + sc_time((it->UB + 1) * 10, SC_NS); // endTime = startTime + (newW.upperbound + 1)
                     assert(timeIt->hcuID && "Error: mcu already allocated!");
                     assert(!timeIt->type && " Error: mcu allocator cannot operates ecu!");
-                    if(!(timeIt->hcuID = allocateHCU(hcuPool, it->readID, it->segmentID, it->startTime, *timeIt))) {
+                    if((timeIt->hcuID = allocateHCU(hcuPool, it->readID, it->segmentID, it->startTime + sc_time(10, SC_NS), it->endTime, *timeIt)) == -2) {
                         std::cout << "mcu allocation failed, wait for some time..." << std::endl;
                         wait(40, SC_NS);
                     }
+                    assert(timeIt->hcuID == -1&& " Error: mcu allocator return the wrong value!");
                     it->issued = 1;
                     if(it->HCU_Total_NUM > 1) it--;   // finish mcu, then continue allocate ecu of one segment.
                 }
@@ -293,22 +281,75 @@ void Scheduler::scheduler_hcu_allocate() {
 
 
 void Scheduler::scheduler_hcu_execute() {
-    // 根据调度表中的SBase和LBase来进行HCU和IODis的连接.映射到哈希表中
-    // 设计如何映射inputDispatch来实现MCU/ECU的执行
     while(true) {
         wait();
         if(start.read()) {
-            for(int i = 0; i < InputLaneWIDTH; i ++) {
+            for(int i = 0; i < HCU_NUM; i ++) {
                 HCU *it = hcuPool[i]; 
-                // one cycle after hcu allocation
-                if(it->currentReadID.read()) {
+                if(it->currentReadID.read() // one cycle after hcu allocation
+                      && it->currentSegID 
+                      && sc_time_stamp() == it->executeTime) {
+                      sc_signal<sc_int<WIDTH> > ri[InputLaneWIDTH];
+                      sc_signal<sc_int<WIDTH> > qi[InputLaneWIDTH];
+                      sc_signal<sc_int<WIDTH> > w[InputLaneWIDTH];
+                      assert(!it->type && "Error: it->type cannot be negative!");
+                       if(it->type) {   // mcu
+                            mcuIODispatcher ing("mcuIODispatcher");
+                            ing.clk(clk);
+                            ing.rst(rst);
+                            assert(it->LowerBound && "mcu's LowerBound must be 0!");
+                            ing.LowerBound(it->LowerBound);
+                            ing.UpperBound(it->UpperBound);
+                            for(int i = 0; i < InputLaneWIDTH; i ++) {
+                                    ing.ri_out[i](ri[i]);
+                                    ing.qi_out[i](qi[i]);
+                                    ing.w_out[i](w[i]);
+                            }
+                            it->clk(clk);
+                            it->rst(rst);
+                            for(int j = 0; j < InputLaneWIDTH; j ++) {
+                                it->riArray[j](ri[j]);
+                                it->qiArray[j](qi[j]);
+                                it->W[j](w[j]);
+                            }
+                       }else {   // ecu
+                           ecuIODispatcher ing("ecuIODispatcher");
+                           ing.clk(clk);
+                           ing.rst(rst);
+                           assert(!it->LowerBound && "ecu's LowerBound must not be 0!");
+                           ing.LowerBound(it->LowerBound);
+                           ing.UpperBound(it->UpperBound);
+                           for(int i = 0; i < InputLaneWIDTH; i ++) {
+                                   ing.ri_out[i](ri[i]);
+                                   ing.qi_out[i](qi[i]);
+                                   ing.w_out[i](w[i]);
+                           }
+                           it->clk(clk);
+                           it->rst(rst);
+                           for(int j = 0; j < InputLaneWIDTH; j ++) {
+                               it->riArray[j](ri[j]);
+                               it->qiArray[j](qi[j]);
+                               it->W[j](w[j]);
+                           }
+                       }
+                }else if(it->currentReadID 
+                    && it->currentSegID 
+                    && it->freeTime == sc_time_stamp()) {   // free hcu
 
-
-                    
-
-                }
+                        it->currentReadID.write(sc_int<sc_int<WIDTH> >(-1));
+                        it->currentSegID.write(sc_int<sc_int<WIDTH> >(-1));
+                        it->freeTime.write(static_cast<sc_int<WIDTH> >(-1));
+                        it->executeTime.write(static_cast<sc_int<WIDTH> >(-1));
+                        it->type.write(static_cast<sc_int<WIDTH> >(-1));
+                        it->LowerBound.write(static_cast<sc_int<WIDTH> >(-1));
+                        it->UpperBound.write(static_cast<sc_int<WIDTH> >(-1));
+                        for(int i = 0; i < InputLaneWIDTH; i ++) {
+                                ri[i].write(static_cast<sc_int<WIDTH> >(-1));
+                                qi[i].write(static_cast<sc_int<WIDTH> >(-1));
+                                w[i].write(static_cast<sc_int<WIDTH> >(-1));
+                        }
+                }  
             }            
-
         }
     }
 }

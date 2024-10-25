@@ -46,7 +46,7 @@ struct SchedulerTime{
     sc_int<WIDTH> SBase;
     sc_int<WIDTH> LBase;
     sc_int<WIDTH> hcuID;
-    sc_time cycle;  // when ecu start allocate 
+    sc_time start_duration;  // when ecu start allocate 
 };
 
 struct SchedulerItem{
@@ -58,6 +58,7 @@ struct SchedulerItem{
     sc_int<WIDTH> HCU_Total_NUM;
     // allocate hcu, start scheduler according to TimeList
     sc_time startTime;  // mcu start scheduler and allocate 
+    sc_time endTime;   // all hcu finished, freeTime
     std::list<SchedulerTime> TimeList;
 };
 

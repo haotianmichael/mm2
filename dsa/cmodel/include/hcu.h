@@ -14,8 +14,11 @@ SC_MODULE(HCU){
     // For Scheduler
     sc_signal<sc_int<WIDTH> > currentReadID;   
     sc_signal<sc_int<WIDTH> > currentSegID;
-    sc_signal<sc_time>  startTime;  
+    sc_signal<sc_time> executeTime;
+    sc_signal<sc_time>  freeTime;  
     sc_signal<sc_bit> type;
+    sc_signal<sc_int<WIDTH> > LowerBound;
+    sc_signal<sc_int<WIDTH> > UpperBound;
 
     /* HCU has 64 Lane, 65 InputAnchor*/
     HLane* hlane[LaneWIDTH];

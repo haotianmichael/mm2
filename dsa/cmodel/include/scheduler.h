@@ -76,7 +76,7 @@ SC_MODULE(Scheduler) {
         SC_THREAD(scheduler_hcu_allocate);
         sensitive << clk.pos();
 
-        // HCU IO Wiring  and fill PSQTable
+        // HCU IO Wiring/Free and fill PSQTable
         SC_THREAD(scheduler_hcu_execute);
         sensitive << clk.pos();
 
