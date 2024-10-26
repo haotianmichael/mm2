@@ -44,7 +44,9 @@ SC_MODULE(Scheduler) {
     SchedulerTable schedulerTable;
 
     // @HCU Pool
-    HCU *hcuPool[HCU_NUM];
+    // simulator can only use either mcuPool[i] or ecuPool[i], cannot use them both at the same time.
+    MCU *mcuPool[HCU_NUM];
+    ECU *ecuPool[HCU_NUM];
 
     // @ReductionPool
     ReductionPool *reductionPool;
@@ -97,12 +99,16 @@ SC_MODULE(Scheduler) {
             }
         }
 
-        std::ostringstream pe_name;
+        std::ostringstream mcu_name, ecu_name;
         for(int i = 0; i < HCU_NUM; i ++) {
-            pe_name << "hcuPool(" << i << ")";
-            hcuPool[i] = new HCU(pe_name.str().c_str());
-            hcuPool[i]->clk(clk);
-            hcuPool[i]->rst(rst);
+            mcu_name << "mcuPool(" << i << ")";
+            ecu_name << "ecuPool(" << i << ")";
+            mcuPool[i] = new mCU(mcu_name.str().c_str());
+            mcuPool[i]->clk(clk);
+            mcuPool[i]->rst(rst);
+            ecuPool[i] = new eCU(ecu_name.str().c_str());
+            ecuPool[i]->clk(clk);
+            ecuPool[i]->rst(rst);
             //for(int j = 0; j < InputLaneWIDTH; j ++) {
              //   hcuPool[i]->riArray[j](static_cast<sc_int<WIDTH> >(-1));
               //  hcuPool[i]->qiArray[j](static_cast<sc_int<WIDTH> >(-1));
@@ -110,7 +116,8 @@ SC_MODULE(Scheduler) {
             //}
             //sc_bigint<TableWIDTH> mask = ~(1 << i); 
             //schedulerTable.HOCC &= mask;  // HOCC transfer
-            pe_name.str("");
+            mcu_name.str("");
+            ecu_name.str("");
         }
 
         reductionPool = new ReductionPool("ReductionPool");

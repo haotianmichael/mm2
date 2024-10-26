@@ -9,7 +9,7 @@
 #define HCU_NUM 64
 #define LaneWIDTH 65
 #define MCUInputLaneWIDTH 65
-#define ECUInputLaneWIDTH 66
+#define ECUInputLaneWIDTH 65
 
 #define MAX_SEGLENGTH 5000
 #define MAX_READ_LENGTH 30000

@@ -59,6 +59,9 @@ struct SchedulerItem{
     // allocate hcu, start scheduler according to TimeList
     sc_time startTime;  // mcu start scheduler and allocate 
     sc_time endTime;   // all hcu finished, freeTime
+    sc_int<WIDTH> riData[MAX_SEGLENGTH];
+    sc_int<WIDTH> qiData[MAX_SEGLENGTH];
+    sc_int<WIDTH> wData[MAX_SEGLENGTH];
     std::list<SchedulerTime> TimeList;
 };
 

@@ -40,16 +40,18 @@ struct mcuIODispatcher : IODispatcher {
 
 struct ecuIODispatcher : IODispatcher {
 
-    sc_in<sc_int<WIDTH> > SBase;
-    sc_in<sc_int<WIDTH> > LBase; 
-
-    sc_out<sc_int<WIDTH>> ri_out[ECUInputLaneWIDTH + 1];
-    sc_out<sc_int<WIDTH>> qi_out[ECUInputLaneWIDTH + 1];
-    sc_out<sc_int<WIDTH>> w_out[ECUInputLaneWIDTH + 1];
+    int cycle_count;
+    int base_count;
+    sc_out<sc_int<WIDTH>> ri_out[ECUInputLaneWIDTH];
+    sc_out<sc_int<WIDTH>> qi_out[ECUInputLaneWIDTH];
+    sc_out<sc_int<WIDTH>> w_out[ECUInputLaneWIDTH];
+    sc_out<sc_int<WIDTH> > ecu_ri_out;
+    sc_out<sc_int<WIDTH> > ecu_qi_out;
+    sc_out<sc_int<WIDTH> > ecu_w_out;
 
     void shift_data();
     SC_CTOR(ecuIODispatcher) :
-    IODispatcher("ecuIODispatcher"){
+    IODispatcher("ecuIODispatcher"), cycle_count(LowerBound.read()), base_count(0){
         SC_THREAD(shift_data);
         sensitive << clk.pos();
     }
