@@ -34,9 +34,9 @@ SC_MODULE(Tb) {
 int sc_main(int argc, char* argv[]) {
     sc_clock clk("clk", 10, SC_NS);
     sc_signal<bool> rst;
-    sc_signal<sc_int<32> > ri[InputLaneWIDTH];
-    sc_signal<sc_int<32> > qi[InputLaneWIDTH];
-    sc_signal<sc_int<32> > w[InputLaneWIDTH];
+    sc_signal<sc_int<32> > ri[MCUInputLaneWIDTH];
+    sc_signal<sc_int<32> > qi[MCUInputLaneWIDTH];
+    sc_signal<sc_int<32> > w[MCUInputLaneWIDTH];
     sc_signal<sc_int<32> > tmpUB;
 
     sc_trace_file *fp;   // Create VCD file
@@ -52,7 +52,7 @@ int sc_main(int argc, char* argv[]) {
     ing.clk(clk);
     ing.rst(rst);
     ing.UpperBound(tmpUB);
-    for(int i = 0; i < InputLaneWIDTH; i ++) {
+    for(int i = 0; i < MCUInputLaneWIDTH; i ++) {
         ing.ri_out[i](ri[i]);
         ing.qi_out[i](qi[i]);
         ing.w_out[i](w[i]);
@@ -62,7 +62,7 @@ int sc_main(int argc, char* argv[]) {
     HCU hcu("HCU"); 
     hcu.clk(clk);
     hcu.rst(rst);
-    for(int i = 0; i < InputLaneWIDTH; i ++) {
+    for(int i = 0; i < MCUInputLaneWIDTH; i ++) {
         hcu.riArray[i](ri[i]);
         hcu.qiArray[i](qi[i]);
         hcu.W[i](w[i]);

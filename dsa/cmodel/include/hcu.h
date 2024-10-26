@@ -20,7 +20,7 @@ SC_MODULE(HCU){
     sc_signal<sc_int<WIDTH> > LowerBound;
     sc_signal<sc_int<WIDTH> > UpperBound;
 
-    /* HCU has 64 Lane, 65 InputAnchor*/
+    /* HCU has 65 Lane, 65 InputAnchor for mcu, 66 InputAnchor for ecu*/
     HLane* hlane[LaneWIDTH];
     /* Registers for staging Lane's output for 1 cycle*/
     sc_signal<sc_int<WIDTH> >  regBiggerScore[LaneWIDTH + 1];

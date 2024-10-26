@@ -18,20 +18,15 @@ SC_MODULE(IODispatcher) {
     sc_signal<sc_int<WIDTH> > qi[MAX_SEGLENGTH];
     sc_signal<sc_int<WIDTH> > w[MAX_SEGLENGTH];
 
-    void initialize_data() {
    
-    }
-    SC_CTOR(IODispatcher){
-        SC_THREAD(initialize_data);
-        sensitive << rst.pos();
-    }
+    SC_CTOR(IODispatcher){}
 };
  
 struct mcuIODispatcher : IODispatcher {
 
-    sc_out<sc_int<WIDTH>> ri_out[InputLaneWIDTH];
-    sc_out<sc_int<WIDTH>> qi_out[InputLaneWIDTH];
-    sc_out<sc_int<WIDTH>> w_out[InputLaneWIDTH];
+    sc_out<sc_int<WIDTH>> ri_out[MCUInputLaneWIDTH];
+    sc_out<sc_int<WIDTH>> qi_out[MCUInputLaneWIDTH];
+    sc_out<sc_int<WIDTH>> w_out[MCUInputLaneWIDTH];
 
     int cycle_count;
     void shift_data();
@@ -48,14 +43,13 @@ struct ecuIODispatcher : IODispatcher {
     sc_in<sc_int<WIDTH> > SBase;
     sc_in<sc_int<WIDTH> > LBase; 
 
-    sc_out<sc_int<WIDTH> > baseQueue[InputLaneWIDTH + 1];
-    sc_out<sc_int<WIDTH>> ri_out[InputLaneWIDTH + 1];
-    sc_out<sc_int<WIDTH>> qi_out[InputLaneWIDTH + 1];
-    sc_out<sc_int<WIDTH>> w_out[InputLaneWIDTH + 1];
+    sc_out<sc_int<WIDTH>> ri_out[ECUInputLaneWIDTH + 1];
+    sc_out<sc_int<WIDTH>> qi_out[ECUInputLaneWIDTH + 1];
+    sc_out<sc_int<WIDTH>> w_out[ECUInputLaneWIDTH + 1];
 
     void shift_data();
     SC_CTOR(ecuIODispatcher) :
-     IODispatcher("ecuIODispatcher"){
+    IODispatcher("ecuIODispatcher"){
         SC_THREAD(shift_data);
         sensitive << clk.pos();
     }

@@ -30,13 +30,13 @@ void Scheduler::scheduler_hcu_pre() {
                    segStart++;
 
                    newRi.readID = readIdx;  
-                   if(segStart <= InputLaneWIDTH) {
+                   if(segStart <= MCUInputLaneWIDTH) {
                            newQi.segID = tmpSegID << 1 | 0;   // shortSegments ends with 0
                    }else {
                            newQi.segID = tmpSegID << 1 | 1;
                    }
                    newW.upperBound = segStart;
-                   if(newW.upperBound <= InputLaneWIDTH) {
+                   if(newW.upperBound <= MCUInputLaneWIDTH) {
                            riSegQueueShort.write(newRi);
                            qiSegQueueShort.write(newQi);
                            wSegQueueShort.write(newW);
@@ -105,17 +105,15 @@ int fillTableOfLongSegments(std::list<SchedulerItem>& st, sc_fifo<riSegment>& ri
     sItem.HCU_Total_NUM = 2 + (newW.upperBound - 66) / 65;
     for(int i = 0; i < sItem.HCU_Total_NUM; i ++) {
         SchedulerTime tl;
-        if(i = 0) {
-            tl.type = i == 0 ? 1 : 0;  //mcu & ecu
-            tl.SBase = i * 65;
-            tl.LBase = newW.upperBound;
-            tl.hcuID = -1;
-             // allocation cycle:
-             //  C(startTime)
-             //  C(startTime + 65)
-             //  C(startTime + 130) ....
-            tl.start_duration= sc_time(i * 650, SC_NS);    
-        }
+        tl.type = i == 0 ? 1 : 0;  //mcu & ecu
+        tl.SBase = i * 65;
+        tl.LBase = newW.upperBound;
+        tl.hcuID = -1;
+         // allocation cycle:
+         //  C(startTime)
+         //  C(startTime + 65)
+         //  C(startTime + 130) ....
+        tl.start_duration= sc_time(i * 650, SC_NS);    
     }
     // fill at real allocationTime
     sItem.startTime  = sc_time(0, SC_NS); 
@@ -268,8 +266,10 @@ void Scheduler::scheduler_hcu_allocate() {
                     if((timeIt->hcuID = allocateHCU(hcuPool, it->readID, it->segmentID, it->startTime + sc_time(10, SC_NS), it->endTime, *timeIt)) == -2) {
                         std::cout << "mcu allocation failed, wait for some time..." << std::endl;
                         wait(40, SC_NS);
+                        continue;
                     }
-                    assert(timeIt->hcuID == -1&& " Error: mcu allocator return the wrong value!");
+                    assert((timeIt->hcuID == -1) && "Error: mcu allocator return the wrong value!");
+                    std::cout << "mcu allocated successfully!"<< std::endl;
                     it->issued = 1;
                     if(it->HCU_Total_NUM > 1) it--;   // finish mcu, then continue allocate ecu of one segment.
                 }
@@ -287,11 +287,11 @@ void Scheduler::scheduler_hcu_execute() {
             for(int i = 0; i < HCU_NUM; i ++) {
                 HCU *it = hcuPool[i]; 
                 if(it->currentReadID.read() // one cycle after hcu allocation
-                      && it->currentSegID 
-                      && sc_time_stamp() == it->executeTime) {
-                      sc_signal<sc_int<WIDTH> > ri[InputLaneWIDTH];
-                      sc_signal<sc_int<WIDTH> > qi[InputLaneWIDTH];
-                      sc_signal<sc_int<WIDTH> > w[InputLaneWIDTH];
+                      && it->currentSegID.read()
+                      && sc_time_stamp() == it->executeTime.read()) {
+                      sc_signal<sc_int<WIDTH> > ri[ECUInputLaneWIDTH];
+                      sc_signal<sc_int<WIDTH> > qi[ECUInputLaneWIDTH];
+                      sc_signal<sc_int<WIDTH> > w[ECUInputLaneWIDTH];
                       assert(!it->type && "Error: it->type cannot be negative!");
                        if(it->type) {   // mcu
                             mcuIODispatcher ing("mcuIODispatcher");
@@ -300,14 +300,14 @@ void Scheduler::scheduler_hcu_execute() {
                             assert(it->LowerBound && "mcu's LowerBound must be 0!");
                             ing.LowerBound(it->LowerBound);
                             ing.UpperBound(it->UpperBound);
-                            for(int i = 0; i < InputLaneWIDTH; i ++) {
+                            for(int i = 0; i < MCUInputLaneWIDTH; i ++) {
                                     ing.ri_out[i](ri[i]);
                                     ing.qi_out[i](qi[i]);
                                     ing.w_out[i](w[i]);
                             }
                             it->clk(clk);
                             it->rst(rst);
-                            for(int j = 0; j < InputLaneWIDTH; j ++) {
+                            for(int j = 0; j < MCUInputLaneWIDTH; j ++) {
                                 it->riArray[j](ri[j]);
                                 it->qiArray[j](qi[j]);
                                 it->W[j](w[j]);
@@ -319,14 +319,14 @@ void Scheduler::scheduler_hcu_execute() {
                            assert(!it->LowerBound && "ecu's LowerBound must not be 0!");
                            ing.LowerBound(it->LowerBound);
                            ing.UpperBound(it->UpperBound);
-                           for(int i = 0; i < InputLaneWIDTH; i ++) {
+                           for(int i = 0; i < ECUInputLaneWIDTH; i ++) {
                                    ing.ri_out[i](ri[i]);
                                    ing.qi_out[i](qi[i]);
                                    ing.w_out[i](w[i]);
                            }
                            it->clk(clk);
                            it->rst(rst);
-                           for(int j = 0; j < InputLaneWIDTH; j ++) {
+                           for(int j = 0; j < ECUInputLaneWIDTH; j ++) {
                                it->riArray[j](ri[j]);
                                it->qiArray[j](qi[j]);
                                it->W[j](w[j]);
@@ -343,7 +343,7 @@ void Scheduler::scheduler_hcu_execute() {
                         it->type.write(static_cast<sc_int<WIDTH> >(-1));
                         it->LowerBound.write(static_cast<sc_int<WIDTH> >(-1));
                         it->UpperBound.write(static_cast<sc_int<WIDTH> >(-1));
-                        for(int i = 0; i < InputLaneWIDTH; i ++) {
+                        for(int i = 0; i < ECUInputLaneWIDTH; i ++) {
                                 ri[i].write(static_cast<sc_int<WIDTH> >(-1));
                                 qi[i].write(static_cast<sc_int<WIDTH> >(-1));
                                 w[i].write(static_cast<sc_int<WIDTH> >(-1));
