@@ -4,7 +4,6 @@ void ecuIODispatcher::shift_data() {
     while(true) {
         wait();
         if(!rst.read()) {
-
             if(base_count <= UpperBound.read() - LowerBound.read()) {
                 ecu_ri_out.write(ri[base_count]);
                 ecu_qi_out.write(qi[base_count]);
@@ -18,8 +17,8 @@ void ecuIODispatcher::shift_data() {
                      w_out[i].write(w[i + cycle_count]);
                  }
                  cycle_count ++;
-            }else if(cycle_count > UpperBound.read()-65 && cycle_count < UpperBound.read()) {
-                 for(int i = 0; i < UpperBound.read()-cycle_count; i ++) {
+            }else if(cycle_count > UpperBound.read()-65 && cycle_count <= UpperBound.read()) {
+                 for(int i = 0; i <= UpperBound.read()-cycle_count; i ++) {
                      ri_out[i].write(ri[i + cycle_count]);
                      qi_out[i].write(qi[i + cycle_count]);
                      w_out[i].write(w[i + cycle_count]);

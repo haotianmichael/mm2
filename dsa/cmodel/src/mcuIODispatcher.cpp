@@ -5,7 +5,7 @@ void mcuIODispatcher::shift_data() {
         wait();
         if(!rst.read()) {
             if(UpperBound.read() <= MCUInputLaneWIDTH) {
-                  if(cycle_count <= MCUInputLaneWIDTH) {
+                   if(cycle_count <= MCUInputLaneWIDTH) {
                         for(int i = 0; i < (MCUInputLaneWIDTH - cycle_count); i ++) {
                              ri_out[i].write(ri[i + cycle_count]);
                              qi_out[i].write(qi[i + cycle_count]);
@@ -32,8 +32,8 @@ void mcuIODispatcher::shift_data() {
                          w_out[i].write(w[i + cycle_count]);
                      }
                      cycle_count ++;
-                }else if(cycle_count > UpperBound.read()-MCUInputLaneWIDTH && cycle_count < UpperBound.read()) {
-                     for(int i = 0; i < UpperBound.read()-cycle_count; i ++) {
+                }else if(cycle_count > UpperBound.read()-MCUInputLaneWIDTH && cycle_count <= UpperBound.read()) {
+                     for(int i = 0; i <= UpperBound.read()-cycle_count; i ++) {
                          ri_out[i].write(ri[i + cycle_count]);
                          qi_out[i].write(qi[i + cycle_count]);
                          w_out[i].write(w[i + cycle_count]);
