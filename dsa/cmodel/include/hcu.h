@@ -18,6 +18,7 @@ SC_MODULE(HCU){
     sc_signal<sc_int<WIDTH> > UpperBound;
     sc_signal<sc_time> executeTime;
     sc_signal<sc_time>  freeTime;  
+    sc_signal<sc_int<WIDTH> > addr;
     sc_signal<sc_bit> type;
 
     /* HCU has 65 Lane, 65 InputAnchor for mcu, 66 InputAnchor for ecu*/

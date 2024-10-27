@@ -4,6 +4,9 @@
 #include <helper.h>
 #include <list>
 
+struct ram_data{
+   sc_int<WIDTH> data[MAX_SEGLENGTH]; 
+};
 
 struct riSegment{
     sc_int<WIDTH>  data[MAX_SEGLENGTH]; 
@@ -54,14 +57,12 @@ struct SchedulerItem{
     sc_bit issued;
     sc_int<WIDTH> readID;
     sc_int<WIDTH> segmentID;
+    sc_int<WIDTH> addr;
     sc_int<WIDTH> UB;
     sc_int<WIDTH> HCU_Total_NUM;
     // allocate hcu, start scheduler according to TimeList
     sc_time startTime;  // mcu start scheduler and allocate 
     sc_time endTime;   // all hcu finished, freeTime
-    sc_int<WIDTH> riData[MAX_SEGLENGTH];
-    sc_int<WIDTH> qiData[MAX_SEGLENGTH];
-    sc_int<WIDTH> wData[MAX_SEGLENGTH];
     std::list<SchedulerTime> TimeList;
 };
 

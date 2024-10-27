@@ -43,6 +43,10 @@ SC_MODULE(Scheduler) {
     // @SchedulerTable
     SchedulerTable schedulerTable;
 
+    // @LocalRAM store the Input
+    ram_data localRAM[MAX_READ_LENGTH];
+    int ramIndex;
+
     // @HCU Pool
     // simulator can only use either mcuPool[i] or ecuPool[i], cannot use them both at the same time.
     MCU *mcuPool[HCU_NUM];
@@ -63,7 +67,8 @@ SC_MODULE(Scheduler) {
          wSegQueueLong(MAX_SEG_NUM),
          riSegQueueShort(MAX_SEG_NUM),
          qiSegQueueShort(MAX_SEG_NUM),
-         wSegQueueShort(MAX_SEG_NUM) {
+         wSegQueueShort(MAX_SEG_NUM),
+         ramIndex(0) {
 
         // prepare the segmentQueue
         // one read per cycle.(延时问题后续重新考虑)
