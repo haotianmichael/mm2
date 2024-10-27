@@ -108,10 +108,10 @@ SC_MODULE(Scheduler) {
         for(int i = 0; i < HCU_NUM; i ++) {
             mcu_name << "mcuPool(" << i << ")";
             ecu_name << "ecuPool(" << i << ")";
-            mcuPool[i] = new mCU(mcu_name.str().c_str());
+            mcuPool[i] = new MCU(mcu_name.str().c_str());
             mcuPool[i]->clk(clk);
             mcuPool[i]->rst(rst);
-            ecuPool[i] = new eCU(ecu_name.str().c_str());
+            ecuPool[i] = new ECU(ecu_name.str().c_str());
             ecuPool[i]->clk(clk);
             ecuPool[i]->rst(rst);
             //for(int j = 0; j < InputLaneWIDTH; j ++) {

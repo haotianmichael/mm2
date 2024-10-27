@@ -70,18 +70,21 @@ SC_MODULE(HCU){
         }
     }
 
-    SC_THREAD(monitor_sc_updates);
-    for(int i =0; i < LaneWIDTH; i ++) {
-       sensitive << hlane[i]->biggerScore;
+    SC_CTOR(HCU) {
+
+        SC_THREAD(monitor_sc_updates);
+        for(int i =0; i < LaneWIDTH; i ++) {
+           sensitive << hlane[i]->biggerScore;
+        }
+
+        SC_THREAD(updateRegBiggerScore);
+        sensitive << score_updated;
+
+        SC_THREAD(initializeRegBiggerScore);
     }
-
-    SC_THREAD(updateRegBiggerScore);
-    sensitive << score_updated;
-
-    SC_THREAD(initializeRegBiggerScore);
 };
 
-struct MCU : public HCU {
+struct MCU : HCU {
 
     SC_CTOR(MCU) : HCU("MCU"){
         std::ostringstream hlaneName;
@@ -109,7 +112,7 @@ struct MCU : public HCU {
 };
 
 
-struct ECU : public HCU {
+struct ECU : HCU {
 
     sc_in<sc_int<WIDTH> > ecu_ri;
     sc_in<sc_int<WIDTH> > ecu_qi;

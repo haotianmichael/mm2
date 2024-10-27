@@ -7,7 +7,7 @@ struct PSTable {
 
     sc_int<WIDTH> segID;
     sc_int<WIDTH> NumUB;
-    sc_int<TableWIDTH> REQ;
+    //sc_int<TableWIDTH> REQ;
     sc_int<WIDTH> Priority;
 };
 
