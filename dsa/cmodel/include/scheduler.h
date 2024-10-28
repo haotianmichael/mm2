@@ -38,7 +38,7 @@ SC_MODULE(Scheduler) {
     sc_int<WIDTH> readIdx = 0; //read which currently being cut
 
     // @PartialScoreQueue
-    PartialScoreQueue *partialScoreQueue;
+    //PartialScoreQueue *partialScoreQueue;
 
     // @SchedulerTable
     SchedulerTable schedulerTable;
@@ -53,7 +53,7 @@ SC_MODULE(Scheduler) {
     ECU *ecuPool[HCU_NUM];
 
     // @ReductionPool
-    ReductionPool *reductionPool;
+    //ReductionPool *reductionPool;
 
     void scheduler_hcu_pre();
     void scheduler_hcu_execute();
@@ -125,6 +125,7 @@ SC_MODULE(Scheduler) {
             ecu_name.str("");
         }
 
+        /*
         reductionPool = new ReductionPool("ReductionPool");
         reductionPool->clk(clk);
         reductionPool->rst(rst);
@@ -133,6 +134,7 @@ SC_MODULE(Scheduler) {
         partialScoreQueue = new PartialScoreQueue("PartialScoreQueue");
         partialScoreQueue->clk(clk);
         partialScoreQueue->rst(rst);
+        */
 
 
 

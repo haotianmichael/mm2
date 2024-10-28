@@ -195,7 +195,7 @@ int fillTableOfShortSegments(ram_data (&localRAM)[MAX_READ_LENGTH], int &ramInde
     return 1;
 }
 
-int countIdle(const ReductionPool &rp)
+int countIdle()
 {
     int zeroCount = 0;
     return zeroCount;
@@ -211,7 +211,7 @@ void Scheduler::scheduler_hcu_fillTable()
             qiSegment newQi;
             wSegment newW;
             // 加一些延迟，不然一次性都生成到调度表中了
-            if (countIdle(*reductionPool) <= IdleThreshLow)
+            if (countIdle() <= IdleThreshLow)
             {
                 // little idle reduction -> allocate shortPort
                 if (segNumShort.read() > 0)
