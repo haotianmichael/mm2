@@ -13,7 +13,7 @@ void RangeCountUnit::takeReadsAndCut() {
             /*tmpSignal*/
             int tmpNum[ReadNumProcessedOneTime];
             // different anchorSegs's range > 5000
-            int tmpAnchorSegNum[ReadNumProcessedOneTime][MAX_READ_LENGTH];
+            uint tmpAnchorSegNum[ReadNumProcessedOneTime][MAX_READ_LENGTH];
             int tmpAnchorRi[ReadNumProcessedOneTime][MAX_READ_LENGTH];
             while (std::getline(infile, line) && readIdx < ReadNumProcessedOneTime) {
                 if(line == "EOR") {
@@ -22,7 +22,8 @@ void RangeCountUnit::takeReadsAndCut() {
                     i = 0;
                 }else {
                     std::istringstream iss(line);
-                    int val0, val1, val2, val3;
+                    uint val0;
+                    int  val1, val2, val3;
                     if (iss >> val0 >> val1 >> val2 >> val3) {
                         tmpAnchorSegNum[readIdx][i] = val0;
                         anchorRi[readIdx][i].write(val1);
@@ -33,31 +34,44 @@ void RangeCountUnit::takeReadsAndCut() {
                     }
                 }
             }
-
             // compute dynamic range and cut
             // cut algorighm is strictly according to the software version.
             int rangeHeuristic[8] = {0, 16, 512, 1024, 2048, 3072, 4096, 5000};
             for(readIdx = 0; readIdx < ReadNumProcessedOneTime; readIdx++){
                 for(int j = 0; j < tmpNum[readIdx]; j ++) {
+                    if(tmpAnchorSegNum[readIdx][j+1] != tmpAnchorSegNum[readIdx][j]) {
+                        //std::cout << tmpAnchorSegNum[readIdx][j] << std::endl;
+                        anchorSuccessiveRange[readIdx][j].write(1);
+                        continue;
+                    }
                     int end = j + 5000;
                     for(int delta = 0; delta < 8; delta++) {
-                        if((j + rangeHeuristic[delta] >= tmpNum[readIdx]) 
-                            || (tmpAnchorRi[readIdx][j+rangeHeuristic[delta]] - tmpAnchorRi[readIdx][j] > 5000)) {
-                            end = j + rangeHeuristic[delta];
-                            break;                    
+                        if((j + rangeHeuristic[delta] < tmpNum[readIdx])) {
+                            if(tmpAnchorSegNum[readIdx][j+rangeHeuristic[delta]] == tmpAnchorSegNum[readIdx][j]) {
+                                    if(tmpAnchorRi[readIdx][j+rangeHeuristic[delta]] - tmpAnchorRi[readIdx][j] > 5000) {
+                                            end = j + rangeHeuristic[delta];
+                                            break;
+                                    }
+                            }else {
+                                end = j + rangeHeuristic[delta-1];
+                                break;
+                            }
+                        }
+                        // FIXME: the last 16 anchor will omit segID
+                        if(tmpNum[readIdx] - j <= 16) {
+                             end = tmpNum[readIdx] - 1; 
                         }
                     }
-                    while(end > j) {
-                        if(end >= tmpNum[readIdx] || tmpAnchorRi[readIdx][end] - tmpAnchorRi[readIdx][j] > 5000) {
-                            end--;
-                        } 
-                    }
+                    while(end > j && tmpAnchorRi[readIdx][end] - tmpAnchorRi[readIdx][j] > 5000) {
+                        end--;
+                    } 
                     /*
                         1. range of anchor[j]'s successor is [j + 1, end]
                         2. cut when rangeLength = 1
                         3. max range of a segment is its UpperBound
                     */
                     anchorSuccessiveRange[readIdx][j].write(end-j+1);
+                    //std::cout << end - j + 1  << " " << j<< std::endl;
                 }
             }
             cutDone.write(true);
