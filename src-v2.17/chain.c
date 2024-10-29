@@ -101,19 +101,11 @@ mm128_t *mm_chain_dp(int max_dist_x, int max_dist_y, int bw, int max_skip, int m
             fprintf(fp, "%lld\t%.6f\t%d\t%d\t%d\n",
                     (long long)n, avg_qspan, max_dist_x, max_dist_y, bw);
             for (i = 0; i < n; ++i) {
-                /*
                 fprintf(fp, "%u\t%d\t%d\t%d\n",
                         (unsigned int)(uint32_t)(a[i].x >> 32),
                         (int)(int32_t)(a[i].x),
                         (int)(int32_t)(a[i].y >> 32 & 0xff),
                         (int)(int32_t)(a[i].y));
-                        */
-
-                fprintf(fp, "%llu\t%d\t%d\t%d\n",
-                        (uint64_t)(a[i].x),
-                        (int)(int32_t)(a[i].y >> 32 & 0xff),
-                        (int)(int32_t)(a[i].y));
-
             
             }
             fprintf(fp, "EOR\n");

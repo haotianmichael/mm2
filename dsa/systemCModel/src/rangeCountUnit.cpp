@@ -12,6 +12,8 @@ void RangeCountUnit::takeReadsAndCut() {
             int i = 0, readIdx = 0; 
             /*tmpSignal*/
             int tmpNum[ReadNumProcessedOneTime];
+            // different anchorSegs's range > 5000
+            int tmpAnchorSegNum[ReadNumProcessedOneTime][MAX_READ_LENGTH];
             int tmpAnchorRi[ReadNumProcessedOneTime][MAX_READ_LENGTH];
             while (std::getline(infile, line) && readIdx < ReadNumProcessedOneTime) {
                 if(line == "EOR") {
@@ -20,8 +22,9 @@ void RangeCountUnit::takeReadsAndCut() {
                     i = 0;
                 }else {
                     std::istringstream iss(line);
-                    int val1, val2, val3;
-                    if (iss >> val1 >> val2 >> val3) {
+                    int val0, val1, val2, val3;
+                    if (iss >> val0 >> val1 >> val2 >> val3) {
+                        tmpAnchorSegNum[readIdx][i] = val0;
                         anchorRi[readIdx][i].write(val1);
                         tmpAnchorRi[readIdx][i] = val1;
                         anchorW[readIdx][i].write(val2);
