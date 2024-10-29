@@ -10,37 +10,42 @@ void RangeCountUnit::takeReadsAndCut() {
             std::ifstream infile(filename);
             std::string line;
             int i = 0, readIdx = 0; 
+            /*tmpSignal*/
+            int tmpNum[ReadNumProcessedOneTime];
+            int tmpAnchorRi[ReadNumProcessedOneTime][MAX_READ_LENGTH];
             while (std::getline(infile, line) && readIdx < ReadNumProcessedOneTime) {
                 if(line == "EOR") {
-                    anchorNum[readIdx++].write(i);
+                    anchorNum[readIdx].write(i);
+                    tmpNum[readIdx++] = i;
                     i = 0;
                 }else {
                     std::istringstream iss(line);
                     int val1, val2, val3;
                     if (iss >> val1 >> val2 >> val3) {
                         anchorRi[readIdx][i].write(val1);
+                        tmpAnchorRi[readIdx][i] = val1;
                         anchorW[readIdx][i].write(val2);
                         anchorQi[readIdx][i].write(val3);
                         i++;
                     }
                 }
             }
- 
+
             // compute dynamic range and cut
             // cut algorighm is strictly according to the software version.
             int rangeHeuristic[8] = {0, 16, 512, 1024, 2048, 3072, 4096, 5000};
             for(readIdx = 0; readIdx < ReadNumProcessedOneTime; readIdx++){
-                for(int j = 0; j < anchorNum[readIdx].read(); j ++) {
+                for(int j = 0; j < tmpNum[readIdx]; j ++) {
                     int end = j + 5000;
                     for(int delta = 0; delta < 8; delta++) {
-                        if((j + rangeHeuristic[delta] >= anchorNum[readIdx].read()) 
-                            || (anchorRi[readIdx][j+rangeHeuristic[delta]].read() - anchorRi[readIdx][j].read() > 5000)) {
+                        if((j + rangeHeuristic[delta] >= tmpNum[readIdx]) 
+                            || (tmpAnchorRi[readIdx][j+rangeHeuristic[delta]] - tmpAnchorRi[readIdx][j] > 5000)) {
                             end = j + rangeHeuristic[delta];
                             break;                    
                         }
                     }
                     while(end > j) {
-                        if(end >= anchorNum[readIdx].read() || anchorRi[readIdx][end].read() - anchorRi[readIdx][j].read() > 5000) {
+                        if(end >= tmpNum[readIdx] || tmpAnchorRi[readIdx][end] - tmpAnchorRi[readIdx][j] > 5000) {
                             end--;
                         } 
                     }
