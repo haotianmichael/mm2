@@ -15,7 +15,9 @@ make
 
 ```
 
-./minimap2 -a test/MT-human.fa  test/MT-orang.fa --chain-dump-in in1.txt  --chain-dump-out out-1k.txt  --chain-dump-limit=1000  > test.sam
+` ./minimap2 -a test/MT-human.fa  test/MT-orang.fa --chain-dump-in in1.txt  --chain-dump-out out-1k.txt  --chain-dump-limit=1000  > test.sam
+  
+` ./minimap2 -ax map-ont -t 16 hg38.fa  na12878.fastq --chain-dump-in in.txt --chain-dump-limit=1 > test.sam  
 
 # There are two files generated:
 #   in-1k.txt: the input of the chaining function
