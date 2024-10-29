@@ -20,8 +20,9 @@ SC_MODULE(RangeCountUnit) {
 
     void takeReadsAndCut();
     SC_CTOR(RangeCountUnit) {
+
         SC_THREAD(takeReadsAndCut);
-        sensitive << rst.pos();
+        sensitive << rst;
     }
 
 };

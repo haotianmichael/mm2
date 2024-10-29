@@ -12,7 +12,7 @@
 #define ECUInputLaneWIDTH 65
 
 #define MAX_SEGLENGTH 5000
-#define MAX_READ_LENGTH 30000
+#define MAX_READ_LENGTH 2000
 #define MAX_SEG_NUM 15000
 #define IdleThreshLow 4
 #define ReadNumProcessedOneTime  1
