@@ -26,12 +26,12 @@ SC_MODULE(Scheduler) {
 
     // @SegmentsQueue (Two Ports)
     // UpperBound <= 65 elements  Lane[0, 64]
-    sc_signal<sc_int<WIDTH>> segNumLong; // number of segments 
+    sc_int<WIDTH> segNumLong; // number of segments 
     sc_fifo<riSegment> riSegQueueLong;  
     sc_fifo<qiSegment> qiSegQueueLong;
     sc_fifo<wSegment> wSegQueueLong;
     // UpperBound > 65
-    sc_signal<sc_int<WIDTH>> segNumShort;
+    sc_int<WIDTH> segNumShort;
     sc_fifo<riSegment> riSegQueueShort; 
     sc_fifo<qiSegment> qiSegQueueShort;
     sc_fifo<wSegment> wSegQueueShort;
@@ -41,10 +41,10 @@ SC_MODULE(Scheduler) {
     //PartialScoreQueue *partialScoreQueue;
 
     // @SchedulerTable
-    SchedulerTable schedulerTable;
+    SchedulerTable *schedulerTable;
 
     // @LocalRAM store the Input
-    ram_data localRAM[MAX_READ_LENGTH];
+    ram_data *localRAM;
     int ramIndex;
 
     // @HCU Pool
@@ -104,6 +104,8 @@ SC_MODULE(Scheduler) {
             }
         }
 
+        schedulerTable = new SchedulerTable;
+        localRAM = new ram_data[MAX_READ_LENGTH];
         std::ostringstream mcu_name, ecu_name;
         for(int i = 0; i < HCU_NUM; i ++) {
             mcu_name << "mcuPool(" << i << ")";
@@ -119,8 +121,6 @@ SC_MODULE(Scheduler) {
               //  hcuPool[i]->qiArray[j](static_cast<sc_int<WIDTH> >(-1));
                // hcuPool[i]->W[j](static_cast<sc_int<WIDTH> >(-1));
             //}
-            //sc_bigint<TableWIDTH> mask = ~(1 << i); 
-            //schedulerTable.HOCC &= mask;  // HOCC transfer
             mcu_name.str("");
             ecu_name.str("");
         }

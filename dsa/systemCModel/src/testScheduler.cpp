@@ -37,8 +37,9 @@ int sc_main(int argc, char* argv[]) {
     sc_trace(fp, rst, "rst");
     
     sc_trace(fp, scheduler.rc->anchorNum[0].read(), "anchorNum");
-    sc_trace(fp, scheduler.segNumLong.read(), "segNumLong");
-    sc_trace(fp, scheduler.segNumShort.read(), "segNumShort");
+    sc_trace(fp, scheduler.segNumLong, "segNumLong");
+    sc_trace(fp, scheduler.segNumShort, "segNumShort");
+    sc_trace(fp, scheduler.schedulerTable->schedulerItemList.size(), "tableSize");
 
     sc_start(20000, SC_NS); 
     sc_close_vcd_trace_file(fp); 

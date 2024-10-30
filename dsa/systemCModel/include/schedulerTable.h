@@ -45,7 +45,7 @@ struct wSegment{
 };
 
 struct SchedulerTime{
-    sc_bit type;  // 1-mcu, 0-ecu
+    bool type;  // 1-mcu, 0-ecu
     sc_int<WIDTH> SBase;
     sc_int<WIDTH> LBase;
     sc_int<WIDTH> hcuID;
@@ -54,7 +54,7 @@ struct SchedulerTime{
 
 struct SchedulerItem{
 
-    sc_bit issued;
+    bool issued;
     sc_int<WIDTH> readID;
     sc_int<WIDTH> segmentID;
     sc_int<WIDTH> addr;

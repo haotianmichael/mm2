@@ -19,7 +19,7 @@ SC_MODULE(HCU){
     sc_signal<sc_time> executeTime;
     sc_signal<sc_time>  freeTime;  
     sc_signal<sc_int<WIDTH> > addr;
-    sc_signal<sc_bit> type;
+    sc_signal<bool> type;
 
     /* HCU has 65 Lane, 65 InputAnchor for mcu, 66 InputAnchor for ecu*/
     HLane* hlane[LaneWIDTH];
@@ -41,7 +41,7 @@ SC_MODULE(HCU){
                 currentSegID.write(static_cast<sc_int<WIDTH> >(-1));
                 LowerBound.write(static_cast<sc_int<WIDTH> >(-1));
                 UpperBound.write(static_cast<sc_int<WIDTH> >(-1));
-                type.write(static_cast<sc_bit>(0));
+                type.write(static_cast<bool>(0));
                 executeTime.write(sc_time(0, SC_NS));
                 freeTime.write(sc_time(0, SC_NS));
                 for(int i = 0; i < LaneWIDTH + 1; i ++) {
