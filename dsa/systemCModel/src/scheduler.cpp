@@ -1,97 +1,81 @@
 #include <cassert>
 #include "scheduler.h"
 
-void Scheduler::scheduler_hcu_pre()
-{
-    while (true)
-    {
+void Scheduler::scheduler_hcu_pre() {
+    while (true) {
         wait();
-        if (readIdx >= ReadNumProcessedOneTime)
-        {
-            return;
-        }
-        if (start.read())
-        {
-            int segStart = 0, tmpSegLongNum = 0, tmpSegShortNum = 0, tmpSegID = 0;
-            riSegment newRi;
-            qiSegment newQi;
-            wSegment newW;
-            assert(readIdx >= ReadNumProcessedOneTime && "Error: cutting operation exceeds the maximum");
-            // FIXME: there are still a few UpperBound situations which is not covered here.
-            for (int i = 0; i < anchorNum[readIdx].read(); i++)
-            {
-                assert(anchorSuccessiveRange[readIdx][i].read() == 0 && "Error: successiveRange cannot be -1.");
-                if (anchorSuccessiveRange[readIdx][i].read() != 1 && anchorSuccessiveRange[readIdx][i].read() != -1)
-                {
-                    newRi.data[segStart] = anchorRi[readIdx][i].read();
-                    newQi.data[segStart] = anchorQi[readIdx][i].read();
-                    newW.data[segStart] = anchorW[readIdx][i].read();
-                    segStart++;
-                }
-                else if (anchorSuccessiveRange[readIdx][i].read() == 1)
-                { // range = 1 means segments ends with this anchor
-                    // ending anchor still added
-                    newRi.data[segStart] = anchorRi[readIdx][i].read();
-                    newQi.data[segStart] = anchorQi[readIdx][i].read();
-                    newW.data[segStart] = anchorW[readIdx][i].read();
-                    segStart++;
+        if (start.read()) {
+            if (readIdx < ReadNumProcessedOneTime) {
+                int segStart = 0, tmpSegLongNum = 0, tmpSegShortNum = 0, tmpSegID = 0;
+                riSegment *newRi = new riSegment;
+                qiSegment *newQi = new qiSegment;
+                wSegment *newW = new wSegment;
+                assert(readIdx < ReadNumProcessedOneTime && "Error: cutting operation exceeds the maximum");
+                // FIXME: there are still a few UpperBound situations which is not covered here.
+                for (int i = 0; i < anchorNum[readIdx].read(); i++) {
+                    assert(anchorSuccessiveRange[readIdx][i].read() != 0 && "Error: successiveRange cannot be -1.");
+                    if(anchorSuccessiveRange[readIdx][i].read() != 1 && anchorSuccessiveRange[readIdx][i].read() != -1) {
+                        newRi->data[segStart] = anchorRi[readIdx][i].read();
+                        newQi->data[segStart] = anchorQi[readIdx][i].read();
+                        newW->data[segStart] = anchorW[readIdx][i].read();
+                        segStart++;
+                    }else if(anchorSuccessiveRange[readIdx][i].read() == 1 || i == anchorNum[readIdx].read()-1) {
+                        // range = 1 means segments ends with this anchor
+                        // ending anchor still added
+                        newRi->data[segStart] = anchorRi[readIdx][i].read();
+                        newQi->data[segStart] = anchorQi[readIdx][i].read();
+                        newW->data[segStart] = anchorW[readIdx][i].read();
+                        segStart++;
 
-                    newRi.readID = readIdx;
-                    if (segStart <= MCUInputLaneWIDTH)
-                    {
-                        newQi.segID = tmpSegID << 1 | 0; // shortSegments ends with 0
+                        newRi->readID = readIdx;
+                        if (segStart <= MCUInputLaneWIDTH){
+                            newQi->segID = tmpSegID << 1 | 0; // shortSegments ends with 0
+                        }else {
+                            newQi->segID = tmpSegID << 1 | 1;
+                        }
+                        newW->upperBound = segStart;
+                        if (newW->upperBound <= MCUInputLaneWIDTH){
+                            riSegQueueShort.write(*newRi);
+                            qiSegQueueShort.write(*newQi);
+                            wSegQueueShort.write(*newW);
+                            tmpSegShortNum++;
+                        }else {
+                            riSegQueueLong.write(*newRi);
+                            qiSegQueueLong.write(*newQi);
+                            wSegQueueLong.write(*newW);
+                            tmpSegLongNum++;
+                        }
+                        tmpSegID++;
+                        segStart = 0;
                     }
-                    else
-                    {
-                        newQi.segID = tmpSegID << 1 | 1;
-                    }
-                    newW.upperBound = segStart;
-                    if (newW.upperBound <= MCUInputLaneWIDTH)
-                    {
-                        riSegQueueShort.write(newRi);
-                        qiSegQueueShort.write(newQi);
-                        wSegQueueShort.write(newW);
-                        tmpSegShortNum++;
-                    }
-                    else
-                    {
-                        riSegQueueLong.write(newRi);
-                        qiSegQueueLong.write(newQi);
-                        wSegQueueLong.write(newW);
-                        tmpSegLongNum++;
-                    }
-                    tmpSegID++;
-                    segStart = 0;
                 }
+                /*
+                //the last segment
+                // base on the RCUnit's algirighm, UpperBound of last anchor is always 0,
+                // UpperBound of penultimate anchor is 1 if gap(last, penu)<5000, so they are in one segment.
+                // UpperBound of penultimate anchor is 0 if gap(last, penu)>5000, so they are in two segments.
+                if(i == anchorNum.read()) {
+                    newRi.upperBound = segStart;
+                    newQi.upperBound = segStart;
+                    newW.upperBound = segStart;
+                    if(newW.upperBound <= InputLaneWIDTH) {
+                         riSegQueueShort.write(newRi);
+                         qiSegQueueShort.write(newQi);
+                         wSegQueueShort.write(newW);
+                         tmpSegShortNum++;
+                     }else {
+                         riSegQueueLong.write(newRi);
+                         qiSegQueueLong.write(newQi);
+                         wSegQueueLong.write(newW);
+                         tmpSegLongNum++;
+                     }
+                }*/
+
+                segNumLong.write(static_cast<sc_int<WIDTH>>(tmpSegLongNum));
+                segNumShort.write(static_cast<sc_int<WIDTH>>(tmpSegShortNum));
+                readIdx++;
             }
-            /*
-            //the last segment
-            // base on the RCUnit's algirighm, UpperBound of last anchor is always 0,
-            // UpperBound of penultimate anchor is 1 if gap(last, penu)<5000, so they are in one segment.
-            // UpperBound of penultimate anchor is 0 if gap(last, penu)>5000, so they are in two segments.
-            if(i == anchorNum.read()) {
-                newRi.upperBound = segStart;
-                newQi.upperBound = segStart;
-                newW.upperBound = segStart;
-                if(newW.upperBound <= InputLaneWIDTH) {
-                     riSegQueueShort.write(newRi);
-                     qiSegQueueShort.write(newQi);
-                     wSegQueueShort.write(newW);
-                     tmpSegShortNum++;
-                 }else {
-                     riSegQueueLong.write(newRi);
-                     qiSegQueueLong.write(newQi);
-                     wSegQueueLong.write(newW);
-                     tmpSegLongNum++;
-                 }
-            }
-            */
-            segNumLong.write(static_cast<sc_int<WIDTH>>(tmpSegLongNum));
-            segNumShort.write(static_cast<sc_int<WIDTH>>(tmpSegShortNum));
-            readIdx++;
-        }
-        else
-        {
+        }else {
             segNumLong.write(0);
             segNumShort.write(0);
         }

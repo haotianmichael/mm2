@@ -13,7 +13,7 @@
 
 #define MAX_SEGLENGTH 5000
 #define MAX_READ_LENGTH 2000
-#define MAX_SEG_NUM 15000
+#define MAX_SEG_NUM 2000
 #define IdleThreshLow 4
 #define ReadNumProcessedOneTime  1
 #define Reduction_NUM 64
