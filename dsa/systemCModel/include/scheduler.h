@@ -73,7 +73,7 @@ SC_MODULE(Scheduler) {
     void scheduler_hcu_pre();
     //void scheduler_hcu_execute();
     void scheduler_hcu_fillTable();
-    ///void scheduler_hcu_allocate();
+    void scheduler_hcu_allocate();
     //void scheduler_rt_checkTable();
 
 	SC_CTOR(Scheduler) : 
@@ -95,8 +95,8 @@ SC_MODULE(Scheduler) {
         sensitive << clk.pos();
 
         // allocate HCU for every Segment based on SchedulerTable
-        //SC_THREAD(scheduler_hcu_allocate);
-        //sensitive << clk.pos();
+        SC_THREAD(scheduler_hcu_allocate);
+        sensitive << clk.pos();
 
         // HCU IO Wiring/Free and fill PSQTable
         //SC_THREAD(scheduler_hcu_execute);
@@ -176,6 +176,22 @@ SC_MODULE(Scheduler) {
             ecuPool[i]->ecu_ri(ecu_ri[i]);
             ecuPool[i]->ecu_qi(ecu_qi[i]);
             ecuPool[i]->ecu_w(ecu_w[i]);
+            
+            mcuPool[i]->currentReadID.write(static_cast<sc_int<WIDTH> >(-1));
+            mcuPool[i]->currentSegID.write(static_cast<sc_int<WIDTH> >(-1));
+            mcuPool[i]->LowerBound.write(static_cast<sc_int<WIDTH> >(-1));
+            mcuPool[i]->UpperBound.write(static_cast<sc_int<WIDTH> >(-1));
+            mcuPool[i]->type.write(static_cast<bool>(0));
+            mcuPool[i]->executeTime.write(sc_time(0, SC_NS));
+            mcuPool[i]->freeTime.write(sc_time(0, SC_NS));
+
+            ecuPool[i]->currentReadID.write(static_cast<sc_int<WIDTH> >(-1));
+            ecuPool[i]->currentSegID.write(static_cast<sc_int<WIDTH> >(-1));
+            ecuPool[i]->LowerBound.write(static_cast<sc_int<WIDTH> >(-1));
+            ecuPool[i]->UpperBound.write(static_cast<sc_int<WIDTH> >(-1));
+            ecuPool[i]->type.write(static_cast<bool>(0));
+            ecuPool[i]->executeTime.write(sc_time(0, SC_NS));
+            ecuPool[i]->freeTime.write(sc_time(0, SC_NS));
 
             mcu_name.str("");
             ecu_name.str("");

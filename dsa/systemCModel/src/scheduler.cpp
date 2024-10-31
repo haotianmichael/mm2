@@ -197,9 +197,10 @@ void Scheduler::scheduler_hcu_fillTable(){
         }
     }
 }
-/*
+
 int allocateHCU(MCU *mcuPool[HCU_NUM], ECU *ecuPool[HCU_NUM], const sc_int<WIDTH> &readID, const sc_int<WIDTH> &segID, const sc_time &startTime, const sc_time &endTime, const sc_int<WIDTH> &addr, SchedulerTime &item) {
     int allo = -1;
+    bool isAlloc = false;
     for (int i = 0; i < HCU_NUM; i++) {
         if (mcuPool[i]->currentReadID.read() == -1 && ecuPool[i]->currentReadID.read() == -1) {
             // mcu
@@ -223,11 +224,12 @@ int allocateHCU(MCU *mcuPool[HCU_NUM], ECU *ecuPool[HCU_NUM], const sc_int<WIDTH
 
             item.hcuID = i;
             allo = i;
+            isAlloc = true;
             break;
         }
     }
     // Core Algorightm: Replacement Policy
-    if (allo == HCU_NUM){
+    if (!isAlloc){
         if (item.type){ // if mcu allocation failed, wait
             allo = -2;
         }else{ // if ecu allocation failed, replacing
@@ -284,7 +286,7 @@ void Scheduler::scheduler_hcu_allocate() {
                     // mcu allocation
                     it->startTime = sc_time_stamp();
                     it->endTime = sc_time_stamp() + sc_time((it->UB + 1) * 10, SC_NS); // endTime = startTime + (newW.upperbound + 1)
-                    assert(timeIt->hcuID==-1 && "Error: mcu already allocated!");
+                    assert((timeIt->hcuID==-1 || timeIt->hcuID == -2) && "Error: mcu already allocated!");
                     assert(timeIt->type && " Error: mcu allocator cannot operates ecu!");
                     if ((timeIt->hcuID = allocateHCU(mcuPool, ecuPool, it->readID, it->segmentID, it->startTime + sc_time(10, SC_NS), it->endTime, it->addr, *timeIt)) == -2){
                         std::cout << "mcu allocation failed, wait for some time..." << std::endl;
@@ -301,7 +303,7 @@ void Scheduler::scheduler_hcu_allocate() {
         }
     }
 }
-
+/*
 void Scheduler::scheduler_hcu_execute(){
     while (true){
         wait();
@@ -413,5 +415,4 @@ void Scheduler::scheduler_hcu_execute(){
 // 查表，如果有满足条件的直接分配RT
 void Scheduler::scheduler_rt_checkTable(){
 }
-
 */

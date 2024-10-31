@@ -38,13 +38,6 @@ SC_MODULE(MCU) {
         while(true){
             wait();
             if(rst.read()) {
-                currentReadID.write(static_cast<sc_int<WIDTH> >(-1));
-                currentSegID.write(static_cast<sc_int<WIDTH> >(-1));
-                LowerBound.write(static_cast<sc_int<WIDTH> >(-1));
-                UpperBound.write(static_cast<sc_int<WIDTH> >(-1));
-                type.write(static_cast<bool>(0));
-                executeTime.write(sc_time(0, SC_NS));
-                freeTime.write(sc_time(0, SC_NS));
                 for(int i = 0; i < LaneWIDTH + 1; i ++) {
                     regBiggerScore[i].write(static_cast<sc_int<WIDTH> >(-1));
                 }
@@ -150,13 +143,6 @@ SC_MODULE(ECU){
         while(true){
             wait();
             if(rst.read()) {
-                currentReadID.write(static_cast<sc_int<WIDTH> >(-1));
-                currentSegID.write(static_cast<sc_int<WIDTH> >(-1));
-                LowerBound.write(static_cast<sc_int<WIDTH> >(-1));
-                UpperBound.write(static_cast<sc_int<WIDTH> >(-1));
-                type.write(static_cast<bool>(0));
-                executeTime.write(sc_time(0, SC_NS));
-                freeTime.write(sc_time(0, SC_NS));
                 for(int i = 0; i < LaneWIDTH + 1; i ++) {
                     regBiggerScore[i].write(static_cast<sc_int<WIDTH> >(-1));
                 }
