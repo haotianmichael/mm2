@@ -14,6 +14,7 @@ struct Anchor {
 /*ScoreCompute*/
 SC_MODULE(Score) {
     sc_in<bool> rst;
+    sc_signal<bool> en;
     sc_in<sc_int<WIDTH> > riX, riY, qiX, qiY;
     sc_in<sc_int<WIDTH> > W, W_avg;
     sc_out<sc_int<WIDTH> > result;
@@ -24,20 +25,24 @@ SC_MODULE(Score) {
             if(rst.read()) {
                 result.write(0);
             }else {
-                if(riX.read() < 0 || riY.read() < 0 || qiX.read() < 0 || qiY.read() < 0) {
-                    result.write(0);
-                }else {
-                    absDiff = fabs(fabs(riX.read().to_double()-riY.read().to_double()) - fabs(qiX.read().to_double() - qiY.read().to_double()));
-                    double tmpB = (int)(absDiff * 15 * 0.01 + 0.5 * (log(absDiff)/log(2.0)));
-                    double B = absDiff == 0 ? 0 : tmpB;
-                    double tmpA = (fabs(riX.read().to_double() - riY.read().to_double()) > fabs(qiX.read().to_double() - qiY.read().to_double())) ? fabs(qiX.read().to_double() - qiY.read().to_double()) : fabs(riX.read().to_double() - riY.read().to_double());
-                    double A;
-                    if(tmpA > W.read().to_double()) {
-                       A = W.read().to_double();
+                if(en.read()) {
+                    if(riX.read() < 0 || riY.read() < 0 || qiX.read() < 0 || qiY.read() < 0) {
+                        result.write(0);
                     }else {
-                       A = tmpA;
+                        absDiff = fabs(fabs(riX.read().to_double()-riY.read().to_double()) - fabs(qiX.read().to_double() - qiY.read().to_double()));
+                        double tmpB = (int)(absDiff * 15 * 0.01 + 0.5 * (log(absDiff)/log(2.0)));
+                        double B = absDiff == 0 ? 0 : tmpB;
+                        double tmpA = (fabs(riX.read().to_double() - riY.read().to_double()) > fabs(qiX.read().to_double() - qiY.read().to_double())) ? fabs(qiX.read().to_double() - qiY.read().to_double()) : fabs(riX.read().to_double() - riY.read().to_double());
+                        double A;
+                        if(tmpA > W.read().to_double()) {
+                           A = W.read().to_double();
+                        }else {
+                           A = tmpA;
+                        }
+                        result.write(static_cast<sc_int<WIDTH> >(A - B));
                     }
-                    result.write(static_cast<sc_int<WIDTH> >(A - B));
+                }else {
+                    result.write(static_cast<sc_int<WIDTH> >(0));
                 }
            }
             wait(5, SC_NS);
@@ -56,6 +61,7 @@ SC_MODULE(Comparator) {
 
     sc_in<bool> rst;
     sc_in<bool> clk;
+    sc_signal<bool> en;
     sc_in<sc_int<WIDTH> > cmpA, cmpB;
     sc_out<sc_int<WIDTH> > bigger;
 
@@ -63,8 +69,12 @@ SC_MODULE(Comparator) {
         if(rst.read()) {
             bigger.write(-1);
         }else {
-            bigger.write(cmpA.read() > cmpB.read() 
-              ? cmpA.read() : cmpB.read());
+            if(en.read()) {
+                bigger.write(cmpA.read() > cmpB.read() 
+                  ? cmpA.read() : cmpB.read());
+            }else {
+                bigger.write(static_cast<sc_int<WIDTH> >(-1));
+            }
         }
     }
 
@@ -78,6 +88,7 @@ SC_MODULE(Comparator) {
 SC_MODULE(HLane) {
     
     sc_in<bool> clk, rst;
+    sc_signal<bool> en;
     sc_in<sc_int<WIDTH> > id;   // Id of each Lane within one HCU (1-65)
     sc_in<sc_int<WIDTH> > lastCmp;  // input of this lane's  comparator
     sc_signal<sc_int<WIDTH> > computeResult; // result of ScCompute
@@ -93,6 +104,7 @@ SC_MODULE(HLane) {
         
         compute = new Score("compute");
         compute->rst(rst);
+        compute->en.write(en);
         compute->riX(inputA.ri);
         compute->riY(inputB.ri);
         compute->qiX(inputA.qi);
@@ -104,6 +116,7 @@ SC_MODULE(HLane) {
         comparator = new Comparator("comparator");
         comparator->clk(clk);
         comparator->rst(rst);
+        comparator->en.write(en);
         comparator->cmpA(computeResult);
         comparator->cmpB(lastCmp);
         comparator->bigger(biggerScore);

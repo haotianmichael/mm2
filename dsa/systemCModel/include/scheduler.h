@@ -52,14 +52,29 @@ SC_MODULE(Scheduler) {
     MCU *mcuPool[HCU_NUM];
     ECU *ecuPool[HCU_NUM];
 
+    // @IODispatcher
+    mcuIODispatcher *mcuIODisPatcherPool[HCU_NUM];
+    ecuIODispatcher *ecuIODisPatcherPool[HCU_NUM];
+
+    // @Wiring
+    sc_signal<sc_int<WIDTH> > mri[HCU_NUM][MCUInputLaneWIDTH + 1];
+    sc_signal<sc_int<WIDTH> > mqi[HCU_NUM][MCUInputLaneWIDTH + 1];
+    sc_signal<sc_int<WIDTH> > mw[HCU_NUM][MCUInputLaneWIDTH + 1];
+    sc_signal<sc_int<WIDTH> > eri[HCU_NUM][MCUInputLaneWIDTH + 1];
+    sc_signal<sc_int<WIDTH> > eqi[HCU_NUM][MCUInputLaneWIDTH + 1];
+    sc_signal<sc_int<WIDTH> > ew[HCU_NUM][MCUInputLaneWIDTH + 1];
+    sc_signal<sc_int<WIDTH> > ecu_ri[HCU_NUM];
+    sc_signal<sc_int<WIDTH> > ecu_qi[HCU_NUM];
+    sc_signal<sc_int<WIDTH> > ecu_w[HCU_NUM];
+
     // @ReductionPool
     //ReductionPool *reductionPool;
 
     void scheduler_hcu_pre();
-    void scheduler_hcu_execute();
+    //void scheduler_hcu_execute();
     void scheduler_hcu_fillTable();
-    void scheduler_hcu_allocate();
-    void scheduler_rt_checkTable();
+    ///void scheduler_hcu_allocate();
+    //void scheduler_rt_checkTable();
 
 	SC_CTOR(Scheduler) : 
          riSegQueueLong(MAX_SEG_NUM), 
@@ -80,16 +95,16 @@ SC_MODULE(Scheduler) {
         sensitive << clk.pos();
 
         // allocate HCU for every Segment based on SchedulerTable
-        SC_THREAD(scheduler_hcu_allocate);
-        sensitive << clk.pos();
+        //SC_THREAD(scheduler_hcu_allocate);
+        //sensitive << clk.pos();
 
         // HCU IO Wiring/Free and fill PSQTable
-        SC_THREAD(scheduler_hcu_execute);
-        sensitive << clk.pos();
+        //SC_THREAD(scheduler_hcu_execute);
+        //sensitive << clk.pos();
 
         // check PSQTable and allocate 
-        SC_THREAD(scheduler_rt_checkTable);
-        sensitive << clk.pos();
+        //SC_THREAD(scheduler_rt_checkTable);
+        //sensitive << clk.pos();
 
         rc = new RangeCountUnit("RangeCountUnit");
         rc->rst(rst);
@@ -106,21 +121,62 @@ SC_MODULE(Scheduler) {
 
         schedulerTable = new SchedulerTable;
         localRAM = new ram_data[MAX_READ_LENGTH];
-        std::ostringstream mcu_name, ecu_name;
+
+        std::ostringstream mcu_name, ecu_name, mcuIO_name, ecuIO_name;
+        for(int i = 0; i < HCU_NUM; i ++) {
+            mcuIO_name << "mcuIODis(" << i << ")";
+            ecuIO_name << "ecuIODis(" << i << ")";
+
+            mcuIODisPatcherPool[i] = new mcuIODispatcher(mcuIO_name.str().c_str());
+            mcuIODisPatcherPool[i]->clk(clk);
+            mcuIODisPatcherPool[i]->rst(rst);
+            mcuIODisPatcherPool[i]->en.write(static_cast<bool>(0));
+
+            ecuIODisPatcherPool[i] = new ecuIODispatcher(ecuIO_name.str().c_str());
+            ecuIODisPatcherPool[i]->clk(clk);
+            ecuIODisPatcherPool[i]->rst(rst);
+            ecuIODisPatcherPool[i]->en.write(static_cast<bool>(0));
+
+            for(int j = 0; j < MCUInputLaneWIDTH + 1; j ++) {
+                mcuIODisPatcherPool[i]->ri_out[j](mri[i][j]);
+                mcuIODisPatcherPool[i]->qi_out[j](mqi[i][j]);
+                mcuIODisPatcherPool[i]->w_out[j](mw[i][j]);
+                ecuIODisPatcherPool[i]->ri_out[j](eri[i][j]);
+                ecuIODisPatcherPool[i]->qi_out[j](eqi[i][j]);
+                ecuIODisPatcherPool[i]->w_out[j](ew[i][j]);
+            }
+            ecuIODisPatcherPool[i]->ecu_ri_out(ecu_ri[i]);
+            ecuIODisPatcherPool[i]->ecu_qi_out(ecu_qi[i]);
+            ecuIODisPatcherPool[i]->ecu_w_out(ecu_w[i]);
+            mcuIO_name.str("");
+            ecuIO_name.str("");
+        }
+
+        
+
         for(int i = 0; i < HCU_NUM; i ++) {
             mcu_name << "mcuPool(" << i << ")";
             ecu_name << "ecuPool(" << i << ")";
             mcuPool[i] = new MCU(mcu_name.str().c_str());
             mcuPool[i]->clk(clk);
             mcuPool[i]->rst(rst);
+            mcuPool[i]->en.write(static_cast<bool>(0));
             ecuPool[i] = new ECU(ecu_name.str().c_str());
             ecuPool[i]->clk(clk);
             ecuPool[i]->rst(rst);
-            //for(int j = 0; j < InputLaneWIDTH; j ++) {
-             //   hcuPool[i]->riArray[j](static_cast<sc_int<WIDTH> >(-1));
-              //  hcuPool[i]->qiArray[j](static_cast<sc_int<WIDTH> >(-1));
-               // hcuPool[i]->W[j](static_cast<sc_int<WIDTH> >(-1));
-            //}
+            ecuPool[i]->en.write(static_cast<bool>(0));
+            for(int j = 0; j < MCUInputLaneWIDTH + 1; j ++) {
+                mcuPool[i]->riArray[j](mri[i][j]);
+                mcuPool[i]->qiArray[j](mqi[i][j]);
+                mcuPool[i]->W[j](mw[i][j]);
+                ecuPool[i]->riArray[j](eri[i][j]);
+                ecuPool[i]->qiArray[j](eqi[i][j]);
+                ecuPool[i]->W[j](ew[i][j]);
+            }
+            ecuPool[i]->ecu_ri(ecu_ri[i]);
+            ecuPool[i]->ecu_qi(ecu_qi[i]);
+            ecuPool[i]->ecu_w(ecu_w[i]);
+
             mcu_name.str("");
             ecu_name.str("");
         }
