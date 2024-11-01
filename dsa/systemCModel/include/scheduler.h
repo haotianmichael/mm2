@@ -71,7 +71,7 @@ SC_MODULE(Scheduler) {
     //ReductionPool *reductionPool;
 
     void scheduler_hcu_pre();
-    //void scheduler_hcu_execute();
+    void scheduler_hcu_execute();
     void scheduler_hcu_fillTable();
     void scheduler_hcu_allocate();
     //void scheduler_rt_checkTable();
@@ -99,8 +99,8 @@ SC_MODULE(Scheduler) {
         sensitive << clk.pos();
 
         // HCU IO Wiring/Free and fill PSQTable
-        //SC_THREAD(scheduler_hcu_execute);
-        //sensitive << clk.pos();
+        SC_THREAD(scheduler_hcu_execute);
+        sensitive << clk.pos();
 
         // check PSQTable and allocate 
         //SC_THREAD(scheduler_rt_checkTable);

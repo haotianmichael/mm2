@@ -46,13 +46,19 @@ void mcuIODispatcher::shift_data() {
                          }
                          cycle_count ++;
                     }else {
-                         for(int i = 0; i < MCUInputLaneWIDTH; i++) {
+                         for(int i = 0; i < MCUInputLaneWIDTH + 1; i++) {
                               ri_out[i].write(static_cast<sc_int<32>>(-1));
                               qi_out[i].write(static_cast<sc_int<32>>(-1));
                               w_out[i].write(static_cast<sc_int<32>>(-1));
                          } 
                     }
                 }
+            }else {
+                for(int i = 0; i < MCUInputLaneWIDTH + 1; i++) {
+                    ri_out[i].write(static_cast<sc_int<32>>(-1));
+                    qi_out[i].write(static_cast<sc_int<32>>(-1));
+                    w_out[i].write(static_cast<sc_int<32>>(-1));
+                } 
             }
         }else {
             cycle_count = 0;
