@@ -3,6 +3,7 @@
 
 #include <helper.h>
 #include <list>
+#include <mutex>
 
 struct ram_data{
    sc_int<WIDTH> data[MAX_SEGLENGTH]; 
@@ -71,6 +72,7 @@ struct SchedulerTable {
     //sc_bigint<TableWIDTH> HOCC;    // HCU's Occurence
     //sc_bigint<TableWIDTH> ROCC;    // ReductionTree's Occurence
     std::list<SchedulerItem> schedulerItemList;
+    std::mutex mtx;
 
     void addItem(const SchedulerItem& item) {
         schedulerItemList.push_back(item);
