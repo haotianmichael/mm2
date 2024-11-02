@@ -310,8 +310,8 @@ int freeHCU(MCU *mcuPool[HCU_NUM], ECU *ecuPool[HCU_NUM], mcuIODispatcher *mcuIO
             return 1;
     }else if(mcuPool[i]->currentReadID.read() != -1
     && ecuPool[i]->currentReadID.read() != -1
-    && mcuPool[i]->executeTime.read() == sc_time_stamp()
-    && ecuPool[i]->executeTime.read() == sc_time_stamp()
+    && mcuPool[i]->executeTime.read() - sc_time(10, SC_NS) == sc_time_stamp()     // en should be one cycle ahead of computing and IODispatcher 
+    && ecuPool[i]->executeTime.read()  - sc_time(10, SC_NS) == sc_time_stamp()
     && !mcuIODisPatcherPool[i]->en.read()
     && !ecuIODisPatcherPool[i]->en.read()){    //enable all computing unit
         mcuPool[i]->en.write(static_cast<bool>(1));
@@ -344,33 +344,33 @@ void Scheduler::scheduler_hcu_allocate() {
                             int id = timeIt->hcuID;
                             if(freeHCU(mcuPool, ecuPool, mcuIODisPatcherPool, ecuIODisPatcherPool, *timeIt)) {
                                 if(++freeNum == it->HCU_Total_NUM) {
-                                    std::cout << "successfully Free mcu: " << id << " for Seg: " << it->segmentID << " " << std::endl;
+                                    std::cout << "successfully Free mcu: " << id << " for Seg: " << it->segmentID << " at: " << sc_time_stamp() << std::endl;
                                     {
                                         std::lock_guard<std::mutex> lock(schedulerTable->mtx);
                                         it = schedulerTable->schedulerItemList.erase(it);
-                                        break;
                                     }
                                     isforward = false;
+                                    break;
                                 }
                             }
                         }
                     }
-//                    if(isforward) {
+                    if(isforward) {
                         ++it;
- //                   }
+                    }
                 }else{
                     // mcu allocation
                     it->startTime = sc_time_stamp();
-                    it->endTime = sc_time_stamp() + sc_time((it->UB + 1) * 10, SC_NS); // endTime = startTime + (newW.upperbound + 1)
+                    it->endTime = sc_time_stamp() + sc_time((it->UB + 2) * 10, SC_NS); // endTime = startTime + (newW.upperbound + 1)
                     assert((timeIt->hcuID==-1 || timeIt->hcuID == -2) && "Error: mcu already allocated!");
                     assert(timeIt->type && " Error: mcu allocator cannot operates ecu!");
-                    if ((timeIt->hcuID = allocateHCU(mcuPool, ecuPool, mcuIODisPatcherPool, ecuIODisPatcherPool, it->readID, it->segmentID, it->startTime + sc_time(10, SC_NS), it->endTime, it->addr, *timeIt)) == -2){
-                        //std::cout << "mcu allocation failed, wait for some time..." << std::endl;
+                    if ((timeIt->hcuID = allocateHCU(mcuPool, ecuPool, mcuIODisPatcherPool, ecuIODisPatcherPool, it->readID, it->segmentID, it->startTime + sc_time(20, SC_NS), it->endTime, it->addr, *timeIt)) == -2){
+                        std::cout << "mcu allocation failed, wait for some time..." << std::endl;
                         wait(40, SC_NS);
                         continue;
                     }
                     assert(timeIt->hcuID>=0  && "Error: mcu allocator return the wrong value!");
-                    std::cout << "successfully Allocate mcu: " << timeIt->hcuID << " for Seg: "<< it->segmentID << std::endl;
+                    std::cout << "successfully Allocate mcu: " << timeIt->hcuID <<" for Segment: " << it->segmentID << " -----UB: " << it->UB << " startTime: " << it->startTime+sc_time(20, SC_NS) << " endTime: "  << it->endTime << std::endl;
                     it->issued = 1;
                     if (it->HCU_Total_NUM > 1){
                         it--; // finish mcu, then continue allocate ecu of one segment.
@@ -393,8 +393,8 @@ void Scheduler::scheduler_hcu_execute(){
                 //std::cout << sc_time_stamp() << " vs " << mt->executeTime.read() << mt->currentReadID.read() << " " << mt->currentSegID.read() << std::endl;
                 if (mt->currentReadID.read()!=-1 // one cycle after hcu allocation
                     && mt->currentSegID.read()!=-1 
-                    && sc_time_stamp() == mt->executeTime.read()){
-                    //std::cout << "mcu start executing!" << std::endl;
+                    && sc_time_stamp() == mt->executeTime.read() - sc_time(10, SC_NS)){
+                    //std::cout << "IO start at" << sc_time_stamp() << std::endl;
                     if (mt->type.read()){ // mcu
 
                         assert(mt->LowerBound.read()==0 && "mcu's LowerBound must be 0!");

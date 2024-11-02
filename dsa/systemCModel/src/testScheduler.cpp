@@ -41,7 +41,7 @@ int sc_main(int argc, char* argv[]) {
     sc_trace(fp, scheduler.segNumShort, "segNumShort");
     sc_trace(fp, scheduler.schedulerTable->schedulerItemList.size(), "tableSize");
 
-    sc_start(200000, SC_NS); 
+    sc_start(20000, SC_NS); 
     sc_close_vcd_trace_file(fp); 
     return 0;
 }
