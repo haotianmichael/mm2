@@ -100,6 +100,7 @@ SC_MODULE(MCU) {
         sensitive << score_updated;
 
         SC_THREAD(initializeRegBiggerScore);
+        sensitive << clk.pos();
     }
 
 };

@@ -5,6 +5,10 @@ void Scheduler::scheduler_hcu_pre() {
     while (true) {
         wait();
         if (start.read()) {
+            /*
+            FIXME: 
+            std::cout << sc_time_stamp() << std::endl;
+            */
             if (readIdx < ReadNumProcessedOneTime) {
                 int segStart = 0, tmpSegLongNum = 0, tmpSegShortNum = 0, tmpSegID = 0;
                 riSegment *newRi = new riSegment;
@@ -95,10 +99,9 @@ int fillTableOfLongSegments(std::mutex& mtx, ram_data *localRAM, int &ramIndex, 
     // store data in ram
     for (int i = 0; i < newW->upperBound; i++) {
         localRAM[ramIndex].data[i] = newRi->data[i];
-        localRAM[ramIndex + 1].data[i] = newRi->data[i];
-        localRAM[ramIndex + 2].data[i] = newRi->data[i];
+        localRAM[ramIndex + 1].data[i] = newQi->data[i];
+        localRAM[ramIndex + 2].data[i] = newW->data[i];
     }
-    ramIndex = ramIndex + 2;
 
     SchedulerItem sItem;
     sItem.issued = 0;
@@ -106,6 +109,7 @@ int fillTableOfLongSegments(std::mutex& mtx, ram_data *localRAM, int &ramIndex, 
     sItem.segmentID = newQi->segID >> 1;
     sItem.UB = newW->upperBound;
     sItem.addr = static_cast<sc_int<WIDTH>>(ramIndex);
+    ramIndex = ramIndex + 2;
 
     assert(newW->upperBound >= 66 && "Error: LongQueue's upperbound cannot be less than 66");
     sItem.HCU_Total_NUM = 2 + (newW->upperBound - 66) / 65;
@@ -140,23 +144,27 @@ int fillTableOfShortSegments(std::mutex& mtx, ram_data *localRAM, int &ramIndex,
     *newRi = riSegQueueShort.read();
     *newQi = qiSegQueueShort.read();
     *newW = wSegQueueShort.read();
+    //std::cout << "fifo valid at " << sc_time_stamp() << std::endl;
     segNumShort--;
     // store data in ram
     for (int i = 0; i < newW->upperBound; i++){
         localRAM[ramIndex].data[i] = newRi->data[i];
-        localRAM[ramIndex+1].data[i] = newRi->data[i];
-        localRAM[ramIndex+2].data[i] = newRi->data[i];
+        localRAM[ramIndex+1].data[i] = newQi->data[i];
+        localRAM[ramIndex+2].data[i] = newW->data[i];
     }
-    ramIndex = ramIndex + 2;
 
     SchedulerItem sItem;
     sItem.issued = 0;
     sItem.readID = newRi->readID;
     sItem.segmentID = newQi->segID >> 1;
+    /*if(newW->upperBound == 11) {
+        std::cout << "ri->data[0] from fifo is " <<  newRi->data[0] << " ri->data[last] is " << newRi->data[newW->upperBound - 1] << " segID: "<< sItem.segmentID << std::endl;
+        std::cout << "ri->data[0] from RAM is " << localRAM[ramIndex].data[0] << std::endl;
+    }*/
     sItem.UB = newW->upperBound;
     sItem.HCU_Total_NUM = 1;
     sItem.addr = static_cast<sc_int<WIDTH>>(ramIndex);
-
+    ramIndex = ramIndex + 2;
 
     SchedulerTime tl;
     tl.start_duration = sc_time(0, SC_NS);
@@ -314,6 +322,7 @@ int freeHCU(MCU *mcuPool[HCU_NUM], ECU *ecuPool[HCU_NUM], mcuIODispatcher *mcuIO
     && ecuPool[i]->executeTime.read()  - sc_time(10, SC_NS) == sc_time_stamp()
     && !mcuIODisPatcherPool[i]->en.read()
     && !ecuIODisPatcherPool[i]->en.read()){    //enable all computing unit
+        //std::cout << "enable start at " << sc_time_stamp() << std::endl;
         mcuPool[i]->en.write(static_cast<bool>(1));
         ecuPool[i]->en.write(static_cast<bool>(1));
         mcuIODisPatcherPool[i]->en.write(static_cast<bool>(1));
@@ -364,12 +373,16 @@ void Scheduler::scheduler_hcu_allocate() {
                     it->endTime = sc_time_stamp() + sc_time((it->UB + 2) * 10, SC_NS); // endTime = startTime + (newW.upperbound + 1)
                     assert((timeIt->hcuID==-1 || timeIt->hcuID == -2) && "Error: mcu already allocated!");
                     assert(timeIt->type && " Error: mcu allocator cannot operates ecu!");
+                    /*if(it->segmentID == 38) {
+                        std::cout << localRAM[it->addr].data[0] << std::endl;
+                    }*/
                     if ((timeIt->hcuID = allocateHCU(mcuPool, ecuPool, mcuIODisPatcherPool, ecuIODisPatcherPool, it->readID, it->segmentID, it->startTime + sc_time(20, SC_NS), it->endTime, it->addr, *timeIt)) == -2){
                         std::cout << "mcu allocation failed, wait for some time..." << std::endl;
                         wait(40, SC_NS);
                         continue;
                     }
                     assert(timeIt->hcuID>=0  && "Error: mcu allocator return the wrong value!");
+                    //std::cout << "TableItem at" << sc_time_stamp() << std::endl;
                     std::cout << "successfully Allocate mcu: " << timeIt->hcuID <<" for Segment: " << it->segmentID << " -----UB: " << it->UB << " startTime: " << it->startTime+sc_time(20, SC_NS) << " endTime: "  << it->endTime << std::endl;
                     it->issued = 1;
                     if (it->HCU_Total_NUM > 1){
@@ -391,19 +404,29 @@ void Scheduler::scheduler_hcu_execute(){
                 MCU *mt = mcuPool[i];
                 ECU *et = ecuPool[i];
                 //std::cout << sc_time_stamp() << " vs " << mt->executeTime.read() << mt->currentReadID.read() << " " << mt->currentSegID.read() << std::endl;
+                /*if (mt->currentReadID.read()!=-1 
+                    && mt->currentSegID.read()!=-1) {
+                        if(mt->currentSegID.read() == 0) {
+                            std::cout << "mcuID:" << i << " "<< sc_time_stamp() << std::endl;
+                            for(int j = 0; j < mt->UpperBound.read(); j ++) {
+                                std::cout << mcuIODisPatcherPool[i]->ri[j].read() << std::endl;
+                                std::cout << localRAM[mt->addr.read()].data[j] << std::endl;
+                            }
+                        }
+                }*/
                 if (mt->currentReadID.read()!=-1 // one cycle after hcu allocation
                     && mt->currentSegID.read()!=-1 
-                    && sc_time_stamp() == mt->executeTime.read() - sc_time(10, SC_NS)){
+                    && sc_time_stamp() == mt->executeTime.read() - sc_time(10, SC_NS) ){
                     //std::cout << "IO start at" << sc_time_stamp() << std::endl;
                     if (mt->type.read()){ // mcu
 
                         assert(mt->LowerBound.read()==0 && "mcu's LowerBound must be 0!");
+                        
                         for(int j = 0; j < mt->UpperBound.read(); j ++) {
                             mcuIODisPatcherPool[i]->ri[j].write(localRAM[mt->addr.read()].data[j]);
-                            mcuIODisPatcherPool[i]->ri[j].write(localRAM[mt->addr.read() + 1].data[j]);
-                            mcuIODisPatcherPool[i]->ri[j].write(localRAM[mt->addr.read() + 2].data[j]);
+                            mcuIODisPatcherPool[i]->qi[j].write(localRAM[mt->addr.read() + 1].data[j]);
+                            mcuIODisPatcherPool[i]->w[j].write(localRAM[mt->addr.read() + 2].data[j]);
                         }
-
                     }else{ // ecu
 
                         assert(et->LowerBound.read()!=0 && "ecu's LowerBound must not be 0!");

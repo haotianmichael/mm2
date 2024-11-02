@@ -36,12 +36,30 @@ int sc_main(int argc, char* argv[]) {
     sc_trace(fp, clk, "clk");
     sc_trace(fp, rst, "rst");
     
-    sc_trace(fp, scheduler.rc->anchorNum[0].read(), "anchorNum");
-    sc_trace(fp, scheduler.segNumLong, "segNumLong");
-    sc_trace(fp, scheduler.segNumShort, "segNumShort");
-    sc_trace(fp, scheduler.schedulerTable->schedulerItemList.size(), "tableSize");
+    sc_trace(fp, scheduler.start.read(), "cutDone");
+    std::ostringstream ri_name;
+    for(int i =0; i < HCU_NUM; i ++) {
+            ri_name << "riArray" << i;
+            sc_trace(fp, scheduler.mcuPool[i]->riArray[0].read(), ri_name.str());
+            ri_name.str("");
+    }
 
-    sc_start(20000, SC_NS); 
+    std::ostringstream name;
+    for(int i = 0; i < HCU_NUM; i ++) {
+        name << "Output" << i;
+        sc_trace(fp, scheduler.mcuPool[i]->regBiggerScore[0].read(), name.str());
+        name.str("");
+    }
+
+    std::stringstream IOname;
+    for(int i = 0; i < HCU_NUM; i ++) {
+        IOname << "IO" << i;
+        sc_trace(fp, scheduler.mcuIODisPatcherPool[i]->ri[0].read(), IOname.str());
+        IOname.str("");
+    }
+    
+
+    sc_start(70, SC_NS); 
     sc_close_vcd_trace_file(fp); 
     return 0;
 }
