@@ -44,18 +44,25 @@ int sc_main(int argc, char* argv[]) {
             ri_name.str("");
     }
 
+    std::stringstream IOOutname;
+    for(int i = 0; i < HCU_NUM; i ++) {
+        IOOutname << "mcuIOOut" << i;
+        sc_trace(fp, scheduler.mcuIODisPatcherPool[i]->ri_out[0].read(), IOOutname.str());
+        IOOutname.str("");
+    }
+
     std::ostringstream name;
     for(int i = 0; i < HCU_NUM; i ++) {
-        name << "Output" << i;
+        name << "MCU" << i << "out";
         sc_trace(fp, scheduler.mcuPool[i]->regBiggerScore[0].read(), name.str());
         name.str("");
     }
 
-    std::stringstream IOname;
+    std::stringstream IOInname;
     for(int i = 0; i < HCU_NUM; i ++) {
-        IOname << "mcuIODis" << i;
-        sc_trace(fp, scheduler.mcuIODisPatcherPool[i]->ri[0].read(), IOname.str());
-        IOname.str("");
+        IOInname << "mcuIOIn" << i;
+        sc_trace(fp, scheduler.mcuIODisPatcherPool[i]->ri[0].read(), IOInname.str());
+        IOInname.str("");
     }
     
     //sc_trace(fp, scheduler.mcuIODisPatcherPool[0]->en.read(), "en");    std::cout's time is 1cycle later from simulation result

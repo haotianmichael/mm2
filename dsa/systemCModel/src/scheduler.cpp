@@ -226,8 +226,8 @@ int allocateHCU(MCU *mcuPool[HCU_NUM], ECU *ecuPool[HCU_NUM], mcuIODispatcher *m
             mcuPool[i]->executeTime.write(startTime);
             mcuPool[i]->freeTime.write(endTime);
             mcuPool[i]->addr.write(addr);
-            mcuIODisPatcherPool[i]->LowerBound.write(mcuPool[i]->LowerBound);
-            mcuIODisPatcherPool[i]->UpperBound.write(mcuPool[i]->UpperBound);
+            mcuIODisPatcherPool[i]->LowerBound.write(item.SBase);
+            mcuIODisPatcherPool[i]->UpperBound.write(item.LBase);
             // ecu
             ecuPool[i]->currentReadID.write(readID);
             ecuPool[i]->currentSegID.write(segID);
@@ -237,8 +237,8 @@ int allocateHCU(MCU *mcuPool[HCU_NUM], ECU *ecuPool[HCU_NUM], mcuIODispatcher *m
             ecuPool[i]->executeTime.write(startTime);
             ecuPool[i]->freeTime.write(endTime);
             ecuPool[i]->addr.write(addr);
-            ecuIODisPatcherPool[i]->LowerBound.write(ecuPool[i]->LowerBound);
-            ecuIODisPatcherPool[i]->UpperBound.write(ecuPool[i]->UpperBound);
+            ecuIODisPatcherPool[i]->LowerBound.write(item.SBase);
+            ecuIODisPatcherPool[i]->UpperBound.write(item.LBase);
 
             item.hcuID = i;
             allo = i;
@@ -299,8 +299,8 @@ int freeHCU(MCU *mcuPool[HCU_NUM], ECU *ecuPool[HCU_NUM], mcuIODispatcher *mcuIO
             mcuPool[i]->LowerBound.write(static_cast<sc_int<WIDTH>>(-1));
             mcuPool[i]->UpperBound.write(static_cast<sc_int<WIDTH>>(-1));
             mcuPool[i]->en.write(static_cast<bool>(0));
-            mcuIODisPatcherPool[i]->LowerBound.write(static_cast<bool>(0));
-            mcuIODisPatcherPool[i]->UpperBound.write(static_cast<bool>(0));
+            mcuIODisPatcherPool[i]->LowerBound.write(static_cast<sc_int<WIDTH> >(-1));
+            mcuIODisPatcherPool[i]->UpperBound.write(static_cast<sc_int<WIDTH> >(-1));
             mcuIODisPatcherPool[i]->en.write(static_cast<bool>(0));
 
             ecuPool[i]->currentReadID.write(static_cast<sc_int<WIDTH>>(-1));
@@ -311,8 +311,8 @@ int freeHCU(MCU *mcuPool[HCU_NUM], ECU *ecuPool[HCU_NUM], mcuIODispatcher *mcuIO
             ecuPool[i]->LowerBound.write(static_cast<sc_int<WIDTH>>(-1));
             ecuPool[i]->UpperBound.write(static_cast<sc_int<WIDTH>>(-1));
             ecuPool[i]->en.write(static_cast<bool>(0));
-            ecuIODisPatcherPool[i]->LowerBound.write(static_cast<bool>(0));
-            ecuIODisPatcherPool[i]->UpperBound.write(static_cast<bool>(0));
+            ecuIODisPatcherPool[i]->LowerBound.write(static_cast<sc_int<WIDTH> >(-1));
+            ecuIODisPatcherPool[i]->UpperBound.write(static_cast<sc_int<WIDTH> >(-1));
             ecuIODisPatcherPool[i]->en.write(static_cast<bool>(0));
             item.hcuID = -1;
             return 1;
