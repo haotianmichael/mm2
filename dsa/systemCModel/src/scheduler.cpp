@@ -322,7 +322,6 @@ int freeHCU(MCU *mcuPool[HCU_NUM], ECU *ecuPool[HCU_NUM], mcuIODispatcher *mcuIO
     && ecuPool[i]->executeTime.read()  - sc_time(10, SC_NS) == sc_time_stamp()
     && !mcuIODisPatcherPool[i]->en.read()
     && !ecuIODisPatcherPool[i]->en.read()){    //enable all computing unit
-        //std::cout << "enable start at " << sc_time_stamp() << std::endl;
         mcuPool[i]->en.write(static_cast<bool>(1));
         ecuPool[i]->en.write(static_cast<bool>(1));
         mcuIODisPatcherPool[i]->en.write(static_cast<bool>(1));

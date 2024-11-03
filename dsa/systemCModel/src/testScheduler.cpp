@@ -53,13 +53,13 @@ int sc_main(int argc, char* argv[]) {
 
     std::stringstream IOname;
     for(int i = 0; i < HCU_NUM; i ++) {
-        IOname << "IO" << i;
+        IOname << "mcuIODis" << i;
         sc_trace(fp, scheduler.mcuIODisPatcherPool[i]->ri[0].read(), IOname.str());
         IOname.str("");
     }
     
-
-    sc_start(70, SC_NS); 
+    //sc_trace(fp, scheduler.mcuIODisPatcherPool[0]->en.read(), "en");    std::cout's time is 1cycle later from simulation result
+    sc_start(20000, SC_NS); 
     sc_close_vcd_trace_file(fp); 
     return 0;
 }

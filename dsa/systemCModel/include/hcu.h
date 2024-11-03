@@ -34,16 +34,6 @@ SC_MODULE(MCU) {
     /*Driven signal*/
     sc_event score_updated;
 
-    void initializeRegBiggerScore() {
-        while(true){
-            wait();
-            if(rst.read()) {
-                for(int i = 0; i < LaneWIDTH + 1; i ++) {
-                    regBiggerScore[i].write(static_cast<sc_int<WIDTH> >(-1));
-                }
-            }
-        }
-    }
     void monitor_sc_updates() {
         while(true) {
             wait();
@@ -63,6 +53,10 @@ SC_MODULE(MCU) {
                           regBiggerScore[i].write(hlane[i]->biggerScore.read());
                     }
                 }
+            }else if(rst.read()){
+                for(int i = 0; i < LaneWIDTH + 1; i ++) {
+                   regBiggerScore[i].write(static_cast<sc_int<WIDTH> >(-1));
+                }
             }
         }
     }
@@ -75,7 +69,7 @@ SC_MODULE(MCU) {
             hlane[i] = new HLane(hlaneName.str().c_str());
             hlane[i]->clk(clk);
             hlane[i]->rst(rst);
-            hlane[i]->en.write(en);
+            hlane[i]->en(en);
             hlane[i]->id(tmpI);
             tmpI.write(static_cast<sc_int<WIDTH> >(i));
             // MCU Wiring
@@ -99,8 +93,6 @@ SC_MODULE(MCU) {
         SC_THREAD(updateRegBiggerScore);
         sensitive << score_updated;
 
-        SC_THREAD(initializeRegBiggerScore);
-        sensitive << clk.pos();
     }
 
 };
@@ -140,16 +132,6 @@ SC_MODULE(ECU){
     /*Driven signal*/
     sc_event score_updated;
 
-    void initializeRegBiggerScore() {
-        while(true){
-            wait();
-            if(rst.read()) {
-                for(int i = 0; i < LaneWIDTH + 1; i ++) {
-                    regBiggerScore[i].write(static_cast<sc_int<WIDTH> >(-1));
-                }
-            }
-        }
-    }
     void monitor_sc_updates() {
         while(true) {
             wait();
@@ -169,6 +151,10 @@ SC_MODULE(ECU){
                           regBiggerScore[i].write(hlane[i]->biggerScore.read());
                     }
                 }
+            }else if(rst.read()){
+                for(int i = 0; i < LaneWIDTH + 1; i ++) {
+                    regBiggerScore[i].write(static_cast<sc_int<WIDTH> >(-1));
+                }
             }
         }
     }
@@ -181,7 +167,7 @@ SC_MODULE(ECU){
             hlane[i] = new HLane(hlaneName.str().c_str());
             hlane[i]->clk(clk);
             hlane[i]->rst(rst);
-            hlane[i]->en.write(en);
+            hlane[i]->en(en);
             hlane[i]->id(tmpI);
             tmpI.write(static_cast<sc_int<WIDTH> >(i));
             // ECU Wiring
@@ -203,8 +189,6 @@ SC_MODULE(ECU){
 
         SC_THREAD(updateRegBiggerScore);
         sensitive << score_updated;
-
-        SC_THREAD(initializeRegBiggerScore);
     }
 
 };

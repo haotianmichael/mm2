@@ -5,7 +5,7 @@ void mcuIODispatcher::shift_data() {
         wait();
         if(!rst.read()) {
             if(en.read()){
-               // std::cout << "en start at: " << sc_time_stamp() << std::endl;
+                //std::cout << "IO enable start at: " << sc_time_stamp() << std::endl;
                 if(UpperBound.read() <= MCUInputLaneWIDTH) {
                        if(cycle_count <= MCUInputLaneWIDTH) {
                             for(int i = 0; i < (MCUInputLaneWIDTH - cycle_count); i ++) {
