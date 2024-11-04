@@ -15,27 +15,27 @@ SC_MODULE(Scheduler) {
     sc_in<bool> rst;
     sc_signal<bool> start;     // initialization done signal
 
-    sc_signal<sc_int<WIDTH> > anchorNum[ReadNumProcessedOneTime];  // number of anchors 
-    sc_signal<sc_int<WIDTH> > anchorRi[ReadNumProcessedOneTime][MAX_READ_LENGTH];
-    sc_signal<sc_int<WIDTH> > anchorQi[ReadNumProcessedOneTime][MAX_READ_LENGTH];
-    sc_signal<sc_int<WIDTH> > anchorW[ReadNumProcessedOneTime][MAX_READ_LENGTH];
-    sc_signal<sc_int<WIDTH>> anchorSuccessiveRange[ReadNumProcessedOneTime][MAX_READ_LENGTH];  // successive range of every anchor 
-    
+    std::vector<sc_signal<sc_int<WIDTH>>*> anchorNum;  //number of anchors
+    std::vector<std::vector<sc_signal<sc_int<WIDTH>>*>> anchorRi;
+    std::vector<std::vector<sc_signal<sc_int<WIDTH>>*>> anchorQi;
+    std::vector<std::vector<sc_signal<sc_int<WIDTH>>*>> anchorW;
+    std::vector<std::vector<sc_signal<sc_int<WIDTH>>*>> anchorSuccessiveRange;// successive range of every anchor 
+
     // @RC Unit
     RangeCountUnit *rc;
 
     // @SegmentsQueue (Two Ports)
     // UpperBound <= 65 elements  Lane[0, 64]
-    sc_int<WIDTH> segNumLong; // number of segments 
     sc_fifo<riSegment> riSegQueueLong;  
     sc_fifo<qiSegment> qiSegQueueLong;
     sc_fifo<wSegment> wSegQueueLong;
     // UpperBound > 65
-    sc_int<WIDTH> segNumShort;
     sc_fifo<riSegment> riSegQueueShort; 
     sc_fifo<qiSegment> qiSegQueueShort;
     sc_fifo<wSegment> wSegQueueShort;
     sc_int<WIDTH> readIdx = 0; //read which currently being cut
+    sc_event data_available;  // fifo signal
+    sc_event space_available;
 
     // @PartialScoreQueue
     //PartialScoreQueue *partialScoreQueue;
@@ -83,7 +83,13 @@ SC_MODULE(Scheduler) {
          riSegQueueShort(MAX_SEG_NUM),
          qiSegQueueShort(MAX_SEG_NUM),
          wSegQueueShort(MAX_SEG_NUM),
-         ramIndex(0) {
+         ramIndex(0),
+         anchorNum(ReadNumProcessedOneTime),
+         anchorRi(ReadNumProcessedOneTime, std::vector<sc_signal<sc_int<WIDTH>>*>(MAX_READ_LENGTH)),
+         anchorQi(ReadNumProcessedOneTime, std::vector<sc_signal<sc_int<WIDTH>>*>(MAX_READ_LENGTH)),
+         anchorW(ReadNumProcessedOneTime, std::vector<sc_signal<sc_int<WIDTH>>*>(MAX_READ_LENGTH)),
+         anchorSuccessiveRange(ReadNumProcessedOneTime, std::vector<sc_signal<sc_int<WIDTH>>*>(MAX_READ_LENGTH)) {
+
 
         // prepare the segmentQueue
         // one read per cycle.(延时问题后续重新考虑)
@@ -106,21 +112,44 @@ SC_MODULE(Scheduler) {
         //SC_THREAD(scheduler_rt_checkTable);
         //sensitive << clk.pos();
 
-        rc = new RangeCountUnit("RangeCountUnit");
+        for(int i = 0; i < ReadNumProcessedOneTime; i ++) {
+            anchorNum[i] = new sc_signal<sc_int<WIDTH>>();
+            for(int j = 0; j < MAX_READ_LENGTH; j ++) {
+                try {
+                    anchorRi[i][j] = new sc_signal<sc_int<WIDTH>>();
+                    anchorQi[i][j] = new sc_signal<sc_int<WIDTH>>();
+                    anchorW[i][j] = new sc_signal<sc_int<WIDTH>>();
+                    anchorSuccessiveRange[i][j] = new sc_signal<sc_int<WIDTH>>();
+                }catch(const std::bad_alloc& e) {
+                    std::cerr << "Scheduler Memory allocation failed:" << e.what() << std::endl;
+                }
+            }
+        }
+
+        try {
+            rc = new RangeCountUnit("RangeCountUnit");
+        }catch(const std::bad_alloc& e) {
+            std::cerr << "Scheduler's RangeCountUnit allocation failed:" << e.what() << std::endl;
+        }
         rc->rst(rst);
         rc->cutDone(start);
         for(int readIdx = 0; readIdx < ReadNumProcessedOneTime; readIdx++) {
-            rc->anchorNum[readIdx](anchorNum[readIdx]);
+            rc->anchorNum[readIdx]->bind(*anchorNum[readIdx]);
             for(int i = 0; i < MAX_READ_LENGTH; i ++) {
-                rc->anchorRi[readIdx][i](anchorRi[readIdx][i]);
-                rc->anchorQi[readIdx][i](anchorQi[readIdx][i]);
-                rc->anchorW[readIdx][i](anchorW[readIdx][i]);
-                rc->anchorSuccessiveRange[readIdx][i](anchorSuccessiveRange[readIdx][i]);
+                rc->anchorRi[readIdx][i]->bind(*anchorRi[readIdx][i]);
+                rc->anchorQi[readIdx][i]->bind(*anchorQi[readIdx][i]);
+                rc->anchorW[readIdx][i]->bind(*anchorW[readIdx][i]);
+                rc->anchorSuccessiveRange[readIdx][i]->bind(*anchorSuccessiveRange[readIdx][i]);
             }
         }
 
         schedulerTable = new SchedulerTable;
-        localRAM = new ram_data[MAX_READ_LENGTH];
+        try {
+            // FIXME: memory maybe not enough.
+            localRAM = new ram_data[MAX_READ_LENGTH];
+        }catch(const std::bad_alloc& e) {
+            std::cerr << "Scheduler's localRAM allocation failed:" << e.what() << std::endl;
+        }
 
         std::ostringstream mcu_name, ecu_name, mcuIO_name, ecuIO_name;
         for(int i = 0; i < HCU_NUM; i ++) {

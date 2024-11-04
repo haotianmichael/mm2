@@ -16,19 +16,19 @@ void Scheduler::scheduler_hcu_pre() {
                 wSegment *newW = new wSegment;
                 assert(readIdx < ReadNumProcessedOneTime && "Error: cutting operation exceeds the maximum");
                 // FIXME: there are still a few UpperBound situations which is not covered here.
-                for (int i = 0; i < anchorNum[readIdx].read(); i++) {
-                    assert(anchorSuccessiveRange[readIdx][i].read() != 0 && "Error: successiveRange cannot be -1.");
-                    if(anchorSuccessiveRange[readIdx][i].read() != 1 && anchorSuccessiveRange[readIdx][i].read() != -1) {
-                        newRi->data[segStart] = anchorRi[readIdx][i].read();
-                        newQi->data[segStart] = anchorQi[readIdx][i].read();
-                        newW->data[segStart] = anchorW[readIdx][i].read();
+                for(int i = 0; i < anchorNum[readIdx]->read(); i ++) {
+                    assert(anchorSuccessiveRange[readIdx][i]->read() != 0 && "Error: successiveRange cannot be -1.");
+                    if(anchorSuccessiveRange[readIdx][i]->read() != 1 && anchorSuccessiveRange[readIdx][i]->read() != -1) {
+                        newRi->data[segStart] = anchorRi[readIdx][i]->read();
+                        newQi->data[segStart] = anchorQi[readIdx][i]->read();
+                        newW->data[segStart] = anchorW[readIdx][i]->read();
                         segStart++;
-                    }else if(anchorSuccessiveRange[readIdx][i].read() == 1 || i == anchorNum[readIdx].read()-1) {
+                    }else if(anchorSuccessiveRange[readIdx][i]->read() == 1 || i == anchorNum[readIdx]->read()-1) {
                         // range = 1 means segments ends with this anchor
                         // ending anchor still added
-                        newRi->data[segStart] = anchorRi[readIdx][i].read();
-                        newQi->data[segStart] = anchorQi[readIdx][i].read();
-                        newW->data[segStart] = anchorW[readIdx][i].read();
+                        newRi->data[segStart] = anchorRi[readIdx][i]->read();
+                        newQi->data[segStart] = anchorQi[readIdx][i]->read();
+                        newW->data[segStart] = anchorW[readIdx][i]->read();
                         segStart++;
 
                         newRi->readID = readIdx;
@@ -39,15 +39,23 @@ void Scheduler::scheduler_hcu_pre() {
                         }
                         newW->upperBound = segStart;
                         if (newW->upperBound <= MCUInputLaneWIDTH){
+                            while(riSegQueueShort.num_free() == 0) {
+                                wait(space_available);
+                            }
                             riSegQueueShort.write(*newRi);
                             qiSegQueueShort.write(*newQi);
                             wSegQueueShort.write(*newW);
                             tmpSegShortNum++;
+                            data_available.notify();
                         }else {
+                            while(riSegQueueLong.num_free() == 0) {
+                                wait(space_available);
+                            }
                             riSegQueueLong.write(*newRi);
                             qiSegQueueLong.write(*newQi);
                             wSegQueueLong.write(*newW);
                             tmpSegLongNum++;
+                            data_available.notify();
                         }
                         tmpSegID++;
                         segStart = 0;
@@ -75,27 +83,24 @@ void Scheduler::scheduler_hcu_pre() {
                      }
                 }*/
 
-                segNumLong = tmpSegLongNum;
-                segNumShort = tmpSegShortNum;
                 readIdx++;
             }
-        }else {
-            segNumLong = 0;
-            segNumShort = 0;
         }
     }
 }
 
-int fillTableOfLongSegments(std::mutex& mtx, ram_data *localRAM, int &ramIndex, std::list<SchedulerItem> &st, sc_fifo<riSegment> &riSegQueueLong, sc_fifo<qiSegment> &qiSegQueueLong, sc_fifo<wSegment> &wSegQueueLong, sc_int<WIDTH> &segNumLong) {
+int fillTableOfLongSegments(std::mutex& mtx, ram_data *localRAM, int &ramIndex, std::list<SchedulerItem> &st, sc_fifo<riSegment> &riSegQueueLong, sc_fifo<qiSegment> &qiSegQueueLong, sc_fifo<wSegment> &wSegQueueLong, sc_event& space_available, sc_event& data_available) {
 
     riSegment *newRi = new riSegment;
     qiSegment *newQi = new qiSegment;
     wSegment *newW = new wSegment;
+    while(!riSegQueueLong.num_available()) {
+        wait(data_available);
+    }
     *newRi = riSegQueueLong.read();
     *newQi = qiSegQueueLong.read();
     *newW = wSegQueueLong.read();
-    segNumLong--;
-
+    space_available.notify();
     // store data in ram
     for (int i = 0; i < newW->upperBound; i++) {
         localRAM[ramIndex].data[i] = newRi->data[i];
@@ -136,16 +141,19 @@ int fillTableOfLongSegments(std::mutex& mtx, ram_data *localRAM, int &ramIndex, 
     return 1;
 }
 
-int fillTableOfShortSegments(std::mutex& mtx, ram_data *localRAM, int &ramIndex, std::list<SchedulerItem> &st, sc_fifo<riSegment> &riSegQueueShort, sc_fifo<qiSegment> &qiSegQueueShort, sc_fifo<wSegment> &wSegQueueShort, sc_int<WIDTH> &segNumShort) {
+int fillTableOfShortSegments(std::mutex& mtx, ram_data *localRAM, int &ramIndex, std::list<SchedulerItem> &st, sc_fifo<riSegment> &riSegQueueShort, sc_fifo<qiSegment> &qiSegQueueShort, sc_fifo<wSegment> &wSegQueueShort, sc_event& space_available, sc_event& data_available) {
     riSegment *newRi = new riSegment;
     qiSegment *newQi = new qiSegment;
     wSegment *newW = new wSegment;
 
+    while(!riSegQueueShort.num_available()) {
+        wait(data_available);
+    }
     *newRi = riSegQueueShort.read();
     *newQi = qiSegQueueShort.read();
     *newW = wSegQueueShort.read();
+    space_available.notify();
     //std::cout << "fifo valid at " << sc_time_stamp() << std::endl;
-    segNumShort--;
     // store data in ram
     for (int i = 0; i < newW->upperBound; i++){
         localRAM[ramIndex].data[i] = newRi->data[i];
@@ -195,17 +203,20 @@ void Scheduler::scheduler_hcu_fillTable(){
             // 加一些延迟，不然一次性都生成到调度表中了
             if(countIdle() <= IdleThreshLow){
                 // little idle reduction -> allocate shortPort
-                if(segNumShort > 0){
-                    fillTableOfShortSegments(schedulerTable->mtx, localRAM, ramIndex, schedulerTable->schedulerItemList, riSegQueueShort, qiSegQueueShort, wSegQueueShort, segNumShort);
-                }else if(segNumLong > 0){
-                    fillTableOfLongSegments(schedulerTable->mtx, localRAM, ramIndex, schedulerTable->schedulerItemList, riSegQueueLong, qiSegQueueLong, wSegQueueLong, segNumLong);
+                if(riSegQueueShort.num_available() > 0){
+                    fillTableOfShortSegments(schedulerTable->mtx, localRAM, ramIndex, schedulerTable->schedulerItemList, riSegQueueShort, qiSegQueueShort, wSegQueueShort, space_available, data_available);
+                }else if(riSegQueueLong.num_available() > 0){
+                    fillTableOfLongSegments(schedulerTable->mtx, localRAM, ramIndex, schedulerTable->schedulerItemList, riSegQueueLong, qiSegQueueLong, wSegQueueLong, space_available, data_available);
                 }
             }else{
+                //std::cout << "over" << std::endl;
                 // enough idle reduction -> allocate longPort
-                if(segNumLong > 0){
-                    fillTableOfLongSegments(schedulerTable->mtx, localRAM, ramIndex, schedulerTable->schedulerItemList, riSegQueueLong, qiSegQueueLong, wSegQueueLong, segNumLong);
-                }else if(segNumShort > 0){
-                    fillTableOfShortSegments(schedulerTable->mtx, localRAM, ramIndex, schedulerTable->schedulerItemList, riSegQueueShort, qiSegQueueShort, wSegQueueShort, segNumShort);
+                if(riSegQueueLong.num_available() > 0){
+                 //   std::cout << "Long" << std::endl;
+                    fillTableOfLongSegments(schedulerTable->mtx, localRAM, ramIndex, schedulerTable->schedulerItemList, riSegQueueLong, qiSegQueueLong, wSegQueueLong, space_available, data_available);
+                }else if(riSegQueueShort.num_available() > 0){
+                  //  std::cout << "Short" << std::endl;
+                    fillTableOfShortSegments(schedulerTable->mtx, localRAM, ramIndex, schedulerTable->schedulerItemList, riSegQueueShort, qiSegQueueShort, wSegQueueShort, space_available, data_available);
                 }
             }
         }

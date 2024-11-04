@@ -66,7 +66,8 @@ int sc_main(int argc, char* argv[]) {
     }
     
     //sc_trace(fp, scheduler.mcuIODisPatcherPool[0]->en.read(), "en");    std::cout's time is 1cycle later from simulation result
-    sc_start(20000, SC_NS); 
+    //sc_start(20000, SC_NS); 
+    sc_start(1700000, SC_NS); 
     sc_close_vcd_trace_file(fp); 
     return 0;
 }
