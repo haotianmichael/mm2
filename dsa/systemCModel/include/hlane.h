@@ -43,11 +43,12 @@ SC_MODULE(Score) {
                             double B = absDiff == 0 ? 0 : tmpB;
                             double tmpA = (fabs(riX.read().to_double() - riY.read().to_double()) > fabs(qiX.read().to_double() - qiY.read().to_double())) ? fabs(qiX.read().to_double() - qiY.read().to_double()) : fabs(riX.read().to_double() - riY.read().to_double());
                             double A;
-                            if(tmpA > W.read().to_double()) {
-                               A = W.read().to_double();
+                            if(tmpA > 15.0) {
+                               A = 15.0;
                             }else {
                                A = tmpA;
                             }
+                           
                             result.write(static_cast<sc_int<WIDTH> >(A - B));
                         }
                     }
