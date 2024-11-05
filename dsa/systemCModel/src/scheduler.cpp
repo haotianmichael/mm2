@@ -89,7 +89,26 @@ void Scheduler::scheduler_hcu_pre() {
     }
 }
 
-int fillTableOfLongSegments(std::mutex& mtx, ram_data *localRAM, int &ramIndex, std::list<SchedulerItem> &st, sc_fifo<riSegment> &riSegQueueLong, sc_fifo<qiSegment> &qiSegQueueLong, sc_fifo<wSegment> &wSegQueueLong, sc_event& space_available, sc_event& data_available) {
+
+int allocateBlock(std::vector<bool> &freeList) {
+    for(size_t i = 0; i < freeList.size(); i ++) {
+        if(freeList[i]) {
+            freeList[i] = false;
+            return i;
+        }
+    }
+    std::cerr << "Error: No free memory blocks available" << std::endl;
+    return -1;
+}
+void releaseBlock(int index, std::vector<bool> &freeList) {
+    assert(index >= 0 && index < freeList.size() && "Error: invalid Index");
+    if(freeList[index]){
+        std::cerr << "Error: Block already free!" << std::endl;
+    }else {
+        freeList[index] = true;
+    }
+}
+int fillTableOfLongSegments(std::mutex& mtx, std::vector<ram_data> &localRAM, int &ramIndex, std::vector<bool> &freeList, std::list<SchedulerItem> &st, sc_fifo<riSegment> &riSegQueueLong, sc_fifo<qiSegment> &qiSegQueueLong, sc_fifo<wSegment> &wSegQueueLong, sc_event& space_available, sc_event& data_available) {
 
     riSegment *newRi = new riSegment;
     qiSegment *newQi = new qiSegment;
@@ -102,10 +121,11 @@ int fillTableOfLongSegments(std::mutex& mtx, ram_data *localRAM, int &ramIndex, 
     *newW = wSegQueueLong.read();
     space_available.notify();
     // store data in ram
+    ramIndex = allocateBlock(freeList);
     for (int i = 0; i < newW->upperBound; i++) {
-        localRAM[ramIndex].data[i] = newRi->data[i];
-        localRAM[ramIndex + 1].data[i] = newQi->data[i];
-        localRAM[ramIndex + 2].data[i] = newW->data[i];
+        localRAM[ramIndex].Rdata[i] = newRi->data[i];
+        localRAM[ramIndex].Qdata[i] = newQi->data[i];
+        localRAM[ramIndex].Wdata[i] = newW->data[i];
     }
 
     SchedulerItem sItem;
@@ -114,12 +134,11 @@ int fillTableOfLongSegments(std::mutex& mtx, ram_data *localRAM, int &ramIndex, 
     sItem.segmentID = newQi->segID >> 1;
     sItem.UB = newW->upperBound;
     sItem.addr = static_cast<sc_int<WIDTH>>(ramIndex);
-    ramIndex = ramIndex + 2;
 
     assert(newW->upperBound >= 66 && "Error: LongQueue's upperbound cannot be less than 66");
     sItem.HCU_Total_NUM = 2 + (newW->upperBound - 66) / 65;
-    SchedulerTime tl;
     for (int i = 0; i < sItem.HCU_Total_NUM; i++){
+        SchedulerTime tl;
         tl.type = i == 0 ? 1 : 0; // mcu & ecu
         tl.SBase = i * 65;
         tl.LBase = newW->upperBound;
@@ -129,11 +148,11 @@ int fillTableOfLongSegments(std::mutex& mtx, ram_data *localRAM, int &ramIndex, 
         //  C(startTime + 65)
         //  C(startTime + 130) ....
         tl.start_duration = sc_time(i * 650, SC_NS);
+        sItem.TimeList.push_back(tl);
     }
     // fill at real allocationTime
     sItem.startTime = sc_time(0, SC_NS);
     sItem.endTime = sc_time(0, SC_NS);
-    sItem.TimeList.push_back(tl);
     {
         std::lock_guard<std::mutex> lock(mtx);
         st.push_back(sItem);
@@ -141,7 +160,7 @@ int fillTableOfLongSegments(std::mutex& mtx, ram_data *localRAM, int &ramIndex, 
     return 1;
 }
 
-int fillTableOfShortSegments(std::mutex& mtx, ram_data *localRAM, int &ramIndex, std::list<SchedulerItem> &st, sc_fifo<riSegment> &riSegQueueShort, sc_fifo<qiSegment> &qiSegQueueShort, sc_fifo<wSegment> &wSegQueueShort, sc_event& space_available, sc_event& data_available) {
+int fillTableOfShortSegments(std::mutex& mtx, std::vector<ram_data> &localRAM, int &ramIndex, std::vector<bool> &freeList, std::list<SchedulerItem> &st, sc_fifo<riSegment> &riSegQueueShort, sc_fifo<qiSegment> &qiSegQueueShort, sc_fifo<wSegment> &wSegQueueShort, sc_event& space_available, sc_event& data_available) {
     riSegment *newRi = new riSegment;
     qiSegment *newQi = new qiSegment;
     wSegment *newW = new wSegment;
@@ -155,10 +174,11 @@ int fillTableOfShortSegments(std::mutex& mtx, ram_data *localRAM, int &ramIndex,
     space_available.notify();
     //std::cout << "fifo valid at " << sc_time_stamp() << std::endl;
     // store data in ram
+    ramIndex = allocateBlock(freeList);
     for (int i = 0; i < newW->upperBound; i++){
-        localRAM[ramIndex].data[i] = newRi->data[i];
-        localRAM[ramIndex+1].data[i] = newQi->data[i];
-        localRAM[ramIndex+2].data[i] = newW->data[i];
+        localRAM[ramIndex].Rdata[i] = newRi->data[i];
+        localRAM[ramIndex].Qdata[i] = newQi->data[i];
+        localRAM[ramIndex].Wdata[i] = newW->data[i];
     }
 
     SchedulerItem sItem;
@@ -172,7 +192,6 @@ int fillTableOfShortSegments(std::mutex& mtx, ram_data *localRAM, int &ramIndex,
     sItem.UB = newW->upperBound;
     sItem.HCU_Total_NUM = 1;
     sItem.addr = static_cast<sc_int<WIDTH>>(ramIndex);
-    ramIndex = ramIndex + 2;
 
     SchedulerTime tl;
     tl.start_duration = sc_time(0, SC_NS);
@@ -204,19 +223,16 @@ void Scheduler::scheduler_hcu_fillTable(){
             if(countIdle() <= IdleThreshLow){
                 // little idle reduction -> allocate shortPort
                 if(riSegQueueShort.num_available() > 0){
-                    fillTableOfShortSegments(schedulerTable->mtx, localRAM, ramIndex, schedulerTable->schedulerItemList, riSegQueueShort, qiSegQueueShort, wSegQueueShort, space_available, data_available);
+                    fillTableOfShortSegments(schedulerTable->mtx, localRAM, ramIndex, freeList, schedulerTable->schedulerItemList, riSegQueueShort, qiSegQueueShort, wSegQueueShort, space_available, data_available);
                 }else if(riSegQueueLong.num_available() > 0){
-                    fillTableOfLongSegments(schedulerTable->mtx, localRAM, ramIndex, schedulerTable->schedulerItemList, riSegQueueLong, qiSegQueueLong, wSegQueueLong, space_available, data_available);
+                    fillTableOfLongSegments(schedulerTable->mtx, localRAM, ramIndex, freeList, schedulerTable->schedulerItemList, riSegQueueLong, qiSegQueueLong, wSegQueueLong, space_available, data_available);
                 }
             }else{
-                //std::cout << "over" << std::endl;
                 // enough idle reduction -> allocate longPort
                 if(riSegQueueLong.num_available() > 0){
-                 //   std::cout << "Long" << std::endl;
-                    fillTableOfLongSegments(schedulerTable->mtx, localRAM, ramIndex, schedulerTable->schedulerItemList, riSegQueueLong, qiSegQueueLong, wSegQueueLong, space_available, data_available);
+                    fillTableOfLongSegments(schedulerTable->mtx, localRAM, ramIndex, freeList, schedulerTable->schedulerItemList, riSegQueueLong, qiSegQueueLong, wSegQueueLong, space_available, data_available);
                 }else if(riSegQueueShort.num_available() > 0){
-                  //  std::cout << "Short" << std::endl;
-                    fillTableOfShortSegments(schedulerTable->mtx, localRAM, ramIndex, schedulerTable->schedulerItemList, riSegQueueShort, qiSegQueueShort, wSegQueueShort, space_available, data_available);
+                    fillTableOfShortSegments(schedulerTable->mtx, localRAM, ramIndex, freeList, schedulerTable->schedulerItemList, riSegQueueShort, qiSegQueueShort, wSegQueueShort, space_available, data_available);
                 }
             }
         }
@@ -262,6 +278,8 @@ int allocateHCU(MCU *mcuPool[HCU_NUM], ECU *ecuPool[HCU_NUM], mcuIODispatcher *m
         if (item.type){ // if mcu allocation failed, wait
             allo = -2;
         }else{ // if ecu allocation failed, replacing
+            allo = -2;
+        /*
             for (int i = 0; i < HCU_NUM; i++) {
                 // if()  是否有刚启动不久的hcu（UB<=65）的，直接重新弄分配
                 if (!mcuPool[i]->type.read() && !ecuPool[i]->type.read()){
@@ -289,6 +307,7 @@ int allocateHCU(MCU *mcuPool[HCU_NUM], ECU *ecuPool[HCU_NUM], mcuIODispatcher *m
                     break;
                 }
             }
+            */
         }
     }
     return allo;
@@ -356,15 +375,17 @@ void Scheduler::scheduler_hcu_allocate() {
                     for (; timeIt != it->TimeList.end(); ++timeIt) {
                         // allocation cycle: C(startTime + 65)  C(startTime + 130) ...
                         if (timeIt->hcuID == -1 && st - it->startTime == timeIt->start_duration){
-                            if (!(timeIt->hcuID = allocateHCU(mcuPool, ecuPool, mcuIODisPatcherPool, ecuIODisPatcherPool, it->readID, it->segmentID, it->startTime + sc_time(10, SC_NS), it->endTime, it->addr, *timeIt))){
+                            if (!(timeIt->hcuID = allocateHCU(mcuPool, ecuPool, mcuIODisPatcherPool, ecuIODisPatcherPool, it->readID, it->segmentID, st + sc_time(20, SC_NS), it->endTime, it->addr, *timeIt))){
                                 assert(timeIt->hcuID == -1 && it->TimeList.size() > 1 && "Error: Cannot stop ecu allocation util its over!");
                             }
+                            std::cout << "successfully Allocate ecu: " << timeIt->hcuID <<" for Segment: " << it->segmentID << " -----UB: " << it->UB << " startTime: " << st + sc_time(20, SC_NS) << " endTime: "  << it->endTime << std::endl;
                         }else if(timeIt->hcuID >= 0){
                             int id = timeIt->hcuID;
                             if(freeHCU(mcuPool, ecuPool, mcuIODisPatcherPool, ecuIODisPatcherPool, *timeIt)) {
                                 if(++freeNum == it->HCU_Total_NUM) {
                                     std::cout << "successfully Free mcu: " << id << " for Seg: " << it->segmentID << " at: " << sc_time_stamp() << std::endl;
                                     {
+                                        releaseBlock(it->addr, freeList);
                                         std::lock_guard<std::mutex> lock(schedulerTable->mtx);
                                         it = schedulerTable->schedulerItemList.erase(it);
                                     }
@@ -433,17 +454,17 @@ void Scheduler::scheduler_hcu_execute(){
                         assert(mt->LowerBound.read()==0 && "mcu's LowerBound must be 0!");
                         
                         for(int j = 0; j < mt->UpperBound.read(); j ++) {
-                            mcuIODisPatcherPool[i]->ri[j].write(localRAM[mt->addr.read()].data[j]);
-                            mcuIODisPatcherPool[i]->qi[j].write(localRAM[mt->addr.read() + 1].data[j]);
-                            mcuIODisPatcherPool[i]->w[j].write(localRAM[mt->addr.read() + 2].data[j]);
+                            mcuIODisPatcherPool[i]->ri[j].write(localRAM[mt->addr.read()].Rdata[j]);
+                            mcuIODisPatcherPool[i]->qi[j].write(localRAM[mt->addr.read()].Qdata[j]);
+                            mcuIODisPatcherPool[i]->w[j].write(localRAM[mt->addr.read()].Wdata[j]);
                         }
                     }else{ // ecu
 
                         assert(et->LowerBound.read()!=0 && "ecu's LowerBound must not be 0!");
                         for(int j = 0; j < et->UpperBound.read(); j ++) {
-                            ecuIODisPatcherPool[i]->ri[j].write(localRAM[et->addr.read()].data[j]);
-                            ecuIODisPatcherPool[i]->qi[j].write(localRAM[et->addr.read() + 1].data[j]);
-                            ecuIODisPatcherPool[i]->w[j].write(localRAM[et->addr.read() + 2].data[j]);
+                            ecuIODisPatcherPool[i]->ri[j].write(localRAM[et->addr.read()].Rdata[j]);
+                            ecuIODisPatcherPool[i]->qi[j].write(localRAM[et->addr.read()].Qdata[j]);
+                            ecuIODisPatcherPool[i]->w[j].write(localRAM[et->addr.read()].Wdata[j]);
                         }
 
                     }

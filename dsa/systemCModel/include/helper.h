@@ -13,6 +13,7 @@
 
 #define MAX_SEGLENGTH 5000 
 #define MAX_READ_LENGTH 200000 
+#define RAM_SIZE 35000   // about 2GB
 #define MAX_SEG_NUM 5000
 #define IdleThreshLow 4
 #define ReadNumProcessedOneTime  1

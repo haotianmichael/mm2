@@ -22,9 +22,16 @@ SC_MODULE(Scheduler) {
     std::vector<std::vector<sc_signal<sc_int<WIDTH>>*>> anchorSuccessiveRange;// successive range of every anchor 
 
     // @RC Unit
+    /*
+        taking all 200000 reads at rst.neg()
+    */
     RangeCountUnit *rc;
 
     // @SegmentsQueue (Two Ports)
+    /*
+        read from rc.array --> simulating read from DDR
+        the width of fifo simulating DDR's width
+    */
     // UpperBound <= 65 elements  Lane[0, 64]
     sc_fifo<riSegment> riSegQueueLong;  
     sc_fifo<qiSegment> qiSegQueueLong;
@@ -41,10 +48,14 @@ SC_MODULE(Scheduler) {
     //PartialScoreQueue *partialScoreQueue;
 
     // @SchedulerTable
+    /*
+        FIXME: schedulerTable needs to be filled more than one time within one cycle.
+    */
     SchedulerTable *schedulerTable;
 
     // @LocalRAM store the Input
-    ram_data *localRAM;
+    std::vector<ram_data> localRAM;
+    std::vector<bool> freeList;
     int ramIndex;
 
     // @HCU Pool
@@ -146,7 +157,8 @@ SC_MODULE(Scheduler) {
         schedulerTable = new SchedulerTable;
         try {
             // FIXME: memory maybe not enough.
-            localRAM = new ram_data[MAX_READ_LENGTH];
+            localRAM.resize(RAM_SIZE);
+            freeList.resize(RAM_SIZE, true);
         }catch(const std::bad_alloc& e) {
             std::cerr << "Scheduler's localRAM allocation failed:" << e.what() << std::endl;
         }

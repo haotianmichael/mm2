@@ -6,7 +6,9 @@
 #include <mutex>
 
 struct ram_data{
-   sc_int<WIDTH> data[MAX_SEGLENGTH]; 
+   sc_int<WIDTH> Rdata[MAX_SEGLENGTH]; 
+   sc_int<WIDTH> Qdata[MAX_SEGLENGTH]; 
+   sc_int<WIDTH> Wdata[MAX_SEGLENGTH]; 
 };
 
 struct riSegment{
