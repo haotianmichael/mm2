@@ -62,6 +62,8 @@ SC_MODULE(Scheduler) {
     // simulator can only use either mcuPool[i] or ecuPool[i], cannot use them both at the same time.
     MCU *mcuPool[HCU_NUM];
     ECU *ecuPool[HCU_NUM];
+    sc_int<WIDTH> alloParam;
+    sc_int<WIDTH> freeParam;
 
     // @IODispatcher
     mcuIODispatcher *mcuIODisPatcherPool[HCU_NUM];
@@ -95,6 +97,8 @@ SC_MODULE(Scheduler) {
          qiSegQueueShort(MAX_SEG_NUM),
          wSegQueueShort(MAX_SEG_NUM),
          ramIndex(0),
+         alloParam(0),
+         freeParam(0),
          anchorNum(ReadNumProcessedOneTime),
          anchorRi(ReadNumProcessedOneTime, std::vector<sc_signal<sc_int<WIDTH>>*>(MAX_READ_LENGTH)),
          anchorQi(ReadNumProcessedOneTime, std::vector<sc_signal<sc_int<WIDTH>>*>(MAX_READ_LENGTH)),
