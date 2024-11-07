@@ -319,10 +319,10 @@ void freeHCU(MCU *mcuPool[HCU_NUM], ECU *ecuPool[HCU_NUM], mcuIODispatcher *mcuI
     assert(i>=0 && "Error: hcuID must be positive!");
     if(mcuPool[i]->currentReadID.read() != -1 
         && ecuPool[i]->currentReadID.read() != -1
-        && mcuPool[i]->freeTime.read() == sc_time_stamp() 
-        && ecuPool[i]->freeTime.read() == sc_time_stamp()
-        && mcuIODisPatcherPool[i]->en.read()
-        && ecuIODisPatcherPool[i]->en.read()){ 
+        && mcuPool[i]->freeTime.read() - sc_time(10, SC_NS)== sc_time_stamp() 
+        && ecuPool[i]->freeTime.read() - sc_time(10, SC_NS)== sc_time_stamp()
+        && (mcuIODisPatcherPool[i]->en.read()
+        || ecuIODisPatcherPool[i]->en.read())){ 
             mcuPool[i]->currentReadID.write(static_cast<sc_int<WIDTH>>(-1));
             mcuPool[i]->currentSegID.write(static_cast<sc_int<WIDTH>>(-1));
             mcuPool[i]->freeTime.write(sc_time(0, SC_NS));
@@ -354,10 +354,13 @@ void freeHCU(MCU *mcuPool[HCU_NUM], ECU *ecuPool[HCU_NUM], mcuIODispatcher *mcuI
     && ecuPool[i]->executeTime.read()  - sc_time(10, SC_NS) == sc_time_stamp()
     && !mcuIODisPatcherPool[i]->en.read()
     && !ecuIODisPatcherPool[i]->en.read()){    //enable all computing unit
-        mcuPool[i]->en.write(static_cast<bool>(1));
-        ecuPool[i]->en.write(static_cast<bool>(1));
-        mcuIODisPatcherPool[i]->en.write(static_cast<bool>(1));
-        ecuIODisPatcherPool[i]->en.write(static_cast<bool>(1));
+        if(item.type == 1) {
+            mcuPool[i]->en.write(static_cast<bool>(1));
+            mcuIODisPatcherPool[i]->en.write(static_cast<bool>(1));
+        }else {
+            ecuPool[i]->en.write(static_cast<bool>(1));
+            ecuIODisPatcherPool[i]->en.write(static_cast<bool>(1));
+        }
         freeParam = 0;
     }else {
         freeParam = -2;
@@ -393,7 +396,7 @@ void Scheduler::scheduler_hcu_allocate() {
                             freeHCU(mcuPool, ecuPool, mcuIODisPatcherPool, ecuIODisPatcherPool, *timeIt, freeParam);
                             if(freeParam == 1) {
                                 if(++freeNum == it->HCU_Total_NUM) {
-                                    std::cout << "successfully Free mcu: " << id << " for Seg: " << it->segmentID << " at: " << sc_time_stamp() << std::endl;
+                                    std::cout << "successfully Free mcu: " << id << " for Seg: " << it->segmentID << " at: " << sc_time_stamp() + sc_time(10, SC_NS) << std::endl;
                                     {
                                         releaseBlock(it->addr, freeList);
                                         std::lock_guard<std::mutex> lock(schedulerTable->mtx);

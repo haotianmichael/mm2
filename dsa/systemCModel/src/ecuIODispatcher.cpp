@@ -37,9 +37,21 @@ void ecuIODispatcher::shift_data() {
                           w_out[i].write(static_cast<sc_int<32>>(-1));
                      } 
                 }
+            }else {
+                base_count = 0;
+                cycle_count = LowerBound.read();
+                for(int i = 0; i < ECUInputLaneWIDTH + 1; i++) {
+                    ri_out[i].write(static_cast<sc_int<32>>(-1));
+                    qi_out[i].write(static_cast<sc_int<32>>(-1));
+                    w_out[i].write(static_cast<sc_int<32>>(-1));
+                }
+                ecu_qi_out.write(static_cast<sc_int<WIDTH> >(-1));
+                ecu_ri_out.write(static_cast<sc_int<WIDTH> >(-1));
+                ecu_w_out.write(static_cast<sc_int<WIDTH> >(-1));
             }
         }else {
-            cycle_count = 0;
+            base_count = 0;
+            cycle_count = LowerBound.read();
             for(int i = 0; i < ECUInputLaneWIDTH + 1; i++) {
                 ri_out[i].write(static_cast<sc_int<32>>(-1));
                 qi_out[i].write(static_cast<sc_int<32>>(-1));
