@@ -279,12 +279,15 @@ void allocateHCU(MCU *mcuPool[HCU_NUM], ECU *ecuPool[HCU_NUM], mcuIODispatcher *
     if (!isAlloc){
         if (item.type){ // if mcu allocation failed, wait
             alloParam = -2;
-        }else{ // if ecu allocation failed, replacing
-           alloParam = -1;
-        /*
+        }else{ 
+            /*  if ecu allocation failed, replacing or freeing
+               @iterating for shortSeg(<=65), replacing directly
+            */ 
             for (int i = 0; i < HCU_NUM; i++) {
-                // if()  是否有刚启动不久的hcu（UB<=65）的，直接重新弄分配
-                if (!mcuPool[i]->type.read() && !ecuPool[i]->type.read()){
+                if (mcuPool[i]->type.read() 
+                    && ecuPool[i]->type.read()
+                    && (mcuPool[i]->LowerBound.read() == 0 && ecuPool[i]->LowerBound.read() == 0)
+                    && (mcuPool[i]->UpperBound.read() <= MCUInputLaneWIDTH && ecuPool[i]->UpperBound.read() <= MCUInputLaneWIDTH)){
                     // mcu
                     mcuPool[i]->currentReadID.write(readID);
                     mcuPool[i]->currentSegID.write(segID);
@@ -294,6 +297,8 @@ void allocateHCU(MCU *mcuPool[HCU_NUM], ECU *ecuPool[HCU_NUM], mcuIODispatcher *
                     mcuPool[i]->executeTime.write(startTime);
                     mcuPool[i]->freeTime.write(endTime);
                     mcuPool[i]->addr.write(addr);
+                    mcuIODisPatcherPool[i]->LowerBound.write(item.SBase);
+                    mcuIODisPatcherPool[i]->UpperBound.write(item.LBase);
                     // ecu
                     ecuPool[i]->currentReadID.write(readID);
                     ecuPool[i]->currentSegID.write(segID);
@@ -303,13 +308,58 @@ void allocateHCU(MCU *mcuPool[HCU_NUM], ECU *ecuPool[HCU_NUM], mcuIODispatcher *
                     ecuPool[i]->executeTime.write(startTime);
                     ecuPool[i]->freeTime.write(endTime);
                     ecuPool[i]->addr.write(addr);
+                    ecuIODisPatcherPool[i]->LowerBound.write(item.SBase);
+                    ecuIODisPatcherPool[i]->UpperBound.write(item.LBase);
 
                     item.hcuID = i;
-                    allo = i;
+                    alloParam = i;
+                    isAlloc = true;
+                    std::cout << "Successfully Replacing hcu:" << i << " of seg:" << mcuPool[i]->currentSegID.read() << " for seg:"<< segID << std::endl;
                     break;
                 }
             }
+            /*
+              @free all hcu of currentReadID+currentSegID
             */
+            if(!isAlloc) {
+                bool isFree = false;
+                for(int i = 0; i < HCU_NUM; i ++) {
+                    if((mcuPool[i]->currentReadID == readID && mcuPool[i]->currentSegID == segID)
+                        && (ecuPool[i]->currentReadID == readID && ecuPool[i]->currentSegID == segID)) {
+
+                        mcuPool[i]->currentReadID.write(static_cast<sc_int<WIDTH>>(-1));
+                        mcuPool[i]->currentSegID.write(static_cast<sc_int<WIDTH>>(-1));
+                        mcuPool[i]->freeTime.write(sc_time(0, SC_NS));
+                        mcuPool[i]->executeTime.write(sc_time(0, SC_NS));
+                        mcuPool[i]->type.write(static_cast<bool>(0));
+                        mcuPool[i]->LowerBound.write(static_cast<sc_int<WIDTH>>(-1));
+                        mcuPool[i]->UpperBound.write(static_cast<sc_int<WIDTH>>(-1));
+                        mcuPool[i]->en.write(static_cast<bool>(0));
+                        mcuIODisPatcherPool[i]->LowerBound.write(static_cast<sc_int<WIDTH> >(-1));
+                        mcuIODisPatcherPool[i]->UpperBound.write(static_cast<sc_int<WIDTH> >(-1));
+                        mcuIODisPatcherPool[i]->en.write(static_cast<bool>(0));
+
+                        ecuPool[i]->currentReadID.write(static_cast<sc_int<WIDTH>>(-1));
+                        ecuPool[i]->currentSegID.write(static_cast<sc_int<WIDTH>>(-1));
+                        ecuPool[i]->freeTime.write(sc_time(0, SC_NS));
+                        ecuPool[i]->executeTime.write(sc_time(0, SC_NS));
+                        ecuPool[i]->type.write(static_cast<bool>(0));
+                        ecuPool[i]->LowerBound.write(static_cast<sc_int<WIDTH>>(-1));
+                        ecuPool[i]->UpperBound.write(static_cast<sc_int<WIDTH>>(-1));
+                        ecuPool[i]->en.write(static_cast<bool>(0));
+                        ecuIODisPatcherPool[i]->LowerBound.write(static_cast<sc_int<WIDTH> >(-1));
+                        ecuIODisPatcherPool[i]->UpperBound.write(static_cast<sc_int<WIDTH> >(-1));
+                        ecuIODisPatcherPool[i]->en.write(static_cast<bool>(0));
+                        item.hcuID = -1;
+                        isFree = true;
+                    }
+                }
+                if(isFree) {
+                    alloParam = -3;
+                }else {
+                    alloParam = -1;
+                }
+            }
         }
     }
     return;
@@ -387,10 +437,18 @@ void Scheduler::scheduler_hcu_allocate() {
                                 allocateHCU(mcuPool, ecuPool, mcuIODisPatcherPool, ecuIODisPatcherPool, it->readID, it->segmentID, st + sc_time(20, SC_NS), it->endTime, it->addr, *timeIt, alloParam);
                                 hasScheduled = true;
                             }
-                            if (!alloParam){
-                                assert(timeIt->hcuID == -1 && it->TimeList.size() > 1 && "Error: Cannot stop ecu allocation util its over!");
+                            assert(alloParam != -1 && it->TimeList.size() > 1 && "Error: Cannot stop ecu allocation util its over!");
+                            assert(alloParam != -2 && it->TimeList.size() > 1 && "Error: ecu allocator cannot operate mcu!");
+                            if(alloParam > -1) {
+                                std::cout << "successfully Allocate ecu: " << timeIt->hcuID <<" for Segment: " << it->segmentID << " -----UB: " << it->UB << " startTime: " << st + sc_time(20, SC_NS) << " endTime: "  << it->endTime << std::endl;
+                            }else if(alloParam == -3) {
+                                it->issued = 0;
+                                for(auto xyz = it->TimeList.begin(); xyz != it->TimeList.end(); ++xyz) {
+                                    xyz->hcuID = -1;
+                                }
+                                std::cout << "failed Allocate ecu: freeing all related hcu and wait for reallocating..." << std::endl;
+                                break;
                             }
-                            std::cout << "successfully Allocate ecu: " << timeIt->hcuID <<" for Segment: " << it->segmentID << " -----UB: " << it->UB << " startTime: " << st + sc_time(20, SC_NS) << " endTime: "  << it->endTime << std::endl;
                         }else if(timeIt->hcuID >= 0){
                             int id = timeIt->hcuID;
                             freeHCU(mcuPool, ecuPool, mcuIODisPatcherPool, ecuIODisPatcherPool, *timeIt, freeParam);
@@ -413,6 +471,7 @@ void Scheduler::scheduler_hcu_allocate() {
                     }
                 }else{
                     // mcu allocation
+                    assert(it->HCU_Total_NUM <= HCU_NUM && "Error: exceeding hcu allocation bounds!");
                     it->startTime = sc_time_stamp();
                     it->endTime = sc_time_stamp() + sc_time((it->UB + 2) * 10, SC_NS); // endTime = startTime + (newW.upperbound + 1)
                     assert((timeIt->hcuID==-1 || timeIt->hcuID == -2) && "Error: mcu already allocated!");
@@ -424,8 +483,8 @@ void Scheduler::scheduler_hcu_allocate() {
                         hasScheduled = true;
                     }
                     if (alloParam == -2){
-                        std::cout << "mcu allocation failed, wait for some time..." << std::endl;
-                        wait(40, SC_NS);
+                        std::cout << "failed allocate mcu for " << it->segmentID << ", wait for some time..." << std::endl;
+                        wait(10, SC_NS);
                         continue;
                     }
                     assert(timeIt->hcuID>=0  && "Error: mcu allocator return the wrong value!");
