@@ -15,8 +15,11 @@
 #define MAX_READ_LENGTH 200000 
 #define RAM_SIZE 35000   // about 2GB
 #define MAX_SEG_NUM 5000
-#define IdleThreshLow 4
 #define ReadNumProcessedOneTime  1
-#define Reduction_NUM 64
+
+#define Reduction_NUM 128
+#define RESULT_NUM 414 // 254 reductionResult + 80(160) hcuResult (FIXME: now we need 80 mcu and 80 ecu)
+#define Reduction_USAGE 254
+#define Reduction_KIND 7
 
 #endif

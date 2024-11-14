@@ -211,16 +211,23 @@ int fillTableOfShortSegments(std::mutex& mtx, std::vector<ram_data> &localRAM, i
     return 1;
 }
 
-int countIdle(){
-    int zeroCount = 5;
-    return zeroCount;
+void countIdle(sc_signal<sc_int<WIDTH>> ROCC[Reduction_KIND], bool& eR){
+    for(int i = 0; i < Reduction_KIND; i++) {
+        if(ROCC[i].read() == 0) {
+            eR = false;
+            return;
+        }
+    }
+    eR = true;
 }
 void Scheduler::scheduler_hcu_fillTable(){
     while (true){
         wait();
         if (start.read()){
-            // 加一些延迟，不然一次性都生成到调度表中了
-            if(countIdle() <= IdleThreshLow){
+            bool enoughRed = true;
+            countIdle(ROCC, enoughRed);
+            /*allocate ShortSeg as soon as one kind of reductionTree is running out.*/
+            if(!enoughRed){
                 // little idle reduction -> allocate shortPort
                 if(riSegQueueShort.num_available() > 0){
                     fillTableOfShortSegments(schedulerTable->mtx, localRAM, ramIndex, freeList, schedulerTable->schedulerItemList, riSegQueueShort, qiSegQueueShort, wSegQueueShort, space_available, data_available);

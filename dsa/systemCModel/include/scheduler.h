@@ -21,6 +21,10 @@ SC_MODULE(Scheduler) {
     std::vector<std::vector<sc_signal<sc_int<WIDTH>>*>> anchorW;
     std::vector<std::vector<sc_signal<sc_int<WIDTH>>*>> anchorSuccessiveRange;// successive range of every anchor 
 
+    /*ResultArray consists of both HCU's resultArray(UB<=65) and ReductionPool's resultArray(UB>65) */
+    std::vector<sc_out<sc_int<WIDTH>>> resultArray;
+    std::vector<sc_signal<sc_int<WIDTH>>> resultArray_sig;
+
     // @RC Unit
     /*
         taking all 200000 reads at rst.neg()
@@ -45,7 +49,7 @@ SC_MODULE(Scheduler) {
     sc_event space_available;
 
     // @PartialScoreQueue
-    //PartialScoreQueue *partialScoreQueue;
+    PartialScoreQueue *partialScoreQueue;
 
     // @SchedulerTable
     /*
@@ -81,7 +85,8 @@ SC_MODULE(Scheduler) {
     sc_signal<sc_int<WIDTH> > ecu_w[HCU_NUM];
 
     // @ReductionPool
-    //ReductionPool *reductionPool;
+    ReductionPool *reductionPool;
+    sc_signal<sc_int<WIDTH>> ROCC[Reduction_KIND];
 
     void scheduler_hcu_pre();
     void scheduler_hcu_execute();
@@ -103,7 +108,9 @@ SC_MODULE(Scheduler) {
          anchorRi(ReadNumProcessedOneTime, std::vector<sc_signal<sc_int<WIDTH>>*>(MAX_READ_LENGTH)),
          anchorQi(ReadNumProcessedOneTime, std::vector<sc_signal<sc_int<WIDTH>>*>(MAX_READ_LENGTH)),
          anchorW(ReadNumProcessedOneTime, std::vector<sc_signal<sc_int<WIDTH>>*>(MAX_READ_LENGTH)),
-         anchorSuccessiveRange(ReadNumProcessedOneTime, std::vector<sc_signal<sc_int<WIDTH>>*>(MAX_READ_LENGTH)) {
+         anchorSuccessiveRange(ReadNumProcessedOneTime, std::vector<sc_signal<sc_int<WIDTH>>*>(MAX_READ_LENGTH)),
+         resultArray(RESULT_NUM),
+         resultArray_sig(RESULT_NUM) {
 
 
         // prepare the segmentQueue
@@ -198,8 +205,8 @@ SC_MODULE(Scheduler) {
         }
 
         
-
-        for(int i = 0; i < HCU_NUM; i ++) {
+        int rIndex = 0;
+        for(int i = 0; i < HCU_NUM && rIndex < HCU_NUM*2; i ++) {
             mcu_name << "mcuPool(" << i << ")";
             ecu_name << "ecuPool(" << i << ")";
             mcuPool[i] = new MCU(mcu_name.str().c_str());
@@ -229,6 +236,7 @@ SC_MODULE(Scheduler) {
             mcuPool[i]->type.write(static_cast<bool>(0));
             mcuPool[i]->executeTime.write(sc_time(0, SC_NS));
             mcuPool[i]->freeTime.write(sc_time(0, SC_NS));
+            resultArray[rIndex++](mcuPool[i]->regBiggerScore[0]);
 
             ecuPool[i]->currentReadID.write(static_cast<sc_int<WIDTH> >(-1));
             ecuPool[i]->currentSegID.write(static_cast<sc_int<WIDTH> >(-1));
@@ -237,21 +245,26 @@ SC_MODULE(Scheduler) {
             ecuPool[i]->type.write(static_cast<bool>(0));
             ecuPool[i]->executeTime.write(sc_time(0, SC_NS));
             ecuPool[i]->freeTime.write(sc_time(0, SC_NS));
+            resultArray[rIndex++](ecuPool[i]->regBiggerScore[0]);
 
             mcu_name.str("");
             ecu_name.str("");
         }
 
-        /*
+        partialScoreQueue = new PartialScoreQueue("PartialScoreQueue");
+        partialScoreQueue->clk(clk);
+        partialScoreQueue->rst(rst);   
+
         reductionPool = new ReductionPool("ReductionPool");
         reductionPool->clk(clk);
         reductionPool->rst(rst);
-        //schedulerTable(reductionPool->ROCC.read());  // () override for ROCC transfer
-
-        partialScoreQueue = new PartialScoreQueue("PartialScoreQueue");
-        partialScoreQueue->clk(clk);
-        partialScoreQueue->rst(rst);
-        */
+        for(int i = 0; i < Reduction_KIND; i ++) {
+            reductionPool->ROCC[i](ROCC[i]);
+        }
+        for(int i = 0; i < Reduction_USAGE; i ++) {
+            reductionPool->reduction_Result[i](resultArray_sig[i]);
+            resultArray[rIndex++](resultArray_sig[i]);
+        }
 
 
 
