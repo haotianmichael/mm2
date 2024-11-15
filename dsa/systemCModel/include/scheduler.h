@@ -23,7 +23,6 @@ SC_MODULE(Scheduler) {
 
     /*ResultArray consists of both HCU's resultArray(UB<=65) and ReductionPool's resultArray(UB>65) */
     std::vector<sc_out<sc_int<WIDTH>>> resultArray;
-    std::vector<sc_signal<sc_int<WIDTH>>> resultArray_sig;
 
     // @RC Unit
     /*
@@ -85,7 +84,8 @@ SC_MODULE(Scheduler) {
     sc_signal<sc_int<WIDTH> > ecu_w[HCU_NUM];
 
     // @ReductionPool
-    ReductionPool *reductionPool;
+    ReductionController *rtController;
+    ReductionTree *reductionTree[Reduction_USAGE];
     sc_signal<sc_int<WIDTH>> ROCC[Reduction_KIND];
 
     void scheduler_hcu_pre();
@@ -109,8 +109,7 @@ SC_MODULE(Scheduler) {
          anchorQi(ReadNumProcessedOneTime, std::vector<sc_signal<sc_int<WIDTH>>*>(MAX_READ_LENGTH)),
          anchorW(ReadNumProcessedOneTime, std::vector<sc_signal<sc_int<WIDTH>>*>(MAX_READ_LENGTH)),
          anchorSuccessiveRange(ReadNumProcessedOneTime, std::vector<sc_signal<sc_int<WIDTH>>*>(MAX_READ_LENGTH)),
-         resultArray(RESULT_NUM),
-         resultArray_sig(RESULT_NUM) {
+         resultArray(RESULT_NUM){
 
 
         // prepare the segmentQueue
@@ -255,22 +254,28 @@ SC_MODULE(Scheduler) {
         partialScoreQueue->clk(clk);
         partialScoreQueue->rst(rst);   
 
-        reductionPool = new ReductionPool("ReductionPool");
-        reductionPool->clk(clk);
-        reductionPool->rst(rst);
+        std::stringstream r_name;
+        rtController = new ReductionController("ReductionController");
+        rtController->clk(clk);
+        rtController->rst(rst);
         for(int i = 0; i < Reduction_KIND; i ++) {
-            reductionPool->ROCC[i](ROCC[i]);
+            rtController->ROCC[i](ROCC[i]);
         }
         for(int i = 0; i < Reduction_USAGE; i ++) {
-            reductionPool->reduction_Result[i](resultArray_sig[i]);
-            resultArray[rIndex++](resultArray_sig[i]);
+            r_name << "reductionTree()" << i << ")";
+            reductionTree[i] = new ReductionTree(r_name.str().c_str());
+            reductionTree[i]->clk(clk);
+            reductionTree[i]->rst(rst);
+            reductionTree[i]->inputNum(rtController->inputNumArray[i]);
+            for(int j = 0; j < Reduction_NUM; j ++) {
+                reductionTree[i]->vec[j](*(rtController->reductionInputArray[i][j]));
+            }
+            rtController->reduction_done[i](reductionTree[i]->done);
+            assert(rIndex < RESULT_NUM && "Error: exceeding resultArray's bounds!");
+            reductionTree[i]->result(resultArray[rIndex++]);
+            r_name.str("");
         }
-
-
-
-
 	}
-
 };
 
 #endif
