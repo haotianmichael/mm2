@@ -4,11 +4,26 @@
 #include "helper.h"
 
 
+struct reductionInput {
+    std::vector<sc_int<WIDTH>> data;
+    reductionInput () : data(Reduction_NUM) {}
+    friend std::ostream& operator<<(std::ostream& os, const reductionInput& segment){
+        os << "reductionInput: ";
+        for(int i =0; i < MAX_SEGLENGTH; i ++) {
+            os << segment.data[i] << " "; 
+        }
+        return os;
+    }
+
+    bool operator==(const reductionInput& other) {
+        return data == other.data;
+    }
+};
 SC_MODULE(ReductionTree) {
 
     sc_in<bool> clk, rst;
-    sc_in<sc_int<WIDTH>> inputNum;  // num of data to be sorted
-    std::vector<sc_in<sc_int<WIDTH>>> vec;
+    sc_in<sc_int<WIDTH>> num;  // num of data to be sorted
+    sc_signal<reductionInput> vec;
     sc_out<sc_int<WIDTH>> result;
     sc_signal<bool> done;
 
@@ -17,14 +32,15 @@ SC_MODULE(ReductionTree) {
             wait();
             if(rst.read()){
                 result.write(static_cast<sc_int<WIDTH>>(-1));
-                done.write(false);
+                done.write(true);
             }else {
-                wait(inputNum.default_event());
+                wait(num.default_event());
                 done.write(false);
-                auto ret = std::max_element(vec.begin(), vec.end());
-                if(ret != vec.end()) {
-                    wait(static_cast<int>(log2(inputNum.read())), SC_NS);
-                    result.write((*ret).read());
+                std::vector<sc_int<WIDTH>> tmpVec = vec.read().data;
+                auto ret = std::max_element(tmpVec.begin(), tmpVec.end());
+                if(ret != tmpVec.end()) {
+                    wait(static_cast<int>(log2(num.read())), SC_NS);
+                    result.write(*ret);
                     done.write(true);
                 }else {
                     std::cerr << "Error in reductionPool comparator!" << std::endl;
@@ -55,114 +71,57 @@ SC_MODULE(ReductionController) {
         128-path Reduction              2
     */
     sc_in<bool> clk, rst;
-    std::vector<std::vector<sc_signal<sc_int<WIDTH>>*>> reductionInputArray;
-    std::vector<sc_in<sc_int<WIDTH>>> inputNumArray;
+    sc_fifo<reductionInput> *reductionInputArray[Reduction_USAGE];
+    sc_fifo<sc_int<WIDTH>> *numArray[Reduction_USAGE];
+    std::vector<sc_signal<reductionInput>> reductionOutArray;
+    std::vector<sc_signal<sc_int<WIDTH>>> numOutArray;
     std::vector<sc_in<bool>> reduction_done;
     std::vector<sc_out<sc_int<WIDTH>>> ROCC;
 
 
-    int width = 2;
-    int index = 0;
-
-    void compute_ROCC() {
-        while(true) {
-            wait();
-            if(rst.read()) {
-                /*number of each kind of reductionTree*/
-                ROCC[0].write(128);
-                ROCC[1].write(64);
-                ROCC[2].write(32);
-                ROCC[3].write(16);
-                ROCC[4].write(8);
-                ROCC[5].write(4);
-                ROCC[6].write(2);
-            }else {
-                int twoP = 0, fourP = 0, eightP = 0, sixteP = 0, thirtyP = 0, sixtyP = 0, hundredsP = 0;
-                for(int i = 0; i < 128; i ++) {
-                    if(reduction_done[i].read() == true) {
-                        twoP++;  // two-path
-                    }
-                }
-                for(int i = 128; i < 192; i ++) {
-                    if(reduction_done[i].read() == true) {
-                        fourP++;
-                    }
-                }
-                for(int i = 192; i < 224; i ++) {
-                    if(reduction_done[i].read() == true) {
-                        eightP++;
-                    }
-                }
-                for(int i = 224; i < 240; i ++) {
-                    if(reduction_done[i].read() == true) {
-                        sixteP++;
-                    }
-                }
-                for(int i = 240; i < 248; i ++) {
-                    if(reduction_done[i].read() == true) {
-                        thirtyP++;
-                    }
-                }
-                for(int i = 248; i < 252; i ++) {
-                    if(reduction_done[i].read() == true) {
-                        sixtyP++;
-                    }
-                }
-                for(int i = 252; i < 254; i ++) {
-                    if(reduction_done[i].read() == true) {
-                        hundredsP++;
-                    }
-                }
-                ROCC[0].write(twoP);
-                ROCC[1].write(fourP);
-                ROCC[2].write(eightP);
-                ROCC[3].write(sixteP);
-                ROCC[4].write(thirtyP);
-                ROCC[5].write(sixtyP);
-                ROCC[6].write(hundredsP);
-            }
-        }
-    }
-
-    /*base on the reductionInputArray, fill the reductionNum*/
-    void arbitrator() {
-        while(true) {
-            wait();
-            if(rst.read()) {
-                width = 2;
-                index = 0;
-            }else {
-
-               // while(width < inputNum.read()) {
-                //    width *= 2;
-                 //   index ++;
-               // }
-
-            
-            }
-        }
-    }
+    
+    void compute_ROCC();
+    void arbitratorTwo();
+    void arbitratorFour();
+    void arbitratorEight();
+    void arbitratorSixteen();
+    void arbitratorThirtyTwo();
+    void arbitratorSixtyFour();
+    void arbitratorOneHundred();
 
     SC_CTOR(ReductionController):
         ROCC(Reduction_KIND),
         reduction_done(Reduction_USAGE),
-        inputNumArray(Reduction_USAGE),
-        reductionInputArray(Reduction_USAGE, std::vector<sc_signal<sc_int<WIDTH>>*>(Reduction_NUM)) {
+        reductionOutArray(Reduction_USAGE),
+        numOutArray(Reduction_USAGE){
 
-        SC_THREAD(arbitrator);
+        SC_THREAD(arbitratorTwo);
+        sensitive << clk.pos();
+
+        SC_THREAD(arbitratorFour);
+        sensitive << clk.pos();
+
+        SC_THREAD(arbitratorEight);
+        sensitive << clk.pos();
+
+        SC_THREAD(arbitratorSixteen);
+        sensitive << clk.pos();
+
+        SC_THREAD(arbitratorThirtyTwo);
+        sensitive << clk.pos();
+
+        SC_THREAD(arbitratorSixtyFour);
+        sensitive << clk.pos();
+
+        SC_THREAD(arbitratorOneHundred);
         sensitive << clk.pos();
 
         SC_THREAD(compute_ROCC);
         sensitive << clk.pos();
 
         for(int i = 0; i < Reduction_USAGE; i++) {
-            for(int j = 0; j < Reduction_NUM; j ++) {
-                try{
-                    reductionInputArray[i][j] = new sc_signal<sc_int<WIDTH>>();
-                }catch(const std::exception& e){
-                    std::cerr << e.what() << "Memeory Error: reductionController!" << std::endl;
-                }
-            }
+            reductionInputArray[i] = new sc_fifo<reductionInput>(1);
+            numArray[i] = new sc_fifo<sc_int<WIDTH>>(1);
         }
     }
 

@@ -266,10 +266,7 @@ SC_MODULE(Scheduler) {
             reductionTree[i] = new ReductionTree(r_name.str().c_str());
             reductionTree[i]->clk(clk);
             reductionTree[i]->rst(rst);
-            reductionTree[i]->inputNum(rtController->inputNumArray[i]);
-            for(int j = 0; j < Reduction_NUM; j ++) {
-                reductionTree[i]->vec[j](*(rtController->reductionInputArray[i][j]));
-            }
+            reductionTree[i]->num(rtController->numOutArray[i]);
             rtController->reduction_done[i](reductionTree[i]->done);
             assert(rIndex < RESULT_NUM && "Error: exceeding resultArray's bounds!");
             reductionTree[i]->result(resultArray[rIndex++]);
