@@ -22,8 +22,8 @@ struct reductionInput {
 SC_MODULE(ReductionTree) {
 
     sc_in<bool> clk, rst;
-    sc_in<sc_int<WIDTH>> num;  // num of data to be sorted
-    sc_signal<reductionInput> vec;
+    sc_in<sc_int<WIDTH>> vecNotify;  // notify signal
+    std::vector<sc_in<sc_int<WIDTH>>> vecFromController;  // inputArray - the last ele is the length of inputArray
     sc_out<sc_int<WIDTH>> result;
     sc_signal<bool> done;
 
@@ -34,12 +34,15 @@ SC_MODULE(ReductionTree) {
                 result.write(static_cast<sc_int<WIDTH>>(-1));
                 done.write(true);
             }else {
-                wait(num.default_event());
+                wait(vecNotify.default_event());
                 done.write(false);
-                std::vector<sc_int<WIDTH>> tmpVec = vec.read().data;
-                auto ret = std::max_element(tmpVec.begin(), tmpVec.end());
+                std::vector<sc_int<WIDTH>> tmpVec;
+                for(auto ele : vecFromController) {
+                    tmpVec.push_back(ele.read());
+                }
+                auto ret = std::max_element(tmpVec.begin(), tmpVec.end()-1);
                 if(ret != tmpVec.end()) {
-                    wait(static_cast<int>(log2(num.read())), SC_NS);
+                    wait(static_cast<int>(log2(tmpVec.back())), SC_NS);
                     result.write(*ret);
                     done.write(true);
                 }else {
@@ -49,7 +52,8 @@ SC_MODULE(ReductionTree) {
         }
     }
 
-    SC_CTOR(ReductionTree) {
+    SC_CTOR(ReductionTree) :
+       vecFromController(Reduction_NUM){
        SC_THREAD(process); 
        sensitive << clk.pos();
     }
@@ -72,12 +76,12 @@ SC_MODULE(ReductionController) {
     */
     sc_in<bool> clk, rst;
     sc_fifo<reductionInput> *reductionInputArray[Reduction_USAGE];
-    sc_fifo<sc_int<WIDTH>> *numArray[Reduction_USAGE];
-    std::vector<sc_signal<reductionInput>> reductionOutArray;
-    std::vector<sc_signal<sc_int<WIDTH>>> numOutArray;
+    sc_fifo<sc_int<WIDTH>> *notifyArray[Reduction_USAGE];
+    std::vector<sc_signal<sc_int<WIDTH>>> notifyOutArray;
     std::vector<sc_in<bool>> reduction_done;
     std::vector<sc_out<sc_int<WIDTH>>> ROCC;
-
+    std::vector<std::vector<sc_out<sc_int<WIDTH>>*>> reductionOutArrayToTree;
+    int counter[Reduction_KIND];
 
     
     void compute_ROCC();
@@ -92,8 +96,8 @@ SC_MODULE(ReductionController) {
     SC_CTOR(ReductionController):
         ROCC(Reduction_KIND),
         reduction_done(Reduction_USAGE),
-        reductionOutArray(Reduction_USAGE),
-        numOutArray(Reduction_USAGE){
+        notifyOutArray(Reduction_USAGE),
+        reductionOutArrayToTree(Reduction_USAGE, std::vector<sc_out<sc_int<WIDTH>>*>(Reduction_NUM)){
 
         SC_THREAD(arbitratorTwo);
         sensitive << clk.pos();
@@ -121,7 +125,10 @@ SC_MODULE(ReductionController) {
 
         for(int i = 0; i < Reduction_USAGE; i++) {
             reductionInputArray[i] = new sc_fifo<reductionInput>(1);
-            numArray[i] = new sc_fifo<sc_int<WIDTH>>(1);
+            notifyArray[i] = new sc_fifo<sc_int<WIDTH>>(1);
+            for(int j = 0; j < Reduction_NUM; j ++) {
+                reductionOutArrayToTree[i][j] = new sc_out<sc_int<WIDTH>>();
+            }
         }
     }
 
