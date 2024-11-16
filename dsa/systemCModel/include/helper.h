@@ -6,7 +6,7 @@
 #include <string.h>
 
 #define WIDTH 32
-#define HCU_NUM 64
+#define HCU_NUM 80  //64 is tested
 #define LaneWIDTH 65
 #define MCUInputLaneWIDTH 65
 #define ECUInputLaneWIDTH 65

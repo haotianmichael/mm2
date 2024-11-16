@@ -211,7 +211,7 @@ int fillTableOfShortSegments(std::mutex& mtx, std::vector<ram_data> &localRAM, i
     return 1;
 }
 
-void countIdle(sc_signal<sc_int<WIDTH>> ROCC[Reduction_KIND], bool& eR){
+void countIdle(sc_in<sc_int<WIDTH>> ROCC[Reduction_KIND], bool& eR){
     for(int i = 0; i < Reduction_KIND; i++) {
         if(ROCC[i].read() == 0) {
             eR = false;

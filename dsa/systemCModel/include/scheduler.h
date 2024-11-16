@@ -86,7 +86,7 @@ SC_MODULE(Scheduler) {
     // @ReductionPool
     ReductionController *rtController;
     ReductionTree *reductionTree[Reduction_USAGE];
-    sc_signal<sc_int<WIDTH>> ROCC[Reduction_KIND];
+    sc_in<sc_int<WIDTH>> ROCC[Reduction_KIND];
 
     void scheduler_hcu_pre();
     void scheduler_hcu_execute();
@@ -259,7 +259,7 @@ SC_MODULE(Scheduler) {
         rtController->clk(clk);
         rtController->rst(rst);
         for(int i = 0; i < Reduction_KIND; i ++) {
-            rtController->ROCC[i](ROCC[i]);
+            ROCC[i](rtController->ROCC[i]);
         }
         for(int i = 0; i < Reduction_USAGE; i ++) {
             r_name << "reductionTree(" << i << ")";
@@ -272,7 +272,7 @@ SC_MODULE(Scheduler) {
             }
             rtController->reduction_done[i](reductionTree[i]->done);
             assert(rIndex < RESULT_NUM && "Error: exceeding resultArray's bounds!");
-            reductionTree[i]->result(resultArray[rIndex++]);
+            resultArray[rIndex++](reductionTree[i]->result);
             r_name.str("");
         }
 	}
