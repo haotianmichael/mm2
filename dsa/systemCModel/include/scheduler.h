@@ -253,6 +253,10 @@ SC_MODULE(Scheduler) {
         partialScoreQueue = new PartialScoreQueue("PartialScoreQueue");
         partialScoreQueue->clk(clk);
         partialScoreQueue->rst(rst);   
+        for(int i = 0, pIndex = 0; i < HCU_NUM; i ++) {
+            partialScoreQueue->hcuPoolOut[pIndex++](mcuPool[i]->regBiggerScore[0]); 
+            partialScoreQueue->hcuPoolOut[pIndex++](ecuPool[i]->regBiggerScore[0]); 
+        }
 
         std::stringstream r_name;
         rtController = new ReductionController("ReductionController");
@@ -274,6 +278,19 @@ SC_MODULE(Scheduler) {
             assert(rIndex < RESULT_NUM && "Error: exceeding resultArray's bounds!");
             resultArray[rIndex++](reductionTree[i]->result);
             r_name.str("");
+        }
+
+        // FIFO Binding
+        sc_fifo<reductionInput> *reductionInputArray[Reduction_USAGE];        
+        sc_fifo<sc_int<WIDTH>> *notifyArray[Reduction_USAGE];
+        for(int i = 0; i < Reduction_USAGE; i ++) {
+            reductionInputArray[i] = new sc_fifo<reductionInput>(1);
+            notifyArray[i] = new sc_fifo<sc_int<WIDTH>>(1);
+
+            rtController->reductionInputArrayPorts[i]->bind(*reductionInputArray[i]);
+            partialScoreQueue->ToReductionInputPorts[i]->bind(*reductionInputArray[i]);
+            rtController->notifyArrayPorts[i]->bind(*notifyArray[i]);
+            partialScoreQueue->ToNotifyPorts[i]->bind(*notifyArray[i]);
         }
 	}
 };

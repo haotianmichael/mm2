@@ -75,7 +75,7 @@ void ReductionController::arbitratorTwo() {
                     bool isIdle = false;
                     if(i>=0 && i <=127) {
                         for(int j = 0; j <= 127; j++) {
-                            if(reductionInputArray[j]->num_available()) {
+                            if(reductionInputArrayPorts[j]->num_available()) {
                                 reductionInputArrayIndex = j;
                                 inputNumArrayIndex = j;
                                 isIdle = true;
@@ -84,8 +84,8 @@ void ReductionController::arbitratorTwo() {
                         }
                     }
                     if(isIdle) {
-                        *ri = reductionInputArray[reductionInputArrayIndex]->read();
-                        riNum = notifyArray[inputNumArrayIndex]->read();
+                        *ri = reductionInputArrayPorts[reductionInputArrayIndex]->read();
+                        riNum = notifyArrayPorts[inputNumArrayIndex]->read();
                         assert(riNum > 0 && riNum < 128 && "Error: exceeding the reductionTree Boundary!");
                         int j = 0;
                         for(; j < riNum; j ++) {
@@ -115,7 +115,7 @@ void ReductionController::arbitratorFour() {
                     bool isIdle = false;
                     if(i>=128 && i <=191) {
                         for(int j = 128; j <= 191; j++) {
-                            if(reductionInputArray[j]->num_available()) {
+                            if(reductionInputArrayPorts[j]->num_available()) {
                                 reductionInputArrayIndex = j;
                                 inputNumArrayIndex = j;
                                 isIdle = true;
@@ -124,8 +124,8 @@ void ReductionController::arbitratorFour() {
                         }
                     }
                     if(isIdle){
-                        *ri = reductionInputArray[reductionInputArrayIndex]->read();
-                        riNum = notifyArray[inputNumArrayIndex]->read();
+                        *ri = reductionInputArrayPorts[reductionInputArrayIndex]->read();
+                        riNum = notifyArrayPorts[inputNumArrayIndex]->read();
                         assert(riNum > 0 && riNum < 128 && "Error: exceeding the reductionTree Boundary!");
                         int j = 0;
                         for(; j < riNum; j ++) {
@@ -155,7 +155,7 @@ void ReductionController::arbitratorEight() {
                     bool isIdle = false;
                     if(i>=192 && i <=223) {
                         for(int j = 192; j <= 223; j++) {
-                            if(reductionInputArray[j]->num_available()) {
+                            if(reductionInputArrayPorts[j]->num_available()) {
                                 reductionInputArrayIndex = j;
                                 inputNumArrayIndex = j;
                                 isIdle = true;
@@ -164,8 +164,8 @@ void ReductionController::arbitratorEight() {
                         }
                     }
                     if(isIdle){
-                        *ri = reductionInputArray[reductionInputArrayIndex]->read();
-                        riNum = notifyArray[inputNumArrayIndex]->read();
+                        *ri = reductionInputArrayPorts[reductionInputArrayIndex]->read();
+                        riNum = notifyArrayPorts[inputNumArrayIndex]->read();
                         assert(riNum > 0 && riNum < 128 && "Error: exceeding the reductionTree Boundary!");
                         int j = 0;
                         for(; j < riNum; j ++) {
@@ -195,7 +195,7 @@ void ReductionController::arbitratorSixteen() {
                     bool isIdle = false;
                     if(i>=224 && i <=239) {
                         for(int j = 224; j <= 239; j++) {
-                            if(reductionInputArray[j]->num_available()) {
+                            if(reductionInputArrayPorts[j]->num_available()) {
                                 reductionInputArrayIndex = j;
                                 inputNumArrayIndex = j;
                                 isIdle = true;
@@ -204,8 +204,8 @@ void ReductionController::arbitratorSixteen() {
                         }
                     }
                     if(isIdle){
-                        *ri = reductionInputArray[reductionInputArrayIndex]->read();
-                        riNum = notifyArray[inputNumArrayIndex]->read();
+                        *ri = reductionInputArrayPorts[reductionInputArrayIndex]->read();
+                        riNum = notifyArrayPorts[inputNumArrayIndex]->read();
                         assert(riNum > 0 && riNum < 128 && "Error: exceeding the reductionTree Boundary!");
                         int j = 0;
                         for(; j < riNum; j ++) {
@@ -235,7 +235,7 @@ void ReductionController::arbitratorThirtyTwo() {
                     bool isIdle = false;
                     if(i>=240 && i <=247) {
                         for(int j = 240; j <= 247; j++) {
-                            if(reductionInputArray[j]->num_available()) {
+                            if(reductionInputArrayPorts[j]->num_available()) {
                                 reductionInputArrayIndex = j;
                                 inputNumArrayIndex = j;
                                 isIdle = true;
@@ -244,8 +244,8 @@ void ReductionController::arbitratorThirtyTwo() {
                         }
                     }
                     if(isIdle) {
-                        *ri = reductionInputArray[reductionInputArrayIndex]->read();
-                        riNum = notifyArray[inputNumArrayIndex]->read();
+                        *ri = reductionInputArrayPorts[reductionInputArrayIndex]->read();
+                        riNum = notifyArrayPorts[inputNumArrayIndex]->read();
                         assert(riNum > 0 && riNum < 128 && "Error: exceeding the reductionTree Boundary!");
                         int j = 0;
                         for(; j < riNum; j ++) {
@@ -275,7 +275,7 @@ void ReductionController::arbitratorSixtyFour() {
                     bool isIdle = false;
                     if(i>=248 && i <=251) {
                         for(int j = 248; j <= 251; j++) {
-                            if(reductionInputArray[j]->num_available()) {
+                            if(reductionInputArrayPorts[j]->num_available()) {
                                 reductionInputArrayIndex = j;
                                 inputNumArrayIndex = j;
                                 isIdle = true;
@@ -284,8 +284,8 @@ void ReductionController::arbitratorSixtyFour() {
                         }
                     }
                     if(isIdle) {
-                        *ri = reductionInputArray[reductionInputArrayIndex]->read();
-                        riNum = notifyArray[inputNumArrayIndex]->read();
+                        *ri = reductionInputArrayPorts[reductionInputArrayIndex]->read();
+                        riNum = notifyArrayPorts[inputNumArrayIndex]->read();
                         assert(riNum > 0 && riNum < 128 && "Error: exceeding the reductionTree Boundary!");
                         int j = 0;
                         for(; j < riNum; j ++) {
@@ -315,7 +315,7 @@ void ReductionController::arbitratorOneHundred() {
                     bool isIdle = false;
                     if(i>=252 && i <=253) {
                         for(int j = 251; j <= 253; j++) {
-                            if(reductionInputArray[j]->num_available()) {
+                            if(reductionInputArrayPorts[j]->num_available()) {
                                 reductionInputArrayIndex = j;
                                 inputNumArrayIndex = j;
                                 isIdle = true;
@@ -324,8 +324,8 @@ void ReductionController::arbitratorOneHundred() {
                         }
                     }
                     if(isIdle) {
-                        *ri = reductionInputArray[reductionInputArrayIndex]->read();
-                        riNum = notifyArray[inputNumArrayIndex]->read();
+                        *ri = reductionInputArrayPorts[reductionInputArrayIndex]->read();
+                        riNum = notifyArrayPorts[inputNumArrayIndex]->read();
                         assert(riNum > 0 && riNum < 128 && "Error: exceeding the reductionTree Boundary!");
                         int j = 0;
                         for(; j < riNum; j ++) {
