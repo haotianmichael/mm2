@@ -287,10 +287,10 @@ SC_MODULE(Scheduler) {
             reductionInputArray[i] = new sc_fifo<reductionInput>(1);
             notifyArray[i] = new sc_fifo<sc_int<WIDTH>>(1);
 
-            rtController->reductionInputArrayPorts[i]->bind(*reductionInputArray[i]);
-            partialScoreQueue->ToReductionInputPorts[i]->bind(*reductionInputArray[i]);
-            rtController->notifyArrayPorts[i]->bind(*notifyArray[i]);
-            partialScoreQueue->ToNotifyPorts[i]->bind(*notifyArray[i]);
+            rtController->reductionInputArrayPorts[i].bind(*reductionInputArray[i]);
+            partialScoreQueue->ToReductionInputPorts[i].bind(*reductionInputArray[i]);
+            rtController->notifyArrayPorts[i].bind(*notifyArray[i]);
+            partialScoreQueue->ToNotifyPorts[i].bind(*notifyArray[i]);
         }
 	}
 };

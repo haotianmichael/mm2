@@ -75,8 +75,8 @@ SC_MODULE(ReductionController) {
         128-path Reduction              2
     */
     sc_in<bool> clk, rst;
-    sc_port<sc_fifo_in_if<reductionInput>> *reductionInputArrayPorts[Reduction_USAGE];
-    sc_port<sc_fifo_in_if<sc_int<WIDTH>>> *notifyArrayPorts[Reduction_USAGE];
+    sc_port<sc_fifo_in_if<reductionInput>> reductionInputArrayPorts[Reduction_USAGE];
+    sc_port<sc_fifo_in_if<sc_int<WIDTH>>> notifyArrayPorts[Reduction_USAGE];
     std::vector<sc_signal<sc_int<WIDTH>>> notifyOutArray;
     std::vector<sc_in<bool>> reduction_done;
     std::vector<sc_signal<sc_int<WIDTH>>> ROCC;
@@ -122,17 +122,10 @@ SC_MODULE(ReductionController) {
 
         SC_THREAD(compute_ROCC);
         sensitive << clk.pos();
-        std::stringstream r_name, n_name;
         for(int i = 0; i < Reduction_USAGE; i++) {
-            r_name << "reductionInputArrayPorts(" << i << ")";
-            n_name << "notifyArrayPorts(" << i << ")";
-            reductionInputArrayPorts[i] = new sc_port<sc_fifo_in_if<reductionInput>>(r_name.str().c_str());
-            notifyArrayPorts[i] = new sc_port<sc_fifo_in_if<sc_int<WIDTH>>>(n_name.str().c_str());
             for(int j = 0; j < Reduction_NUM; j ++) {
                 reductionOutArrayToTree[i][j] = new sc_signal<sc_int<WIDTH>>();
             }
-            r_name.str("");
-            n_name.str("");
         }
     }
 
