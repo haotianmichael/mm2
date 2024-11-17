@@ -6,7 +6,6 @@
 #include "schedulerTable.h"
 #include "reductionPool.h"
 #include "ioDispatcher.h"
-#include "partialScoreQueue.h"
 
 
 SC_MODULE(Scheduler) {
@@ -47,9 +46,6 @@ SC_MODULE(Scheduler) {
     sc_event data_available;  // fifo signal
     sc_event space_available;
 
-    // @PartialScoreQueue
-    PartialScoreQueue *partialScoreQueue;
-
     // @SchedulerTable
     /*
         FIXME: schedulerTable needs to be filled more than one time within one cycle.
@@ -87,12 +83,14 @@ SC_MODULE(Scheduler) {
     ReductionController *rtController;
     ReductionTree *reductionTree[Reduction_USAGE];
     sc_in<sc_int<WIDTH>> ROCC[Reduction_KIND];
+    sc_fifo<reductionInput> *reductionInputArray[Reduction_USAGE];        
+    sc_fifo<sc_int<WIDTH>> *notifyArray[Reduction_USAGE];
 
     void scheduler_hcu_pre();
     void scheduler_hcu_execute();
     void scheduler_hcu_fillTable();
     void scheduler_hcu_allocate();
-    //void scheduler_rt_checkTable();
+    void scheduler_rt_checkTable();
 
 	SC_CTOR(Scheduler) : 
          riSegQueueLong(MAX_SEG_NUM), 
@@ -129,9 +127,9 @@ SC_MODULE(Scheduler) {
         SC_THREAD(scheduler_hcu_execute);
         sensitive << clk.pos();
 
-        // check PSQTable and allocate 
-        //SC_THREAD(scheduler_rt_checkTable);
-        //sensitive << clk.pos();
+        // check SchedulerTable and allocate ReductionTrees
+        SC_THREAD(scheduler_rt_checkTable);
+        sensitive << clk.pos();
 
         for(int i = 0; i < ReadNumProcessedOneTime; i ++) {
             anchorNum[i] = new sc_signal<sc_int<WIDTH>>();
@@ -250,14 +248,6 @@ SC_MODULE(Scheduler) {
             ecu_name.str("");
         }
 
-        partialScoreQueue = new PartialScoreQueue("PartialScoreQueue");
-        partialScoreQueue->clk(clk);
-        partialScoreQueue->rst(rst);   
-        for(int i = 0, pIndex = 0; i < HCU_NUM; i ++) {
-            partialScoreQueue->hcuPoolOut[pIndex++](mcuPool[i]->regBiggerScore[0]); 
-            partialScoreQueue->hcuPoolOut[pIndex++](ecuPool[i]->regBiggerScore[0]); 
-        }
-
         std::stringstream r_name;
         rtController = new ReductionController("ReductionController");
         rtController->clk(clk);
@@ -280,17 +270,13 @@ SC_MODULE(Scheduler) {
             r_name.str("");
         }
 
-        // FIFO Binding
-        sc_fifo<reductionInput> *reductionInputArray[Reduction_USAGE];        
-        sc_fifo<sc_int<WIDTH>> *notifyArray[Reduction_USAGE];
+        // ReductionTree FIFO Binding
         for(int i = 0; i < Reduction_USAGE; i ++) {
             reductionInputArray[i] = new sc_fifo<reductionInput>(1);
             notifyArray[i] = new sc_fifo<sc_int<WIDTH>>(1);
 
             rtController->reductionInputArrayPorts[i].bind(*reductionInputArray[i]);
-            partialScoreQueue->ToReductionInputPorts[i].bind(*reductionInputArray[i]);
             rtController->notifyArrayPorts[i].bind(*notifyArray[i]);
-            partialScoreQueue->ToNotifyPorts[i].bind(*notifyArray[i]);
         }
 	}
 };

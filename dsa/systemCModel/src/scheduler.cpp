@@ -555,7 +555,131 @@ void Scheduler::scheduler_hcu_execute(){
     }
 }
 
-/* 查表，如果有满足条件的直接分配RT
 void Scheduler::scheduler_rt_checkTable(){
+    while(true) {
+        wait();
+        if(start.read()) {
+            for(auto it = schedulerTable->schedulerItemList.begin(); it != schedulerTable->schedulerItemList.end(); it++) {
+               if(it->issued && it->UB >= 66) {
+                  sc_int<WIDTH> output[it->HCU_Total_NUM.to_int()];
+                  bool enable = false;
+                  int index = 0;
+                  for( auto timeIt = it->TimeList.begin(); timeIt != it->TimeList.end(); timeIt++) {
+                        if(timeIt->hcuID != -1) {
+                            sc_int<WIDTH>  id = timeIt->hcuID;
+                            if(timeIt->type) {
+                                if(mcuPool[id]->en) {
+                                    output[index++] = mcuPool[id]->regBiggerScore[0].read(); 
+                                    enable = true;
+                                }
+                            }else {
+                                if(ecuPool[id]->en) {
+                                    output[index++] = ecuPool[id]->regBiggerScore[0].read();
+                                    enable = true;
+                                }
+                            }
+                        }
+                  } 
+                  if(enable) {
+                        int path = it->HCU_Total_NUM.to_int();
+                        bool success = false;
+                        if(path > 0 && path <= 2) {
+                            for(int i = 0; i < 128; i ++) {
+                                if(reductionInputArray[i]->num_free()) {
+                                    reductionInput rt;
+                                    for(int j = 0; j < index; j ++) {
+                                        rt.data[j] = output[j];
+                                     }
+                                     reductionInputArray[i]->write(rt);
+                                     notifyArray[i]->write(static_cast<sc_int<WIDTH>>(path));
+                                     success = true;
+                                     break;
+                                }
+                            }                            
+                        }else if(path >=3 && path <= 4) {
+                            for(int i = 128; i < 192; i ++) {
+                                if(reductionInputArray[i]->num_free()) {
+                                    reductionInput rt;
+                                    for(int j = 0; j < index; j ++) {
+                                        rt.data[j] = output[j];
+                                     }
+                                     reductionInputArray[i]->write(rt);
+                                     notifyArray[i]->write(static_cast<sc_int<WIDTH>>(path));
+                                     success = true;
+                                     break;
+                                }
+                            }
+                        }else if(path >= 5 && path <= 8) {
+                            for(int i = 192; i < 224; i ++) {
+                                if(reductionInputArray[i]->num_free()) {
+                                    reductionInput rt;
+                                    for(int j = 0; j < index; j ++) {
+                                        rt.data[j] = output[j];
+                                     }
+                                     reductionInputArray[i]->write(rt);
+                                     notifyArray[i]->write(static_cast<sc_int<WIDTH>>(path));
+                                     success = true;
+                                     break;
+                                }
+                            }
+                        }else if(path >= 9 && path <= 16) {
+                            for(int i = 224; i < 240; i ++) {
+                                if(reductionInputArray[i]->num_free()) {
+                                    reductionInput rt;
+                                    for(int j = 0; j < index; j ++) {
+                                        rt.data[j] = output[j];
+                                     }
+                                     reductionInputArray[i]->write(rt);
+                                     notifyArray[i]->write(static_cast<sc_int<WIDTH>>(path));
+                                     success = true;
+                                     break;
+                                }
+                            }
+                        }else if(path >= 17 && path <= 32) {
+                            for(int i = 240; i < 248; i ++) {
+                                if(reductionInputArray[i]->num_free()) {
+                                    reductionInput rt;
+                                    for(int j = 0; j < index; j ++) {
+                                        rt.data[j] = output[j];
+                                     }
+                                     reductionInputArray[i]->write(rt);
+                                     notifyArray[i]->write(static_cast<sc_int<WIDTH>>(path));
+                                     success = true;
+                                     break;
+                                }
+                            }
+                        }else if(path >= 33 && path <= 64) {
+                            for(int i = 248; i < 252; i ++) {
+                                if(reductionInputArray[i]->num_free()) {
+                                    reductionInput rt;
+                                    for(int j = 0; j < index; j ++) {
+                                        rt.data[j] = output[j];
+                                     }
+                                     reductionInputArray[i]->write(rt);
+                                     notifyArray[i]->write(static_cast<sc_int<WIDTH>>(path));
+                                     success = true;
+                                     break;
+                                }
+                            }
+                        }else if(path >= 65 && path <= 128) {
+                            for(int i = 252; i < 254; i ++) {
+                                if(reductionInputArray[i]->num_free()) {
+                                    reductionInput rt;
+                                    for(int j = 0; j < index; j ++) {
+                                        rt.data[j] = output[j];
+                                     }
+                                     reductionInputArray[i]->write(rt);
+                                     notifyArray[i]->write(static_cast<sc_int<WIDTH>>(path));
+                                     success = true;
+                                     break;
+                                }
+                            }
+                        }
+                        assert(success && "Error: Not enough reductionTree for scheduling!");
+                   }
+               } 
+            }
+        } 
+    }
 }
-*/
+
