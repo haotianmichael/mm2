@@ -22,7 +22,7 @@ struct reductionInput {
 SC_MODULE(ReductionTree) {
 
     sc_in<bool> clk, rst;
-    sc_in<sc_int<WIDTH>> vecNotify;  // notify signal
+    sc_in<bool> vecNotify;  // notify signal
     std::vector<sc_in<sc_int<WIDTH>>> vecFromController;  // inputArray - the last ele is the length of inputArray
     sc_signal<sc_int<WIDTH>> result;
     sc_signal<bool> done;
@@ -34,19 +34,20 @@ SC_MODULE(ReductionTree) {
                 result.write(static_cast<sc_int<WIDTH>>(-1));
                 done.write(true);
             }else {
-                wait(vecNotify.default_event());
-                done.write(false);
-                std::vector<sc_int<WIDTH>> tmpVec;
-                for(auto ele : vecFromController) {
-                    tmpVec.push_back(ele.read());
-                }
-                auto ret = std::max_element(tmpVec.begin(), tmpVec.end()-1);
-                if(ret != tmpVec.end()) {
-                    wait(static_cast<int>(log2(tmpVec.back())), SC_NS);
-                    result.write(*ret);
-                    done.write(true);
-                }else {
-                    std::cerr << "Error in reductionPool comparator!" << std::endl;
+                if(vecNotify.read()) {
+                    done.write(false);
+                    std::vector<sc_int<WIDTH>> tmpVec;
+                    for(auto ele : vecFromController) {
+                        tmpVec.push_back(ele.read());
+                    }
+                    auto ret = std::max_element(tmpVec.begin(), tmpVec.end()-1);
+                    if(ret != tmpVec.end()) {
+                        wait(static_cast<int>(log2(tmpVec.back())), SC_NS);
+                        result.write(*ret);
+                        done.write(true);
+                    }else {
+                        std::cerr << "Error in reductionPool comparator!" << std::endl;
+                    }
                 }
             }
         }
@@ -75,9 +76,9 @@ SC_MODULE(ReductionController) {
         128-path Reduction              2
     */
     sc_in<bool> clk, rst;
-    sc_port<sc_fifo_in_if<reductionInput>> reductionInputArrayPorts[Reduction_USAGE];
-    sc_port<sc_fifo_in_if<sc_int<WIDTH>>> notifyArrayPorts[Reduction_USAGE];
-    std::vector<sc_signal<sc_int<WIDTH>>> notifyOutArray;
+    sc_port<sc_fifo_in_if<reductionInput>> reductionInputArrayPorts[Reduction_FIFO_NUM];
+    sc_port<sc_fifo_in_if<bool>> notifyArrayPorts[Reduction_FIFO_NUM];
+    std::vector<sc_signal<bool>> notifyOutArray;
     std::vector<sc_in<bool>> reduction_done;
     std::vector<sc_signal<sc_int<WIDTH>>> ROCC;
     std::vector<std::vector<sc_signal<sc_int<WIDTH>>*>> reductionOutArrayToTree;

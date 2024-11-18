@@ -83,8 +83,8 @@ SC_MODULE(Scheduler) {
     ReductionController *rtController;
     ReductionTree *reductionTree[Reduction_USAGE];
     sc_in<sc_int<WIDTH>> ROCC[Reduction_KIND];
-    sc_fifo<reductionInput> *reductionInputArray[Reduction_USAGE];        
-    sc_fifo<sc_int<WIDTH>> *notifyArray[Reduction_USAGE];
+    sc_fifo<reductionInput> *reductionInputArray[Reduction_FIFO_NUM];        
+    sc_fifo<bool> *notifyArray[Reduction_FIFO_NUM];
 
     void scheduler_hcu_pre();
     void scheduler_hcu_execute();
@@ -271,9 +271,9 @@ SC_MODULE(Scheduler) {
         }
 
         // ReductionTree FIFO Binding
-        for(int i = 0; i < Reduction_USAGE; i ++) {
-            reductionInputArray[i] = new sc_fifo<reductionInput>(1);
-            notifyArray[i] = new sc_fifo<sc_int<WIDTH>>(1);
+        for(int i = 0; i < Reduction_FIFO_NUM; i ++) {
+            reductionInputArray[i] = new sc_fifo<reductionInput>(MAX_SEGLENGTH);
+            notifyArray[i] = new sc_fifo<bool>(MAX_SEGLENGTH);
 
             rtController->reductionInputArrayPorts[i].bind(*reductionInputArray[i]);
             rtController->notifyArrayPorts[i].bind(*notifyArray[i]);

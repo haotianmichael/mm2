@@ -153,6 +153,7 @@ int fillTableOfLongSegments(std::mutex& mtx, std::vector<ram_data> &localRAM, in
     // fill at real allocationTime
     sItem.startTime = sc_time(0, SC_NS);
     sItem.endTime = sc_time(0, SC_NS);
+    sItem.Reduction_FIFO_Idx = 0;
     {
         std::lock_guard<std::mutex> lock(mtx);
         st.push_back(sItem);
@@ -203,6 +204,7 @@ int fillTableOfShortSegments(std::mutex& mtx, std::vector<ram_data> &localRAM, i
     sItem.startTime = sc_time(0, SC_NS);
     sItem.endTime = sc_time(0, SC_NS);
     sItem.TimeList.push_back(tl);
+    sItem.Reduction_FIFO_Idx = 0;
     {
         std::lock_guard<std::mutex> lock(mtx);
         st.push_back(sItem);
@@ -564,34 +566,40 @@ void Scheduler::scheduler_rt_checkTable(){
                   sc_int<WIDTH> output[it->HCU_Total_NUM.to_int()];
                   bool enable = false;
                   int index = 0;
-                  for( auto timeIt = it->TimeList.begin(); timeIt != it->TimeList.end(); timeIt++) {
-                        if(timeIt->hcuID != -1) {
-                            sc_int<WIDTH>  id = timeIt->hcuID;
-                            if(timeIt->type) {
-                                if(mcuPool[id]->en) {
-                                    output[index++] = mcuPool[id]->regBiggerScore[0].read(); 
-                                    enable = true;
-                                }
-                            }else {
-                                if(ecuPool[id]->en) {
-                                    output[index++] = ecuPool[id]->regBiggerScore[0].read();
-                                    enable = true;
+                  auto timeIt = it->TimeList.begin();
+                  assert((++timeIt)->type == 0 && "Error: Wrong ECU type!");
+                  if(timeIt->type == 0 && timeIt->hcuID != -1) {
+                      for(timeIt = it->TimeList.begin(); timeIt != it->TimeList.end(); timeIt++) {
+                            if(timeIt->hcuID != -1) {
+                                sc_int<WIDTH>  id = timeIt->hcuID;
+                                if(timeIt->type) {
+                                    if(mcuPool[id]->en) {
+                                        output[index++] = mcuPool[id]->regBiggerScore[0].read(); 
+                                        enable = true;
+                                    }
+                                }else {
+                                    if(ecuPool[id]->en) {
+                                        output[index++] = ecuPool[id]->regBiggerScore[0].read();
+                                        enable = true;
+                                    }
                                 }
                             }
-                        }
-                  } 
-                  if(enable) {
+                      } 
+                  }
+                  /*if(enable) {
                         int path = it->HCU_Total_NUM.to_int();
                         bool success = false;
                         if(path > 0 && path <= 2) {
                             for(int i = 0; i < 128; i ++) {
                                 if(reductionInputArray[i]->num_free()) {
                                     reductionInput rt;
-                                    for(int j = 0; j < index; j ++) {
+                                    int j = 0;
+                                    for(; j < index; j ++) {
                                         rt.data[j] = output[j];
                                      }
+                                     rt.data[j] = static_cast<sc_int<WIDTH>>(path);
                                      reductionInputArray[i]->write(rt);
-                                     notifyArray[i]->write(static_cast<sc_int<WIDTH>>(path));
+                                     notifyArray[i]->write(true);
                                      success = true;
                                      break;
                                 }
@@ -600,11 +608,13 @@ void Scheduler::scheduler_rt_checkTable(){
                             for(int i = 128; i < 192; i ++) {
                                 if(reductionInputArray[i]->num_free()) {
                                     reductionInput rt;
-                                    for(int j = 0; j < index; j ++) {
+                                    int j = 0;
+                                    for(; j < index; j ++) {
                                         rt.data[j] = output[j];
                                      }
+                                     rt.data[j] = static_cast<sc_int<WIDTH>>(path);
                                      reductionInputArray[i]->write(rt);
-                                     notifyArray[i]->write(static_cast<sc_int<WIDTH>>(path));
+                                     notifyArray[i]->write(true);
                                      success = true;
                                      break;
                                 }
@@ -613,11 +623,13 @@ void Scheduler::scheduler_rt_checkTable(){
                             for(int i = 192; i < 224; i ++) {
                                 if(reductionInputArray[i]->num_free()) {
                                     reductionInput rt;
-                                    for(int j = 0; j < index; j ++) {
+                                    int j = 0;
+                                    for(; j < index; j ++) {
                                         rt.data[j] = output[j];
                                      }
+                                     rt.data[j] = static_cast<sc_int<WIDTH>>(path);
                                      reductionInputArray[i]->write(rt);
-                                     notifyArray[i]->write(static_cast<sc_int<WIDTH>>(path));
+                                     notifyArray[i]->write(true);
                                      success = true;
                                      break;
                                 }
@@ -626,11 +638,13 @@ void Scheduler::scheduler_rt_checkTable(){
                             for(int i = 224; i < 240; i ++) {
                                 if(reductionInputArray[i]->num_free()) {
                                     reductionInput rt;
-                                    for(int j = 0; j < index; j ++) {
+                                    int j = 0;
+                                    for(; j < index; j ++) {
                                         rt.data[j] = output[j];
                                      }
+                                     rt.data[j] = static_cast<sc_int<WIDTH>>(path);
                                      reductionInputArray[i]->write(rt);
-                                     notifyArray[i]->write(static_cast<sc_int<WIDTH>>(path));
+                                     notifyArray[i]->write(true);
                                      success = true;
                                      break;
                                 }
@@ -639,11 +653,13 @@ void Scheduler::scheduler_rt_checkTable(){
                             for(int i = 240; i < 248; i ++) {
                                 if(reductionInputArray[i]->num_free()) {
                                     reductionInput rt;
-                                    for(int j = 0; j < index; j ++) {
+                                    int j = 0;
+                                    for(; j < index; j ++) {
                                         rt.data[j] = output[j];
                                      }
+                                     rt.data[j] = static_cast<sc_int<WIDTH>>(path);
                                      reductionInputArray[i]->write(rt);
-                                     notifyArray[i]->write(static_cast<sc_int<WIDTH>>(path));
+                                     notifyArray[i]->write(true);
                                      success = true;
                                      break;
                                 }
@@ -652,11 +668,13 @@ void Scheduler::scheduler_rt_checkTable(){
                             for(int i = 248; i < 252; i ++) {
                                 if(reductionInputArray[i]->num_free()) {
                                     reductionInput rt;
-                                    for(int j = 0; j < index; j ++) {
+                                    int j = 0;
+                                    for(; j < index; j ++) {
                                         rt.data[j] = output[j];
                                      }
+                                     rt.data[j] = static_cast<sc_int<WIDTH>>(path);
                                      reductionInputArray[i]->write(rt);
-                                     notifyArray[i]->write(static_cast<sc_int<WIDTH>>(path));
+                                     notifyArray[i]->write(true);
                                      success = true;
                                      break;
                                 }
@@ -665,19 +683,21 @@ void Scheduler::scheduler_rt_checkTable(){
                             for(int i = 252; i < 254; i ++) {
                                 if(reductionInputArray[i]->num_free()) {
                                     reductionInput rt;
-                                    for(int j = 0; j < index; j ++) {
-                                        rt.data[j] = output[j];
-                                     }
-                                     reductionInputArray[i]->write(rt);
-                                     notifyArray[i]->write(static_cast<sc_int<WIDTH>>(path));
-                                     success = true;
-                                     break;
+                                    int j = 0;
+                                    for(; j < index; j ++) {
+                                       rt.data[j] = output[j];
+                                    }
+                                    rt.data[j] = static_cast<sc_int<WIDTH>>(path);
+                                    reductionInputArray[i]->write(rt);
+                                    notifyArray[i]->write(true);
+                                    success = true;
+                                    break;
                                 }
                             }
                         }
                         assert(success && "Error: Not enough reductionTree for scheduling!");
                    }
-               } 
+               */} 
             }
         } 
     }
