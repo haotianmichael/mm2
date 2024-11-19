@@ -153,7 +153,7 @@ int fillTableOfLongSegments(std::mutex& mtx, std::vector<ram_data> &localRAM, in
     // fill at real allocationTime
     sItem.startTime = sc_time(0, SC_NS);
     sItem.endTime = sc_time(0, SC_NS);
-    sItem.Reduction_FIFO_Idx = 0;
+    sItem.Reduction_FIFO_Idx = -1;
     {
         std::lock_guard<std::mutex> lock(mtx);
         st.push_back(sItem);
@@ -204,7 +204,7 @@ int fillTableOfShortSegments(std::mutex& mtx, std::vector<ram_data> &localRAM, i
     sItem.startTime = sc_time(0, SC_NS);
     sItem.endTime = sc_time(0, SC_NS);
     sItem.TimeList.push_back(tl);
-    sItem.Reduction_FIFO_Idx = 0;
+    sItem.Reduction_FIFO_Idx = -1;
     {
         std::lock_guard<std::mutex> lock(mtx);
         st.push_back(sItem);
@@ -557,6 +557,15 @@ void Scheduler::scheduler_hcu_execute(){
     }
 }
 
+void fillFIFOPorts(sc_fifo<reductionInput> *reductionInputEle, sc_int<WIDTH> &path, sc_int<WIDTH> *output, int outputNum) {
+    reductionInput rt;
+    int j = 0;
+    for(; j < outputNum; j++) {
+        rt.data[j] = output[j];
+    }
+    rt.data[j] = path;
+    reductionInputEle->write(rt);
+}
 void Scheduler::scheduler_rt_checkTable(){
     while(true) {
         wait();
@@ -585,6 +594,23 @@ void Scheduler::scheduler_rt_checkTable(){
                                 }
                             }
                       } 
+                  }
+                  if (enable) {
+                      if (it->Reduction_FIFO_Idx >= 0) {
+                          assert(notifyArray[it->Reduction_FIFO_Idx.to_int()]->read() != -1 && "Error: Wrong FIFO's notify signal !");
+                          fillFIFOPorts(reductionInputArray[it->Reduction_FIFO_Idx.to_int()], it->HCU_Total_NUM, output, index);
+                      }else if(it->Reduction_FIFO_Idx == -1){
+                          bool fillS = false;
+                          for (int i = 0; i < Reduction_FIFO_NUM; i++){
+                              if (notifyArray[i]->read() == -1){
+                                  it->Reduction_FIFO_Idx = i;
+                                  notifyArray[i]->write(0); // successfully porting, ready to dispathing
+                                  fillFIFOPorts(reductionInputArray[i], it->HCU_Total_NUM, output, index);
+                              }
+                          }
+                      }else {
+                          std::cerr << "Error: Wong FIFO idx!" << std::endl;
+                      }
                   }
                   /*if(enable) {
                         int path = it->HCU_Total_NUM.to_int();
