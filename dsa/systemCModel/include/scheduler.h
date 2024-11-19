@@ -261,6 +261,7 @@ SC_MODULE(Scheduler) {
             reductionTree[i]->clk(clk);
             reductionTree[i]->rst(rst);
             reductionTree[i]->vecNotify(rtController->notifyOutArray[i]);
+            reductionTree[i]->fifoIdx(rtController->fifoIdxArray[i]);
             for(int j = 0; j < Reduction_NUM; j ++) {
                 reductionTree[i]->vecFromController[j](*(rtController->reductionOutArrayToTree[i][j]));
             }
@@ -274,12 +275,6 @@ SC_MODULE(Scheduler) {
         for(int i = 0; i < Reduction_FIFO_NUM; i ++) {
             reductionInputArray[i] = new sc_fifo<reductionInput>(MAX_SEGLENGTH);
             notifyArray[i] = new sc_signal<sc_int<WIDTH>>();
-            /* -1 deotes: not porting 
-                0 denotes: not dispatching
-               >0 denotes: reducting
-            */
-            *notifyArray[i] = -1;   
-
             rtController->reductionInputArrayPorts[i].bind(*reductionInputArray[i]);
             rtController->notifyArrayPorts[i].bind(*notifyArray[i]);
         }

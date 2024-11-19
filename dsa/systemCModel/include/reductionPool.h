@@ -22,6 +22,7 @@ struct reductionInput {
 SC_MODULE(ReductionTree) {
 
     sc_in<bool> clk, rst;
+    sc_in<sc_int<WIDTH>> fifoIdx;
     sc_in<bool> vecNotify;  // notify signal
     std::vector<sc_in<sc_int<WIDTH>>> vecFromController;  // inputArray - the last ele is the length of inputArray
     sc_signal<sc_int<WIDTH>> result;
@@ -80,45 +81,22 @@ SC_MODULE(ReductionController) {
     sc_port<sc_signal<sc_int<WIDTH>>> notifyArrayPorts[Reduction_FIFO_NUM];
     std::vector<sc_signal<bool>> notifyOutArray;
     std::vector<sc_in<bool>> reduction_done;
+    std::vector<sc_signal<sc_int<WIDTH>>> fifoIdxArray;
     std::vector<sc_signal<sc_int<WIDTH>>> ROCC;
     std::vector<std::vector<sc_signal<sc_int<WIDTH>>*>> reductionOutArrayToTree;
-    int counter[Reduction_KIND];
 
     
     void compute_ROCC();
-    void arbitratorTwo();
-    void arbitratorFour();
-    void arbitratorEight();
-    void arbitratorSixteen();
-    void arbitratorThirtyTwo();
-    void arbitratorSixtyFour();
-    void arbitratorOneHundred();
+    void arbitrator();
 
     SC_CTOR(ReductionController):
         ROCC(Reduction_KIND),
         reduction_done(Reduction_USAGE),
+        fifoIdxArray(Reduction_USAGE),
         notifyOutArray(Reduction_USAGE),
         reductionOutArrayToTree(Reduction_USAGE, std::vector<sc_signal<sc_int<WIDTH>>*>(Reduction_NUM)){
 
-        SC_THREAD(arbitratorTwo);
-        sensitive << clk.pos();
-
-        SC_THREAD(arbitratorFour);
-        sensitive << clk.pos();
-
-        SC_THREAD(arbitratorEight);
-        sensitive << clk.pos();
-
-        SC_THREAD(arbitratorSixteen);
-        sensitive << clk.pos();
-
-        SC_THREAD(arbitratorThirtyTwo);
-        sensitive << clk.pos();
-
-        SC_THREAD(arbitratorSixtyFour);
-        sensitive << clk.pos();
-
-        SC_THREAD(arbitratorOneHundred);
+        SC_THREAD(arbitrator);
         sensitive << clk.pos();
 
         SC_THREAD(compute_ROCC);

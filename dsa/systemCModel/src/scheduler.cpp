@@ -597,133 +597,25 @@ void Scheduler::scheduler_rt_checkTable(){
                   }
                   if (enable) {
                       if (it->Reduction_FIFO_Idx >= 0) {
-                          assert(notifyArray[it->Reduction_FIFO_Idx.to_int()]->read() != -1 && "Error: Wrong FIFO's notify signal !");
+                          assert(notifyArray[it->Reduction_FIFO_Idx.to_int()]->read() != -2 && "Error: Wrong FIFO's notify signal !");
                           fillFIFOPorts(reductionInputArray[it->Reduction_FIFO_Idx.to_int()], it->HCU_Total_NUM, output, index);
                       }else if(it->Reduction_FIFO_Idx == -1){
                           bool fillS = false;
                           for (int i = 0; i < Reduction_FIFO_NUM; i++){
-                              if (notifyArray[i]->read() == -1){
+                              if (notifyArray[i]->read() == -2){
                                   it->Reduction_FIFO_Idx = i;
-                                  notifyArray[i]->write(0); // successfully porting, ready to dispathing
+                                  notifyArray[i]->write(-1); // successfully porting, ready to dispathing
                                   fillFIFOPorts(reductionInputArray[i], it->HCU_Total_NUM, output, index);
+                                  fillS = true;
+                                  break;
                               }
                           }
+                          assert(fillS && "Error: Exceeding FIFO Capacity!");
                       }else {
                           std::cerr << "Error: Wong FIFO idx!" << std::endl;
                       }
                   }
-                  /*if(enable) {
-                        int path = it->HCU_Total_NUM.to_int();
-                        bool success = false;
-                        if(path > 0 && path <= 2) {
-                            for(int i = 0; i < 128; i ++) {
-                                if(reductionInputArray[i]->num_free()) {
-                                    reductionInput rt;
-                                    int j = 0;
-                                    for(; j < index; j ++) {
-                                        rt.data[j] = output[j];
-                                     }
-                                     rt.data[j] = static_cast<sc_int<WIDTH>>(path);
-                                     reductionInputArray[i]->write(rt);
-                                     notifyArray[i]->write(true);
-                                     success = true;
-                                     break;
-                                }
-                            }                            
-                        }else if(path >=3 && path <= 4) {
-                            for(int i = 128; i < 192; i ++) {
-                                if(reductionInputArray[i]->num_free()) {
-                                    reductionInput rt;
-                                    int j = 0;
-                                    for(; j < index; j ++) {
-                                        rt.data[j] = output[j];
-                                     }
-                                     rt.data[j] = static_cast<sc_int<WIDTH>>(path);
-                                     reductionInputArray[i]->write(rt);
-                                     notifyArray[i]->write(true);
-                                     success = true;
-                                     break;
-                                }
-                            }
-                        }else if(path >= 5 && path <= 8) {
-                            for(int i = 192; i < 224; i ++) {
-                                if(reductionInputArray[i]->num_free()) {
-                                    reductionInput rt;
-                                    int j = 0;
-                                    for(; j < index; j ++) {
-                                        rt.data[j] = output[j];
-                                     }
-                                     rt.data[j] = static_cast<sc_int<WIDTH>>(path);
-                                     reductionInputArray[i]->write(rt);
-                                     notifyArray[i]->write(true);
-                                     success = true;
-                                     break;
-                                }
-                            }
-                        }else if(path >= 9 && path <= 16) {
-                            for(int i = 224; i < 240; i ++) {
-                                if(reductionInputArray[i]->num_free()) {
-                                    reductionInput rt;
-                                    int j = 0;
-                                    for(; j < index; j ++) {
-                                        rt.data[j] = output[j];
-                                     }
-                                     rt.data[j] = static_cast<sc_int<WIDTH>>(path);
-                                     reductionInputArray[i]->write(rt);
-                                     notifyArray[i]->write(true);
-                                     success = true;
-                                     break;
-                                }
-                            }
-                        }else if(path >= 17 && path <= 32) {
-                            for(int i = 240; i < 248; i ++) {
-                                if(reductionInputArray[i]->num_free()) {
-                                    reductionInput rt;
-                                    int j = 0;
-                                    for(; j < index; j ++) {
-                                        rt.data[j] = output[j];
-                                     }
-                                     rt.data[j] = static_cast<sc_int<WIDTH>>(path);
-                                     reductionInputArray[i]->write(rt);
-                                     notifyArray[i]->write(true);
-                                     success = true;
-                                     break;
-                                }
-                            }
-                        }else if(path >= 33 && path <= 64) {
-                            for(int i = 248; i < 252; i ++) {
-                                if(reductionInputArray[i]->num_free()) {
-                                    reductionInput rt;
-                                    int j = 0;
-                                    for(; j < index; j ++) {
-                                        rt.data[j] = output[j];
-                                     }
-                                     rt.data[j] = static_cast<sc_int<WIDTH>>(path);
-                                     reductionInputArray[i]->write(rt);
-                                     notifyArray[i]->write(true);
-                                     success = true;
-                                     break;
-                                }
-                            }
-                        }else if(path >= 65 && path <= 128) {
-                            for(int i = 252; i < 254; i ++) {
-                                if(reductionInputArray[i]->num_free()) {
-                                    reductionInput rt;
-                                    int j = 0;
-                                    for(; j < index; j ++) {
-                                       rt.data[j] = output[j];
-                                    }
-                                    rt.data[j] = static_cast<sc_int<WIDTH>>(path);
-                                    reductionInputArray[i]->write(rt);
-                                    notifyArray[i]->write(true);
-                                    success = true;
-                                    break;
-                                }
-                            }
-                        }
-                        assert(success && "Error: Not enough reductionTree for scheduling!");
-                   }
-               */} 
+                } 
             }
         } 
     }

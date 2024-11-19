@@ -61,281 +61,170 @@ void ReductionController::compute_ROCC() {
     }
 }
 
-void ReductionController::arbitratorTwo() {
+void ReductionController::arbitrator() {
     while(true) {
         wait();
         if(rst.read()) {
-            counter[0] = 0;
-        }else {
             for(int i = 0; i < Reduction_USAGE; i ++) {
-                if(reduction_done[i].read()) {
-                    reductionInput *ri = new reductionInput;
-                    sc_int<WIDTH> riNum;
-                    int reductionInputArrayIndex, inputNumArrayIndex;
-                    bool isIdle = false;
-                    if(i>=0 && i <=127) {
-                        for(int j = 0; j <= 127; j++) {
-                            if(reductionInputArrayPorts[j]->num_available()) {
-                                reductionInputArrayIndex = j;
-                                inputNumArrayIndex = j;
-                                isIdle = true;
-                                break;
-                            }
-                        }
-                    }
-                    if(isIdle) {
-                        *ri = reductionInputArrayPorts[reductionInputArrayIndex]->read();
-                        riNum = notifyArrayPorts[inputNumArrayIndex]->read();
-                        assert(riNum > 0 && riNum < 128 && "Error: exceeding the reductionTree Boundary!");
-                        int j = 0;
-                        for(; j < riNum; j ++) {
-                            reductionOutArrayToTree[i][j]->write(ri->data[j]);
-                        }
-                        reductionOutArrayToTree[i][j]->write(riNum);
-                        counter[0] = (counter[0] + 1) % 256 - 128; 
-                        notifyOutArray[i].write(counter[0]);
-                    }
-                }                    
+                fifoIdxArray[i].write(static_cast<sc_int<WIDTH>>(-1));
+                notifyOutArray[i].write(false);
+                for(int j = 0; j < Reduction_NUM; j ++) {
+                    reductionOutArrayToTree[i][j]->write(static_cast<sc_int<WIDTH>>(-1));
+                }
             }
-        }
-    }
-}
-
-void ReductionController::arbitratorFour() {
-    while(true) {
-        wait();
-        if(rst.read()) {
-            counter[1] = 0;
-        }else {
-            for(int i = 0; i < Reduction_USAGE; i ++) {
-                if(reduction_done[i].read()) {
-                    reductionInput *ri = new reductionInput;
-                    sc_int<WIDTH> riNum;
-                    int reductionInputArrayIndex, inputNumArrayIndex;
-                    bool isIdle = false;
-                    if(i>=128 && i <=191) {
-                        for(int j = 128; j <= 191; j++) {
-                            if(reductionInputArrayPorts[j]->num_available()) {
-                                reductionInputArrayIndex = j;
-                                inputNumArrayIndex = j;
-                                isIdle = true;
-                                break;
-                            }
-                        }
-                    }
-                    if(isIdle){
-                        *ri = reductionInputArrayPorts[reductionInputArrayIndex]->read();
-                        riNum = notifyArrayPorts[inputNumArrayIndex]->read();
-                        assert(riNum > 0 && riNum < 128 && "Error: exceeding the reductionTree Boundary!");
-                        int j = 0;
-                        for(; j < riNum; j ++) {
-                            reductionOutArrayToTree[i][j]->write(ri->data[j]);
-                        }
-                        reductionOutArrayToTree[i][j]->write(riNum);
-                        counter[1] = (counter[1] + 1) % 256 - 128; 
-                        notifyOutArray[i].write(counter[1]);
-                    }
-                }                    
+            /* -2 deotes: not porting 
+               -1 denotes: not dispatching
+              >=0 denotes: reducting
+            */
+            for(int i = 0; i < Reduction_FIFO_NUM; i ++) {
+                notifyArrayPorts[i]->write(static_cast<sc_int<WIDTH>>(-2));
             }
-        }
-    }
-}
-
-void ReductionController::arbitratorEight() {
-    while(true) {
-        wait();
-        if(rst.read()) {
-            counter[2] = 0;
         }else {
-            for(int i = 0; i < Reduction_USAGE; i ++) {
-                if(reduction_done[i].read()) {
-                    reductionInput *ri = new reductionInput;
-                    sc_int<WIDTH> riNum;
-                    int reductionInputArrayIndex, inputNumArrayIndex;
-                    bool isIdle = false;
-                    if(i>=192 && i <=223) {
-                        for(int j = 192; j <= 223; j++) {
-                            if(reductionInputArrayPorts[j]->num_available()) {
-                                reductionInputArrayIndex = j;
-                                inputNumArrayIndex = j;
-                                isIdle = true;
-                                break;
-                            }
+            for(int i = 0; i < Reduction_FIFO_NUM; i ++) {
+                reductionInput *ri = new reductionInput;
+                sc_int<WIDTH> riNum;
+                if(notifyArrayPorts[i]->read() >= 0) {
+                    int j = notifyArrayPorts[i]->read().to_int();
+                    if(reduction_done[j].read()) {
+                        assert(reductionInputArrayPorts[i]->num_available()==0 && "Error: FIFO's data not processed!");
+                        notifyArrayPorts[i]->write(static_cast<sc_int<WIDTH>>(-2));
+                        notifyOutArray[i].write(false);
+                        fifoIdxArray[i].write(static_cast<sc_int<WIDTH>>(-1));
+                    }else {
+                        *ri = reductionInputArrayPorts[i]->read();
+                        riNum = ri->data.back();
+                        assert(fifoIdxArray[j].read()==i && "Error: unknow error about FIFOIx and ReductionIdx!"); 
+                        for(int t = 0; t < riNum - 1; t++) {
+                            reductionOutArrayToTree[j][t]->write(ri->data[t]);
                         }
+                        notifyOutArray[j].write(true);
                     }
-                    if(isIdle){
-                        *ri = reductionInputArrayPorts[reductionInputArrayIndex]->read();
-                        riNum = notifyArrayPorts[inputNumArrayIndex]->read();
-                        assert(riNum > 0 && riNum < 128 && "Error: exceeding the reductionTree Boundary!");
+                }else if(notifyArrayPorts[i]->read() == -1) {
+                    *ri = reductionInputArrayPorts[i]->read();
+                    riNum = ri->data.back();
+                    if(riNum >= 1 && riNum <= 2) {
+                        bool dispatchS = false;
                         int j = 0;
-                        for(; j < riNum; j ++) {
-                            reductionOutArrayToTree[i][j]->write(ri->data[j]);
+                        for(; j <= 127; j ++) {
+                            if(reduction_done[j].read()) {
+                                fifoIdxArray[j].write(static_cast<sc_int<WIDTH>>(i));
+                                for(int t = 0; t < riNum - 1; t++) {
+                                    reductionOutArrayToTree[j][t]->write(ri->data[t]);
+                                }
+                                notifyOutArray[j].write(true);
+                            } 
+                            break;
+                            dispatchS = true;
                         }
-                        reductionOutArrayToTree[i][j]->write(riNum);
-                        counter[2] = (counter[2] + 1) % 256 - 128; 
-                        notifyOutArray[i].write(riNum);
-                    }
-                }                    
-            }
-        }
-    }
-}
+                        if(dispatchS) {
+                            notifyArrayPorts[i]->write(static_cast<sc_int<WIDTH>>(j));
+                        }
+                    }else if(riNum >= 3 && riNum <= 4) {
+                        bool dispatchS = false;
+                        int j = 128;
+                        for(; j <= 191; j ++) {
+                            if(reduction_done[j].read()) {
+                                fifoIdxArray[j].write(static_cast<sc_int<WIDTH>>(i));
+                                for(int t = 0; t < riNum - 1; t++) {
+                                    reductionOutArrayToTree[j][t]->write(ri->data[t]);
+                                }
+                                notifyOutArray[j].write(true);
+                            } 
+                            break;
+                            dispatchS = true;
+                        }
+                        if(dispatchS) {
+                            notifyArrayPorts[i]->write(static_cast<sc_int<WIDTH>>(j));
+                        }
+                    }else if(riNum >= 5 && riNum <= 8) {
+                        bool dispatchS = false;
+                        int j = 192;
+                        for(; j <= 223; j ++) {
+                            if(reduction_done[j].read()) {
+                                fifoIdxArray[j].write(static_cast<sc_int<WIDTH>>(i));
+                                for(int t = 0; t < riNum - 1; t++) {
+                                    reductionOutArrayToTree[j][t]->write(ri->data[t]);
+                                }
+                                notifyOutArray[j].write(true);
+                            } 
+                            break;
+                            dispatchS = true;
+                        }
+                        if(dispatchS) {
+                            notifyArrayPorts[i]->write(static_cast<sc_int<WIDTH>>(j));
+                        }
+                    }else if(riNum >= 9 && riNum <= 16) {
+                        bool dispatchS  = false;
+                        int j = 224;
+                        for(; j <= 239; j ++) {
+                            if(reduction_done[j].read()) {
+                                fifoIdxArray[j].write(static_cast<sc_int<WIDTH>>(i));
+                                for(int t = 0; t < riNum - 1; t++) {
+                                    reductionOutArrayToTree[j][t]->write(ri->data[t]);
+                                }
+                                notifyOutArray[j].write(true);
+                            } 
+                            break;
+                            dispatchS = true;
+                        }
+                        if(dispatchS) {
+                            notifyArrayPorts[i]->write(static_cast<sc_int<WIDTH>>(j));
+                        }
+                    }else if(riNum >= 17 && riNum <= 32) {
+                        bool dispatchS = false;
+                        int j = 240;
+                        for(; j <= 247; j ++) {
+                            if(reduction_done[j].read()) {
+                                fifoIdxArray[j].write(static_cast<sc_int<WIDTH>>(i));
+                                for(int t = 0; t < riNum - 1; t++) {
+                                    reductionOutArrayToTree[j][t]->write(ri->data[t]);
+                                }
+                                notifyOutArray[j].write(true);
+                            } 
+                            break;
+                            dispatchS = true;
+                        }
+                        if(dispatchS) {
+                            notifyArrayPorts[i]->write(static_cast<sc_int<WIDTH>>(j));
+                        }
+                    }else if(riNum >= 33 && riNum <= 64) {
+                        bool dispatchS = false;
+                        int j = 248;
+                        for(; j <= 251; j ++) {
+                            if(reduction_done[j].read()) {
+                                fifoIdxArray[j].write(static_cast<sc_int<WIDTH>>(i));
+                                for(int t = 0; t < riNum - 1; t++) {
+                                    reductionOutArrayToTree[j][t]->write(ri->data[t]);
+                                }
+                                notifyOutArray[j].write(true);
+                            } 
+                            break;
+                            dispatchS = true;
+                        }
+                        if(dispatchS) {
+                            notifyArrayPorts[i]->write(static_cast<sc_int<WIDTH>>(j));
+                        }
+                    }else if(riNum >= 65 && riNum <= 128) {
+                        bool dispatchS = false;
+                        int j = 252;
+                        for(; j <= 253; j ++) {
+                            if(reduction_done[j].read()) {
+                                fifoIdxArray[j].write(static_cast<sc_int<WIDTH>>(i));
+                                for(int t = 0; t < riNum - 1; t++) {
+                                    reductionOutArrayToTree[j][t]->write(ri->data[t]);
+                                }
+                                notifyOutArray[j].write(true);
+                            } 
+                            break;
+                            dispatchS = true;
+                        }
+                        if(dispatchS) {
+                            notifyArrayPorts[i]->write(static_cast<sc_int<WIDTH>>(j));
+                        }
+                    }else {    // riNum == 0
 
-void ReductionController::arbitratorSixteen() {
-    while(true) {
-        wait();
-        if(rst.read()) {
-            counter[3] = 0;
-        }else {
-            for(int i = 0; i < Reduction_USAGE; i ++) {
-                if(reduction_done[i].read()) {
-                    reductionInput *ri = new reductionInput;
-                    sc_int<WIDTH> riNum;
-                    int reductionInputArrayIndex, inputNumArrayIndex;
-                    bool isIdle = false;
-                    if(i>=224 && i <=239) {
-                        for(int j = 224; j <= 239; j++) {
-                            if(reductionInputArrayPorts[j]->num_available()) {
-                                reductionInputArrayIndex = j;
-                                inputNumArrayIndex = j;
-                                isIdle = true;
-                                break;
-                            }
-                        }
                     }
-                    if(isIdle){
-                        *ri = reductionInputArrayPorts[reductionInputArrayIndex]->read();
-                        riNum = notifyArrayPorts[inputNumArrayIndex]->read();
-                        assert(riNum > 0 && riNum < 128 && "Error: exceeding the reductionTree Boundary!");
-                        int j = 0;
-                        for(; j < riNum; j ++) {
-                            reductionOutArrayToTree[i][j]->write(ri->data[j]);
-                        }
-                        reductionOutArrayToTree[i][j]->write(riNum);
-                        counter[3] = (counter[3] + 1) % 256 - 128; 
-                        notifyOutArray[i].write(counter[3]);
-                    }
-                }                    
-            }
-        }
-    }
-}
-
-void ReductionController::arbitratorThirtyTwo() {
-    while(true) {
-        wait();
-        if(rst.read()) {
-            counter[4] = 0;
-        }else {
-            for(int i = 0; i < Reduction_USAGE; i ++) {
-                if(reduction_done[i].read()) {
-                    reductionInput *ri = new reductionInput;
-                    sc_int<WIDTH> riNum;
-                    int reductionInputArrayIndex, inputNumArrayIndex;
-                    bool isIdle = false;
-                    if(i>=240 && i <=247) {
-                        for(int j = 240; j <= 247; j++) {
-                            if(reductionInputArrayPorts[j]->num_available()) {
-                                reductionInputArrayIndex = j;
-                                inputNumArrayIndex = j;
-                                isIdle = true;
-                                break;
-                            }
-                        }
-                    }
-                    if(isIdle) {
-                        *ri = reductionInputArrayPorts[reductionInputArrayIndex]->read();
-                        riNum = notifyArrayPorts[inputNumArrayIndex]->read();
-                        assert(riNum > 0 && riNum < 128 && "Error: exceeding the reductionTree Boundary!");
-                        int j = 0;
-                        for(; j < riNum; j ++) {
-                            reductionOutArrayToTree[i][j]->write(ri->data[j]);
-                        }
-                        reductionOutArrayToTree[i][j]->write(riNum);
-                        counter[4] = (counter[4] + 1) % 256 - 128; 
-                        notifyOutArray[i].write(counter[4]);
-                    }
-                }                    
-            }
-        }
-    }
-}
-
-void ReductionController::arbitratorSixtyFour() {
-    while(true) {
-        wait();
-        if(rst.read()) {
-            counter[5] = 0;
-        }else {
-            for(int i = 0; i < Reduction_USAGE; i ++) {
-                if(reduction_done[i].read()) {
-                    reductionInput *ri = new reductionInput;
-                    sc_int<WIDTH> riNum;
-                    int reductionInputArrayIndex, inputNumArrayIndex;
-                    bool isIdle = false;
-                    if(i>=248 && i <=251) {
-                        for(int j = 248; j <= 251; j++) {
-                            if(reductionInputArrayPorts[j]->num_available()) {
-                                reductionInputArrayIndex = j;
-                                inputNumArrayIndex = j;
-                                isIdle = true;
-                                break;
-                            }
-                        }
-                    }
-                    if(isIdle) {
-                        *ri = reductionInputArrayPorts[reductionInputArrayIndex]->read();
-                        riNum = notifyArrayPorts[inputNumArrayIndex]->read();
-                        assert(riNum > 0 && riNum < 128 && "Error: exceeding the reductionTree Boundary!");
-                        int j = 0;
-                        for(; j < riNum; j ++) {
-                            reductionOutArrayToTree[i][j]->write(ri->data[j]);
-                        }
-                        reductionOutArrayToTree[i][j]->write(riNum);
-                        counter[5] = (counter[5] + 1) % 256 - 128; 
-                        notifyOutArray[i].write(counter[5]);
-                    }
-                }                    
-            }
-        }
-    }
-}
-
-void ReductionController::arbitratorOneHundred() {
-    while(true) {
-        wait();
-        if(rst.read()) {
-            counter[6] = 0;
-        }else {
-            for(int i = 0; i < Reduction_USAGE; i ++) {
-                if(reduction_done[i].read()) {
-                    reductionInput *ri = new reductionInput;
-                    sc_int<WIDTH> riNum;
-                    int reductionInputArrayIndex, inputNumArrayIndex;
-                    bool isIdle = false;
-                    if(i>=252 && i <=253) {
-                        for(int j = 251; j <= 253; j++) {
-                            if(reductionInputArrayPorts[j]->num_available()) {
-                                reductionInputArrayIndex = j;
-                                inputNumArrayIndex = j;
-                                isIdle = true;
-                                break;
-                            }
-                        }
-                    }
-                    if(isIdle) {
-                        *ri = reductionInputArrayPorts[reductionInputArrayIndex]->read();
-                        riNum = notifyArrayPorts[inputNumArrayIndex]->read();
-                        assert(riNum > 0 && riNum < 128 && "Error: exceeding the reductionTree Boundary!");
-                        int j = 0;
-                        for(; j < riNum; j ++) {
-                            reductionOutArrayToTree[i][j]->write(ri->data[j]);
-                        }
-                        reductionOutArrayToTree[i][j]->write(riNum);
-                        counter[6] = (counter[6] + 1) % 256 - 128; 
-                        notifyOutArray[i].write(counter[6]);
-                    }
-                }                    
+                }
             }
         }
     }
