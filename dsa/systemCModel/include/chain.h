@@ -1,5 +1,5 @@
-#ifndef SCHEDULER_H
-#define SCHEDULER_H
+#ifndef CHAIN_H 
+#define CHAIN_H 
 
 #include "hcu.h"
 #include "rangeCountUnit.h"
@@ -8,7 +8,7 @@
 #include "ioDispatcher.h"
 
 
-SC_MODULE(Scheduler) {
+SC_MODULE(Chain) {
 
     sc_in<bool> clk;
     sc_in<bool> rst;
@@ -86,13 +86,13 @@ SC_MODULE(Scheduler) {
     sc_fifo<reductionInput> *reductionInputArray[Reduction_FIFO_NUM];        
     sc_signal<sc_int<WIDTH>> *notifyArray[Reduction_FIFO_NUM];
 
-    void scheduler_hcu_pre();
-    void scheduler_hcu_execute();
-    void scheduler_hcu_fillTable();
-    void scheduler_hcu_allocate();
-    void scheduler_rt_checkTable();
+    void chain_hcu_pre();
+    void chain_hcu_execute();
+    void chain_hcu_fillTable();
+    void chain_hcu_allocate();
+    void chain_rt_checkTable();
 
-	SC_CTOR(Scheduler) : 
+	SC_CTOR(Chain) : 
          riSegQueueLong(MAX_SEG_NUM), 
          qiSegQueueLong(MAX_SEG_NUM), 
          wSegQueueLong(MAX_SEG_NUM),
@@ -112,23 +112,23 @@ SC_MODULE(Scheduler) {
 
         // prepare the segmentQueue
         // one read per cycle.(延时问题后续重新考虑)
-        SC_THREAD(scheduler_hcu_pre);
+        SC_THREAD(chain_hcu_pre);
         sensitive << clk.pos();
 
         // fill SchedulerTable for every Segment based on SegQueue
-        SC_THREAD(scheduler_hcu_fillTable);
+        SC_THREAD(chain_hcu_fillTable);
         sensitive << clk.pos();
 
         // allocate HCU for every Segment based on SchedulerTable
-        SC_THREAD(scheduler_hcu_allocate);
+        SC_THREAD(chain_hcu_allocate);
         sensitive << clk.pos();
 
         // HCU IO Wiring/Free and fill PSQTable
-        SC_THREAD(scheduler_hcu_execute);
+        SC_THREAD(chain_hcu_execute);
         sensitive << clk.pos();
 
         // check SchedulerTable and allocate ReductionTrees
-        SC_THREAD(scheduler_rt_checkTable);
+        SC_THREAD(chain_rt_checkTable);
         sensitive << clk.pos();
 
         for(int i = 0; i < ReadNumProcessedOneTime; i ++) {

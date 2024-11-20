@@ -1,4 +1,4 @@
-#include "scheduler.h"
+#include "chain.h"
 
 SC_MODULE(Tb) {
 
@@ -30,19 +30,19 @@ int sc_main(int argc, char* argv[]) {
     tb.reset(rst);
 
 
-    Scheduler scheduler("chainScheduler");
-    scheduler.clk(clk);
-    scheduler.rst(rst);
+    Chain chain("simChain");
+    chain.clk(clk);
+    chain.rst(rst);
     sc_trace(fp, clk, "clk");
     sc_trace(fp, rst, "rst");
     
-    sc_trace(fp, scheduler.start.read(), "cutDone");
+    sc_trace(fp, chain.start.read(), "cutDone");
     std::ostringstream mri_name, eri_name;
     for(int i =0; i < HCU_NUM; i ++) {
             mri_name << "mriArray" << i;
             eri_name << "eriArray" << i;
-            sc_trace(fp, scheduler.mcuPool[i]->riArray[0].read(), mri_name.str());
-            sc_trace(fp, scheduler.ecuPool[i]->riArray[0].read(), eri_name.str());
+            sc_trace(fp, chain.mcuPool[i]->riArray[0].read(), mri_name.str());
+            sc_trace(fp, chain.ecuPool[i]->riArray[0].read(), eri_name.str());
             mri_name.str("");
             eri_name.str("");
     }
@@ -52,9 +52,9 @@ int sc_main(int argc, char* argv[]) {
         mIOOutname << "mIODisOut" << i;
         eIOOutname << "eIODisOut" << i;
         eIOOutnameI << "eIODisOutInitializedRi" << i;
-        sc_trace(fp, scheduler.mcuIODisPatcherPool[i]->ri_out[0].read(), mIOOutname.str());
-        sc_trace(fp, scheduler.ecuIODisPatcherPool[i]->ri_out[0].read(), eIOOutname.str());
-        sc_trace(fp, scheduler.ecuIODisPatcherPool[i]->ecu_ri_out.read(), eIOOutnameI.str());
+        sc_trace(fp, chain.mcuIODisPatcherPool[i]->ri_out[0].read(), mIOOutname.str());
+        sc_trace(fp, chain.ecuIODisPatcherPool[i]->ri_out[0].read(), eIOOutname.str());
+        sc_trace(fp, chain.ecuIODisPatcherPool[i]->ecu_ri_out.read(), eIOOutnameI.str());
         mIOOutname.str("");
         eIOOutname.str("");
         eIOOutnameI.str("");
@@ -64,8 +64,8 @@ int sc_main(int argc, char* argv[]) {
     for(int i = 0; i < HCU_NUM; i ++) {
         mname << "MCU" << i << "out";
         ename << "ECU" << i << "out";
-        sc_trace(fp, scheduler.mcuPool[i]->regBiggerScore[0].read(), mname.str());
-        sc_trace(fp, scheduler.ecuPool[i]->regBiggerScore[0].read(), ename.str());
+        sc_trace(fp, chain.mcuPool[i]->regBiggerScore[0].read(), mname.str());
+        sc_trace(fp, chain.ecuPool[i]->regBiggerScore[0].read(), ename.str());
         mname.str("");
         ename.str("");
     }
@@ -74,8 +74,8 @@ int sc_main(int argc, char* argv[]) {
     for(int i = 0; i < HCU_NUM; i ++) {
         mIOInname << "mIODisIn" << i;
         eIOInname << "eIODisin" << i;
-        sc_trace(fp, scheduler.mcuIODisPatcherPool[i]->ri[0].read(), mIOInname.str());
-        sc_trace(fp, scheduler.ecuIODisPatcherPool[i]->ri[0].read(), eIOInname.str());
+        sc_trace(fp, chain.mcuIODisPatcherPool[i]->ri[0].read(), mIOInname.str());
+        sc_trace(fp, chain.ecuIODisPatcherPool[i]->ri[0].read(), eIOInname.str());
         mIOInname.str("");
         eIOInname.str("");
     }

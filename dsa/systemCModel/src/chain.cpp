@@ -1,7 +1,7 @@
 #include <cassert>
-#include "scheduler.h"
+#include "chain.h"
 
-void Scheduler::scheduler_hcu_pre() {
+void Chain::chain_hcu_pre() {
     while (true) {
         wait();
         if (start.read()) {
@@ -222,7 +222,7 @@ void countIdle(sc_in<sc_int<WIDTH>> ROCC[Reduction_KIND], bool& eR){
     }
     eR = true;
 }
-void Scheduler::scheduler_hcu_fillTable(){
+void Chain::chain_hcu_fillTable(){
     while (true){
         wait();
         if (start.read()){
@@ -425,7 +425,7 @@ void freeHCU(MCU *mcuPool[HCU_NUM], ECU *ecuPool[HCU_NUM], mcuIODispatcher *mcuI
         freeParam = -2;
     }
 }
-void Scheduler::scheduler_hcu_allocate() {
+void Chain::chain_hcu_allocate() {
     while (true) {
         wait();
         if(start.read()){
@@ -509,7 +509,7 @@ void Scheduler::scheduler_hcu_allocate() {
     }
 }
 
-void Scheduler::scheduler_hcu_execute(){
+void Chain::chain_hcu_execute(){
     while (true){
         wait();
         if (start.read()){
@@ -566,7 +566,7 @@ void fillFIFOPorts(sc_fifo<reductionInput> *reductionInputEle, sc_int<WIDTH> &pa
     rt.data[j] = path;
     reductionInputEle->write(rt);
 }
-void Scheduler::scheduler_rt_checkTable(){
+void Chain::chain_rt_checkTable(){
     while(true) {
         wait();
         if(start.read()) {
