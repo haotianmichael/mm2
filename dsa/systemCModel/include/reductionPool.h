@@ -78,7 +78,8 @@ SC_MODULE(ReductionController) {
     */
     sc_in<bool> clk, rst;
     sc_port<sc_fifo_in_if<reductionInput>> reductionInputArrayPorts[Reduction_FIFO_NUM];
-    sc_port<sc_signal<sc_int<WIDTH>>> notifyArrayPorts[Reduction_FIFO_NUM];
+    sc_port<sc_signal<bool>> notifyArrayPorts[Reduction_FIFO_NUM];
+    std::vector<sc_signal<sc_int<WIDTH>>> notifyArrayToScheduler;
     std::vector<sc_signal<bool>> notifyOutArray;
     std::vector<sc_in<bool>> reduction_done;
     std::vector<sc_signal<sc_int<WIDTH>>> fifoIdxArray;
@@ -94,6 +95,7 @@ SC_MODULE(ReductionController) {
         reduction_done(Reduction_USAGE),
         fifoIdxArray(Reduction_USAGE),
         notifyOutArray(Reduction_USAGE),
+        notifyArrayToScheduler(Reduction_FIFO_NUM),
         reductionOutArrayToTree(Reduction_USAGE, std::vector<sc_signal<sc_int<WIDTH>>*>(Reduction_NUM)){
 
         SC_THREAD(arbitrator);

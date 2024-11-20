@@ -569,55 +569,65 @@ void fillFIFOPorts(sc_fifo<reductionInput> *reductionInputEle, sc_int<WIDTH> &pa
 void Chain::chain_rt_checkTable(){
     while(true) {
         wait();
-        if(start.read()) {
-            for(auto it = schedulerTable->schedulerItemList.begin(); it != schedulerTable->schedulerItemList.end(); it++) {
-               if(it->issued && it->UB >= 66) {
-                  sc_int<WIDTH> output[it->HCU_Total_NUM.to_int()];
-                  bool enable = false;
-                  int index = 0;
-                  auto timeIt = it->TimeList.begin();
-                  assert((++timeIt)->type == 0 && "Error: Wrong ECU type!");
-                  if(timeIt->type == 0 && timeIt->hcuID != -1) {
-                      for(timeIt = it->TimeList.begin(); timeIt != it->TimeList.end(); timeIt++) {
-                            if(timeIt->hcuID != -1) {
-                                sc_int<WIDTH>  id = timeIt->hcuID;
-                                if(timeIt->type) {
-                                    if(mcuPool[id]->en) {
-                                        output[index++] = mcuPool[id]->regBiggerScore[0].read(); 
-                                        enable = true;
-                                    }
-                                }else {
-                                    if(ecuPool[id]->en) {
-                                        output[index++] = ecuPool[id]->regBiggerScore[0].read();
-                                        enable = true;
+        if(rst.read()) {
+            for(int i = 0; i < Reduction_FIFO_NUM; i ++) {
+                notifyArray[i]->write(false);
+            }
+        }else {
+            if(start.read()) {
+                for(auto it = schedulerTable->schedulerItemList.begin(); it != schedulerTable->schedulerItemList.end(); it++) {
+                   if(it->issued && it->UB >= 66) {
+                      sc_int<WIDTH> output[it->HCU_Total_NUM.to_int()];
+                      bool enable = false;
+                      int index = 0;
+                      auto timeIt = it->TimeList.begin();
+                      assert((++timeIt)->type == 0 && "Error: Wrong ECU type!");
+                      if(timeIt->type == 0 && timeIt->hcuID != -1) {
+                          for(timeIt = it->TimeList.begin(); timeIt != it->TimeList.end(); timeIt++) {
+                                if(timeIt->hcuID != -1) {
+                                    sc_int<WIDTH>  id = timeIt->hcuID;
+                                    if(timeIt->type) {
+                                        if(mcuPool[id]->en) {
+                                            output[index++] = mcuPool[id]->regBiggerScore[0].read(); 
+                                            enable = true;
+                                        }
+                                    }else {
+                                        if(ecuPool[id]->en) {
+                                            output[index++] = ecuPool[id]->regBiggerScore[0].read();
+                                            enable = true;
+                                        }
                                     }
                                 }
-                            }
-                      } 
-                  }
-                  if (enable) {
-                      if (it->Reduction_FIFO_Idx >= 0) {
-                          assert(notifyArray[it->Reduction_FIFO_Idx.to_int()]->read() != -2 && "Error: Wrong FIFO's notify signal !");
-                          fillFIFOPorts(reductionInputArray[it->Reduction_FIFO_Idx.to_int()], it->HCU_Total_NUM, output, index);
-                      }else if(it->Reduction_FIFO_Idx == -1){
-                          bool fillS = false;
-                          for (int i = 0; i < Reduction_FIFO_NUM; i++){
-                              if (notifyArray[i]->read() == -2){
-                                  it->Reduction_FIFO_Idx = i;
-                                  notifyArray[i]->write(-1); // successfully porting, ready to dispathing
-                                  fillFIFOPorts(reductionInputArray[i], it->HCU_Total_NUM, output, index);
-                                  fillS = true;
-                                  break;
-                              }
-                          }
-                          assert(fillS && "Error: Exceeding FIFO Capacity!");
-                      }else {
-                          std::cerr << "Error: Wong FIFO idx!" << std::endl;
+                          } 
                       }
-                  }
-                } 
-            }
-        } 
+                      if (enable) {
+                          if (it->Reduction_FIFO_Idx >= 0) {
+                              int fifo_index = it->Reduction_FIFO_Idx.to_int();
+                              fillFIFOPorts(reductionInputArray[fifo_index], it->HCU_Total_NUM, output, index);
+                              if(notifyArray[fifo_index]->read() && notifyArrayToScheduler[fifo_index].read().to_int() == -1) {
+                                    notifyArray[fifo_index]->write(false);
+                                    //TODO: it should ends at the same time as HCU's freeTime
+                              }
+                          }else if(it->Reduction_FIFO_Idx == -1){
+                              bool fillS = false;
+                              for (int i = 0; i < Reduction_FIFO_NUM; i++){
+                                  if (!notifyArray[i]->read()){
+                                      it->Reduction_FIFO_Idx = i;
+                                      notifyArray[i]->write(true); // successfully porting, ready to dispathing
+                                      fillFIFOPorts(reductionInputArray[i], it->HCU_Total_NUM, output, index);
+                                      fillS = true;
+                                      break;
+                                  }
+                              }
+                              assert(fillS && "Error: Exceeding FIFO Capacity!");
+                          }else {
+                              std::cerr << "Error: Wong FIFO idx!" << std::endl;
+                          }
+                      }
+                    } 
+                }
+            } 
+        }
     }
 }
 

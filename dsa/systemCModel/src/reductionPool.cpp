@@ -77,17 +77,17 @@ void ReductionController::arbitrator() {
               >=0 denotes: reducting
             */
             for(int i = 0; i < Reduction_FIFO_NUM; i ++) {
-                notifyArrayPorts[i]->write(static_cast<sc_int<WIDTH>>(-2));
+                notifyArrayToScheduler[i].write(static_cast<sc_int<WIDTH>>(-2));
             }
         }else {
             for(int i = 0; i < Reduction_FIFO_NUM; i ++) {
                 reductionInput *ri = new reductionInput;
                 sc_int<WIDTH> riNum;
-                if(notifyArrayPorts[i]->read() >= 0) {
-                    int j = notifyArrayPorts[i]->read().to_int();
+                if(notifyArrayPorts[i]->read() && notifyArrayToScheduler[i].read().to_int() >= 0) {
+                    int j = notifyArrayToScheduler[i].read().to_int();
                     if(reduction_done[j].read()) {
                         assert(reductionInputArrayPorts[i]->num_available()==0 && "Error: FIFO's data not processed!");
-                        notifyArrayPorts[i]->write(static_cast<sc_int<WIDTH>>(-2));
+                        notifyArrayToScheduler[i].write(static_cast<sc_int<WIDTH>>(-1));
                         notifyOutArray[i].write(false);
                         fifoIdxArray[i].write(static_cast<sc_int<WIDTH>>(-1));
                     }else {
@@ -99,7 +99,9 @@ void ReductionController::arbitrator() {
                         }
                         notifyOutArray[j].write(true);
                     }
-                }else if(notifyArrayPorts[i]->read() == -1) {
+                }else if(!notifyArrayPorts[i]->read() && notifyArrayToScheduler[i].read().to_int() == -1) {
+                    notifyArrayToScheduler[i].write(static_cast<sc_int<WIDTH>>(-2));
+                }else if(notifyArrayPorts[i]->read() && notifyArrayToScheduler[i].read().to_int() == -2) {
                     *ri = reductionInputArrayPorts[i]->read();
                     riNum = ri->data.back();
                     if(riNum >= 1 && riNum <= 2) {
@@ -117,7 +119,7 @@ void ReductionController::arbitrator() {
                             dispatchS = true;
                         }
                         if(dispatchS) {
-                            notifyArrayPorts[i]->write(static_cast<sc_int<WIDTH>>(j));
+                            notifyArrayToScheduler[i].write(static_cast<sc_int<WIDTH>>(j));
                         }
                     }else if(riNum >= 3 && riNum <= 4) {
                         bool dispatchS = false;
@@ -134,7 +136,7 @@ void ReductionController::arbitrator() {
                             dispatchS = true;
                         }
                         if(dispatchS) {
-                            notifyArrayPorts[i]->write(static_cast<sc_int<WIDTH>>(j));
+                            notifyArrayToScheduler[i].write(static_cast<sc_int<WIDTH>>(j));
                         }
                     }else if(riNum >= 5 && riNum <= 8) {
                         bool dispatchS = false;
@@ -151,7 +153,7 @@ void ReductionController::arbitrator() {
                             dispatchS = true;
                         }
                         if(dispatchS) {
-                            notifyArrayPorts[i]->write(static_cast<sc_int<WIDTH>>(j));
+                            notifyArrayToScheduler[i].write(static_cast<sc_int<WIDTH>>(j));
                         }
                     }else if(riNum >= 9 && riNum <= 16) {
                         bool dispatchS  = false;
@@ -168,7 +170,7 @@ void ReductionController::arbitrator() {
                             dispatchS = true;
                         }
                         if(dispatchS) {
-                            notifyArrayPorts[i]->write(static_cast<sc_int<WIDTH>>(j));
+                            notifyArrayToScheduler[i].write(static_cast<sc_int<WIDTH>>(j));
                         }
                     }else if(riNum >= 17 && riNum <= 32) {
                         bool dispatchS = false;
@@ -185,7 +187,7 @@ void ReductionController::arbitrator() {
                             dispatchS = true;
                         }
                         if(dispatchS) {
-                            notifyArrayPorts[i]->write(static_cast<sc_int<WIDTH>>(j));
+                            notifyArrayToScheduler[i].write(static_cast<sc_int<WIDTH>>(j));
                         }
                     }else if(riNum >= 33 && riNum <= 64) {
                         bool dispatchS = false;
@@ -202,7 +204,7 @@ void ReductionController::arbitrator() {
                             dispatchS = true;
                         }
                         if(dispatchS) {
-                            notifyArrayPorts[i]->write(static_cast<sc_int<WIDTH>>(j));
+                            notifyArrayToScheduler[i].write(static_cast<sc_int<WIDTH>>(j));
                         }
                     }else if(riNum >= 65 && riNum <= 128) {
                         bool dispatchS = false;
@@ -219,7 +221,7 @@ void ReductionController::arbitrator() {
                             dispatchS = true;
                         }
                         if(dispatchS) {
-                            notifyArrayPorts[i]->write(static_cast<sc_int<WIDTH>>(j));
+                            notifyArrayToScheduler[i].write(static_cast<sc_int<WIDTH>>(j));
                         }
                     }else {    // riNum == 0
 
