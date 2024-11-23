@@ -84,8 +84,7 @@ SC_MODULE(Chain) {
     ReductionTree *reductionTree[Reduction_USAGE];
     sc_in<sc_int<WIDTH>> ROCC[Reduction_KIND];
     sc_fifo<reductionInput> *reductionInputArray[Reduction_FIFO_NUM];        
-    sc_signal<bool> *notifyArray[Reduction_FIFO_NUM];
-    std::vector<sc_in<sc_int<WIDTH>>>  notifyArrayToScheduler;
+    sc_signal<sc_int<WIDTH>> *notifyArray[Reduction_FIFO_NUM];
 
     void chain_hcu_pre();
     void chain_hcu_execute();
@@ -108,7 +107,6 @@ SC_MODULE(Chain) {
          anchorQi(ReadNumProcessedOneTime, std::vector<sc_signal<sc_int<WIDTH>>*>(MAX_READ_LENGTH)),
          anchorW(ReadNumProcessedOneTime, std::vector<sc_signal<sc_int<WIDTH>>*>(MAX_READ_LENGTH)),
          anchorSuccessiveRange(ReadNumProcessedOneTime, std::vector<sc_signal<sc_int<WIDTH>>*>(MAX_READ_LENGTH)),
-         notifyArrayToScheduler(Reduction_FIFO_NUM),
          resultArray(RESULT_NUM){
 
 
@@ -254,6 +252,7 @@ SC_MODULE(Chain) {
         rtController = new ReductionController("ReductionController");
         rtController->clk(clk);
         rtController->rst(rst);
+        rtController->start(start);
         for(int i = 0; i < Reduction_KIND; i ++) {
             ROCC[i](rtController->ROCC[i]);
         }
@@ -276,10 +275,9 @@ SC_MODULE(Chain) {
         // ReductionTree FIFO Binding
         for(int i = 0; i < Reduction_FIFO_NUM; i ++) {
             reductionInputArray[i] = new sc_fifo<reductionInput>(MAX_SEGLENGTH);
-            notifyArray[i] = new sc_signal<bool>();
+            notifyArray[i] = new sc_signal<sc_int<WIDTH>>();
             rtController->reductionInputArrayPorts[i].bind(*reductionInputArray[i]);
-            rtController->notifyArrayPorts[i].bind(*notifyArray[i]);
-            notifyArrayToScheduler[i](rtController->notifyArrayToScheduler[i]);
+            rtController->notifyArray[i](*notifyArray[i]);
         }
 	}
 };

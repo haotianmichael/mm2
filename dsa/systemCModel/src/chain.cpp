@@ -1,5 +1,6 @@
 #include <cassert>
 #include "chain.h"
+#define HCU_OUTPUT 1
 
 void Chain::chain_hcu_pre() {
     while (true) {
@@ -153,7 +154,8 @@ int fillTableOfLongSegments(std::mutex& mtx, std::vector<ram_data> &localRAM, in
     // fill at real allocationTime
     sItem.startTime = sc_time(0, SC_NS);
     sItem.endTime = sc_time(0, SC_NS);
-    sItem.Reduction_FIFO_Idx = -1;
+    sItem.Reduction_FIFO_Idx.range(31, 0) = -1;
+    sItem.Reduction_FIFO_Idx.range(63, 32) = 0;
     {
         std::lock_guard<std::mutex> lock(mtx);
         st.push_back(sItem);
@@ -204,7 +206,8 @@ int fillTableOfShortSegments(std::mutex& mtx, std::vector<ram_data> &localRAM, i
     sItem.startTime = sc_time(0, SC_NS);
     sItem.endTime = sc_time(0, SC_NS);
     sItem.TimeList.push_back(tl);
-    sItem.Reduction_FIFO_Idx = -1;
+    sItem.Reduction_FIFO_Idx.range(31, 0) = -1;
+    sItem.Reduction_FIFO_Idx.range(63, 32) = 0;
     {
         std::lock_guard<std::mutex> lock(mtx);
         st.push_back(sItem);
@@ -449,13 +452,17 @@ void Chain::chain_hcu_allocate() {
                             assert(alloParam != -1 && it->TimeList.size() > 1 && "Error: Cannot stop ecu allocation util its over!");
                             assert(alloParam != -2 && it->TimeList.size() > 1 && "Error: ecu allocator cannot operate mcu!");
                             if(alloParam > -1) {
-                                std::cout << "successfully Allocate ecu: " << timeIt->hcuID <<" for Segment: " << it->segmentID << " -----UB: " << it->UB << " startTime: " << st + sc_time(20, SC_NS) << " endTime: "  << it->endTime << std::endl;
+                                if(HCU_OUTPUT == 1) {
+                                    std::cout << "successfully Allocate ecu: " << timeIt->hcuID <<" for Segment: " << it->segmentID << " -----UB: " << it->UB << " startTime: " << st + sc_time(20, SC_NS) << " endTime: "  << it->endTime << std::endl;
+                                }
                             }else if(alloParam == -3) {
                                 it->issued = 0;
                                 for(auto xyz = it->TimeList.begin(); xyz != it->TimeList.end(); ++xyz) {
                                     xyz->hcuID = -1;
                                 }
-                                std::cout << "failed Allocate ecu: freeing all related hcu and wait for reallocating..." << std::endl;
+                                if(HCU_OUTPUT) {
+                                    std::cout << "failed Allocate ecu: freeing all related hcu and wait for reallocating..." << std::endl;
+                                }
                                 break;
                             }
                         }else if(timeIt->hcuID >= 0){
@@ -463,11 +470,8 @@ void Chain::chain_hcu_allocate() {
                             freeHCU(mcuPool, ecuPool, mcuIODisPatcherPool, ecuIODisPatcherPool, *timeIt, freeParam);
                             if(freeParam == 1) {
                                 if(++freeNum == it->HCU_Total_NUM) {
-                                    std::cout << "successfully Free mcu: " << id << " for Seg: " << it->segmentID << " at: " << sc_time_stamp() + sc_time(10, SC_NS) << std::endl;
-                                    {
-                                        releaseBlock(it->addr, freeList);
-                                        std::lock_guard<std::mutex> lock(schedulerTable->mtx);
-                                        it = schedulerTable->schedulerItemList.erase(it);
+                                    if(HCU_OUTPUT) {
+                                        std::cout << "successfully Free mcu: " << id << " for Seg: " << it->segmentID << " at: " << sc_time_stamp() + sc_time(10, SC_NS) << std::endl;
                                     }
                                     isforward = false;
                                     break;
@@ -492,12 +496,16 @@ void Chain::chain_hcu_allocate() {
                         hasScheduled = true;
                     }
                     if (alloParam == -2){
-                        std::cout << "failed allocate mcu for " << it->segmentID << ", wait for some time..." << std::endl;
+                        if(HCU_OUTPUT) {
+                            std::cout << "failed allocate mcu for " << it->segmentID << ", wait for some time..." << std::endl;
+                        }
                         wait(10, SC_NS);
                         continue;
                     }
                     assert(timeIt->hcuID>=0  && "Error: mcu allocator return the wrong value!");
-                    std::cout << "successfully Allocate mcu: " << timeIt->hcuID <<" for Segment: " << it->segmentID << " -----UB: " << it->UB << " startTime: " << it->startTime+sc_time(20, SC_NS) << " endTime: "  << it->endTime << std::endl;
+                    if(HCU_OUTPUT) {
+                        std::cout << "successfully Allocate mcu: " << timeIt->hcuID <<" for Segment: " << it->segmentID << " -----UB: " << it->UB << " startTime: " << it->startTime+sc_time(20, SC_NS) << " endTime: "  << it->endTime << std::endl;
+                    }
                     it->issued = 1;
                     if (it->HCU_Total_NUM > 1){
                         it--; // finish mcu, then continue allocate ecu of one segment.
@@ -560,10 +568,11 @@ void Chain::chain_hcu_execute(){
 void fillFIFOPorts(sc_fifo<reductionInput> *reductionInputEle, sc_int<WIDTH> &path, sc_int<WIDTH> *output, int outputNum) {
     reductionInput rt;
     int j = 0;
+    assert(outputNum < 128 && "Error: exceeding reductionTree boundry!");
     for(; j < outputNum; j++) {
         rt.data[j] = output[j];
     }
-    rt.data[j] = path;
+    rt.data[127] = path;
     reductionInputEle->write(rt);
 }
 void Chain::chain_rt_checkTable(){
@@ -571,7 +580,7 @@ void Chain::chain_rt_checkTable(){
         wait();
         if(rst.read()) {
             for(int i = 0; i < Reduction_FIFO_NUM; i ++) {
-                notifyArray[i]->write(false);
+                notifyArray[i]->write(-1);
             }
         }else {
             if(start.read()) {
@@ -597,23 +606,30 @@ void Chain::chain_rt_checkTable(){
                                             enable = true;
                                         }
                                     }
+                                    if(mcuPool[id]->currentReadID.read() != -1 
+                                        && ecuPool[id]->currentReadID.read() != -1
+                                        && mcuPool[id]->freeTime.read() - sc_time(20, SC_NS)== sc_time_stamp() 
+                                        && ecuPool[id]->freeTime.read() - sc_time(20, SC_NS)== sc_time_stamp()
+                                        && (mcuIODisPatcherPool[id]->en.read()
+                                        || ecuIODisPatcherPool[id]->en.read())){ 
+                                            it->Reduction_FIFO_Idx.range(63, 32) = -1;
+                                    }
                                 }
                           } 
+                          assert(index>=1 && "Error: wrong time to reducting!");
                       }
-                      if (enable) {
-                          if (it->Reduction_FIFO_Idx >= 0) {
-                              int fifo_index = it->Reduction_FIFO_Idx.to_int();
+                      if(enable) {
+                          const int low_32 = it->Reduction_FIFO_Idx.range(31, 0); 
+                          if (low_32 >= 0) {
+                              const int fifo_index = low_32;
+                              notifyArray[fifo_index]->write(1); 
                               fillFIFOPorts(reductionInputArray[fifo_index], it->HCU_Total_NUM, output, index);
-                              if(notifyArray[fifo_index]->read() && notifyArrayToScheduler[fifo_index].read().to_int() == -1) {
-                                    notifyArray[fifo_index]->write(false);
-                                    //TODO: it should ends at the same time as HCU's freeTime
-                              }
-                          }else if(it->Reduction_FIFO_Idx == -1){
+                          }else if(low_32 == -1){
                               bool fillS = false;
                               for (int i = 0; i < Reduction_FIFO_NUM; i++){
-                                  if (!notifyArray[i]->read()){
-                                      it->Reduction_FIFO_Idx = i;
-                                      notifyArray[i]->write(true); // successfully porting, ready to dispathing
+                                  if (notifyArray[i]->read() == -1){
+                                      it->Reduction_FIFO_Idx.range(31, 0) = i;
+                                      notifyArray[i]->write(1); // successfully porting, ready to dispathing
                                       fillFIFOPorts(reductionInputArray[i], it->HCU_Total_NUM, output, index);
                                       fillS = true;
                                       break;
@@ -622,6 +638,16 @@ void Chain::chain_rt_checkTable(){
                               assert(fillS && "Error: Exceeding FIFO Capacity!");
                           }else {
                               std::cerr << "Error: Wong FIFO idx!" << std::endl;
+                          }
+                      }else if(it->Reduction_FIFO_Idx.range(63, 32) == -1) {
+                          const int fifo_index = it->Reduction_FIFO_Idx.range(31, 0);
+                          if(notifyArray[fifo_index]->read() == 1) {
+                                  notifyArray[fifo_index]->write(-2);
+                          }
+                          {
+                             releaseBlock(it->addr, freeList);
+                             std::lock_guard<std::mutex> lock(schedulerTable->mtx);
+                             it = schedulerTable->schedulerItemList.erase(it);
                           }
                       }
                     } 

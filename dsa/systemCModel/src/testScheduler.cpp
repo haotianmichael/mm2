@@ -39,45 +39,20 @@ int sc_main(int argc, char* argv[]) {
     sc_trace(fp, chain.start.read(), "cutDone");
     std::ostringstream mri_name, eri_name;
     for(int i =0; i < HCU_NUM; i ++) {
-            mri_name << "mriArray" << i;
-            eri_name << "eriArray" << i;
-            sc_trace(fp, chain.mcuPool[i]->riArray[0].read(), mri_name.str());
-            sc_trace(fp, chain.ecuPool[i]->riArray[0].read(), eri_name.str());
+            mri_name << "MCU" << i << "Input";
+            eri_name << "ECU" << i << "Input";
+            sc_trace(fp, chain.mri[i][0].read(), mri_name.str());
+            sc_trace(fp, chain.eri[i][0].read(), eri_name.str());
             mri_name.str("");
             eri_name.str("");
     }
 
-    std::stringstream mIOOutname, eIOOutname, eIOOutnameI;
-    for(int i = 0; i < HCU_NUM; i ++) {
-        mIOOutname << "mIODisOut" << i;
-        eIOOutname << "eIODisOut" << i;
-        eIOOutnameI << "eIODisOutInitializedRi" << i;
-        sc_trace(fp, chain.mcuIODisPatcherPool[i]->ri_out[0].read(), mIOOutname.str());
-        sc_trace(fp, chain.ecuIODisPatcherPool[i]->ri_out[0].read(), eIOOutname.str());
-        sc_trace(fp, chain.ecuIODisPatcherPool[i]->ecu_ri_out.read(), eIOOutnameI.str());
-        mIOOutname.str("");
-        eIOOutname.str("");
-        eIOOutnameI.str("");
-    }
-
-    std::ostringstream mname, ename;
-    for(int i = 0; i < HCU_NUM; i ++) {
-        mname << "MCU" << i << "out";
-        ename << "ECU" << i << "out";
-        sc_trace(fp, chain.mcuPool[i]->regBiggerScore[0].read(), mname.str());
-        sc_trace(fp, chain.ecuPool[i]->regBiggerScore[0].read(), ename.str());
-        mname.str("");
-        ename.str("");
-    }
-
-    std::stringstream mIOInname, eIOInname;
-    for(int i = 0; i < HCU_NUM; i ++) {
-        mIOInname << "mIODisIn" << i;
-        eIOInname << "eIODisin" << i;
-        sc_trace(fp, chain.mcuIODisPatcherPool[i]->ri[0].read(), mIOInname.str());
-        sc_trace(fp, chain.ecuIODisPatcherPool[i]->ri[0].read(), eIOInname.str());
-        mIOInname.str("");
-        eIOInname.str("");
+    std::stringstream resultName;
+    for(int i = 0; i < RESULT_NUM; i ++) {
+        resultName << "result" << i;
+        sc_trace(fp, chain.resultArray[i].read(), resultName.str());
+        sc_trace(fp, chain.resultArray[i].read(), resultName.str());
+        resultName.str("");
     }
     
     //sc_trace(fp, scheduler.mcuIODisPatcherPool[0]->en.read(), "en");    std::cout's time is 1cycle later from simulation result

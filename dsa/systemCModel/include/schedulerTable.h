@@ -66,7 +66,7 @@ struct SchedulerItem{
     // allocate hcu, start scheduler according to TimeList
     sc_time startTime;  // mcu start scheduler and allocate 
     sc_time endTime;   // all hcu finished, freeTime
-    sc_int<WIDTH> Reduction_FIFO_Idx;
+    sc_int<64> Reduction_FIFO_Idx;  // high_32: denotes whether to free;    low_32: fifo_idx
     std::list<SchedulerTime> TimeList;
 };
 

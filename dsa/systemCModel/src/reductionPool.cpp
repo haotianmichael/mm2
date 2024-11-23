@@ -72,159 +72,155 @@ void ReductionController::arbitrator() {
                     reductionOutArrayToTree[i][j]->write(static_cast<sc_int<WIDTH>>(-1));
                 }
             }
-            /* -2 deotes: not porting 
-               -1 denotes: not dispatching
-              >=0 denotes: reducting
-            */
             for(int i = 0; i < Reduction_FIFO_NUM; i ++) {
-                notifyArrayToScheduler[i].write(static_cast<sc_int<WIDTH>>(-2));
+                notifyArrayToScheduler[i].write(static_cast<sc_int<WIDTH>>(-1));
             }
         }else {
-            for(int i = 0; i < Reduction_FIFO_NUM; i ++) {
-                reductionInput *ri = new reductionInput;
-                sc_int<WIDTH> riNum;
-                if(notifyArrayPorts[i]->read() && notifyArrayToScheduler[i].read().to_int() >= 0) {
-                    int j = notifyArrayToScheduler[i].read().to_int();
-                    if(reduction_done[j].read()) {
+            if(start.read()) {
+                for(int i = 0; i < Reduction_FIFO_NUM; i ++) {
+                    reductionInput ri;
+                    sc_int<WIDTH> riNum;
+                    if(notifyArray[i]->read() == 1 && notifyArrayToScheduler[i].read().to_int() >= 0) {
+                        int j = notifyArrayToScheduler[i].read().to_int();
+                        assert(j >= 0 && "Error: wrong Idx!");
+                        ri = reductionInputArrayPorts[i]->read();
+                        riNum = ri.data.back();
+                        assert(fifoIdxArray[j].read()==i && "Error: unknow error about FIFOIx and ReductionIdx!"); 
+                        for(int t = 0; t < riNum - 1; t++) {
+                            reductionOutArrayToTree[j][t]->write(ri.data[t]);
+                        }
+                        notifyOutArray[j].write(true);
+                    }else if(notifyArray[i]->read() == -2) {
+                        //free reductionUnit
                         assert(reductionInputArrayPorts[i]->num_available()==0 && "Error: FIFO's data not processed!");
                         notifyArrayToScheduler[i].write(static_cast<sc_int<WIDTH>>(-1));
                         notifyOutArray[i].write(false);
                         fifoIdxArray[i].write(static_cast<sc_int<WIDTH>>(-1));
-                    }else {
-                        *ri = reductionInputArrayPorts[i]->read();
-                        riNum = ri->data.back();
-                        assert(fifoIdxArray[j].read()==i && "Error: unknow error about FIFOIx and ReductionIdx!"); 
-                        for(int t = 0; t < riNum - 1; t++) {
-                            reductionOutArrayToTree[j][t]->write(ri->data[t]);
-                        }
-                        notifyOutArray[j].write(true);
-                    }
-                }else if(!notifyArrayPorts[i]->read() && notifyArrayToScheduler[i].read().to_int() == -1) {
-                    notifyArrayToScheduler[i].write(static_cast<sc_int<WIDTH>>(-2));
-                }else if(notifyArrayPorts[i]->read() && notifyArrayToScheduler[i].read().to_int() == -2) {
-                    *ri = reductionInputArrayPorts[i]->read();
-                    riNum = ri->data.back();
-                    if(riNum >= 1 && riNum <= 2) {
-                        bool dispatchS = false;
-                        int j = 0;
-                        for(; j <= 127; j ++) {
-                            if(reduction_done[j].read()) {
-                                fifoIdxArray[j].write(static_cast<sc_int<WIDTH>>(i));
-                                for(int t = 0; t < riNum - 1; t++) {
-                                    reductionOutArrayToTree[j][t]->write(ri->data[t]);
-                                }
-                                notifyOutArray[j].write(true);
-                            } 
-                            break;
-                            dispatchS = true;
-                        }
-                        if(dispatchS) {
-                            notifyArrayToScheduler[i].write(static_cast<sc_int<WIDTH>>(j));
-                        }
-                    }else if(riNum >= 3 && riNum <= 4) {
-                        bool dispatchS = false;
-                        int j = 128;
-                        for(; j <= 191; j ++) {
-                            if(reduction_done[j].read()) {
-                                fifoIdxArray[j].write(static_cast<sc_int<WIDTH>>(i));
-                                for(int t = 0; t < riNum - 1; t++) {
-                                    reductionOutArrayToTree[j][t]->write(ri->data[t]);
-                                }
-                                notifyOutArray[j].write(true);
-                            } 
-                            break;
-                            dispatchS = true;
-                        }
-                        if(dispatchS) {
-                            notifyArrayToScheduler[i].write(static_cast<sc_int<WIDTH>>(j));
-                        }
-                    }else if(riNum >= 5 && riNum <= 8) {
-                        bool dispatchS = false;
-                        int j = 192;
-                        for(; j <= 223; j ++) {
-                            if(reduction_done[j].read()) {
-                                fifoIdxArray[j].write(static_cast<sc_int<WIDTH>>(i));
-                                for(int t = 0; t < riNum - 1; t++) {
-                                    reductionOutArrayToTree[j][t]->write(ri->data[t]);
-                                }
-                                notifyOutArray[j].write(true);
-                            } 
-                            break;
-                            dispatchS = true;
-                        }
-                        if(dispatchS) {
-                            notifyArrayToScheduler[i].write(static_cast<sc_int<WIDTH>>(j));
-                        }
-                    }else if(riNum >= 9 && riNum <= 16) {
-                        bool dispatchS  = false;
-                        int j = 224;
-                        for(; j <= 239; j ++) {
-                            if(reduction_done[j].read()) {
-                                fifoIdxArray[j].write(static_cast<sc_int<WIDTH>>(i));
-                                for(int t = 0; t < riNum - 1; t++) {
-                                    reductionOutArrayToTree[j][t]->write(ri->data[t]);
-                                }
-                                notifyOutArray[j].write(true);
-                            } 
-                            break;
-                            dispatchS = true;
-                        }
-                        if(dispatchS) {
-                            notifyArrayToScheduler[i].write(static_cast<sc_int<WIDTH>>(j));
-                        }
-                    }else if(riNum >= 17 && riNum <= 32) {
-                        bool dispatchS = false;
-                        int j = 240;
-                        for(; j <= 247; j ++) {
-                            if(reduction_done[j].read()) {
-                                fifoIdxArray[j].write(static_cast<sc_int<WIDTH>>(i));
-                                for(int t = 0; t < riNum - 1; t++) {
-                                    reductionOutArrayToTree[j][t]->write(ri->data[t]);
-                                }
-                                notifyOutArray[j].write(true);
-                            } 
-                            break;
-                            dispatchS = true;
-                        }
-                        if(dispatchS) {
-                            notifyArrayToScheduler[i].write(static_cast<sc_int<WIDTH>>(j));
-                        }
-                    }else if(riNum >= 33 && riNum <= 64) {
-                        bool dispatchS = false;
-                        int j = 248;
-                        for(; j <= 251; j ++) {
-                            if(reduction_done[j].read()) {
-                                fifoIdxArray[j].write(static_cast<sc_int<WIDTH>>(i));
-                                for(int t = 0; t < riNum - 1; t++) {
-                                    reductionOutArrayToTree[j][t]->write(ri->data[t]);
-                                }
-                                notifyOutArray[j].write(true);
-                            } 
-                            break;
-                            dispatchS = true;
-                        }
-                        if(dispatchS) {
-                            notifyArrayToScheduler[i].write(static_cast<sc_int<WIDTH>>(j));
-                        }
-                    }else if(riNum >= 65 && riNum <= 128) {
-                        bool dispatchS = false;
-                        int j = 252;
-                        for(; j <= 253; j ++) {
-                            if(reduction_done[j].read()) {
-                                fifoIdxArray[j].write(static_cast<sc_int<WIDTH>>(i));
-                                for(int t = 0; t < riNum - 1; t++) {
-                                    reductionOutArrayToTree[j][t]->write(ri->data[t]);
-                                }
-                                notifyOutArray[j].write(true);
-                            } 
-                            break;
-                            dispatchS = true;
-                        }
-                        if(dispatchS) {
-                            notifyArrayToScheduler[i].write(static_cast<sc_int<WIDTH>>(j));
-                        }
-                    }else {    // riNum == 0
+                    }else if(notifyArray[i]->read() == 1 && notifyArrayToScheduler[i].read().to_int() == -1) {
+                        ri = reductionInputArrayPorts[i]->read();
+                        riNum = 50;
+                        if(riNum >= 1 && riNum <= 2) {
+                            bool dispatchS = false;
+                            int j = 0;
+                            for(; j <= 127; j ++) {
+                                if(reduction_done[j].read()) {
+                                    fifoIdxArray[j].write(static_cast<sc_int<WIDTH>>(i));
+                                    for(int t = 0; t < riNum - 1; t++) {
+                                        reductionOutArrayToTree[j][t]->write(ri.data[t]);
+                                    }
+                                    notifyOutArray[j].write(true);
+                                } 
+                                dispatchS = true;
+                                break;
+                            }
+                            if(dispatchS) {
+                                notifyArrayToScheduler[i].write(static_cast<sc_int<WIDTH>>(j));
+                            }
+                        }else if(riNum >= 3 && riNum <= 4) {
+                            bool dispatchS = false;
+                            int j = 128;
+                            for(; j <= 191; j ++) {
+                                if(reduction_done[j].read()) {
+                                    fifoIdxArray[j].write(static_cast<sc_int<WIDTH>>(i));
+                                    for(int t = 0; t < riNum - 1; t++) {
+                                        reductionOutArrayToTree[j][t]->write(ri.data[t]);
+                                    }
+                                    notifyOutArray[j].write(true);
+                                } 
+                                dispatchS = true;
+                                break;
+                            }
+                            if(dispatchS) {
+                                notifyArrayToScheduler[i].write(static_cast<sc_int<WIDTH>>(j));
+                            }
+                        }else if(riNum >= 5 && riNum <= 8) {
+                            bool dispatchS = false;
+                            int j = 192;
+                            for(; j <= 223; j ++) {
+                                if(reduction_done[j].read()) {
+                                    fifoIdxArray[j].write(static_cast<sc_int<WIDTH>>(i));
+                                    for(int t = 0; t < riNum - 1; t++) {
+                                        reductionOutArrayToTree[j][t]->write(ri.data[t]);
+                                    }
+                                    notifyOutArray[j].write(true);
+                                } 
+                                dispatchS = true;
+                                break;
+                            }
+                            if(dispatchS) {
+                                notifyArrayToScheduler[i].write(static_cast<sc_int<WIDTH>>(j));
+                            }
+                        }else if(riNum >= 9 && riNum <= 16) {
+                            bool dispatchS  = false;
+                            int j = 224;
+                            for(; j <= 239; j ++) {
+                                if(reduction_done[j].read()) {
+                                    fifoIdxArray[j].write(static_cast<sc_int<WIDTH>>(i));
+                                    for(int t = 0; t < riNum - 1; t++) {
+                                        reductionOutArrayToTree[j][t]->write(ri.data[t]);
+                                    }
+                                    notifyOutArray[j].write(true);
+                                } 
+                                dispatchS = true;
+                                break;
+                            }
+                            if(dispatchS) {
+                                notifyArrayToScheduler[i].write(static_cast<sc_int<WIDTH>>(j));
+                            }
+                        }else if(riNum >= 17 && riNum <= 32) {
+                            bool dispatchS = false;
+                            int j = 240;
+                            for(; j <= 247; j ++) {
+                                if(reduction_done[j].read()) {
+                                    fifoIdxArray[j].write(static_cast<sc_int<WIDTH>>(i));
+                                    for(int t = 0; t < riNum - 1; t++) {
+                                        reductionOutArrayToTree[j][t]->write(ri.data[t]);
+                                    }
+                                    notifyOutArray[j].write(true);
+                                } 
+                                dispatchS = true;
+                                break;
+                            }
+                            if(dispatchS) {
+                                notifyArrayToScheduler[i].write(static_cast<sc_int<WIDTH>>(j));
+                            }
+                        }else if(riNum >= 33 && riNum <= 64) {
+                            bool dispatchS = false;
+                            int j = 248;
+                            for(; j <= 251; j ++) {
+                                if(reduction_done[j].read()) {
+                                    fifoIdxArray[j].write(static_cast<sc_int<WIDTH>>(i));
+                                    for(int t = 0; t < riNum - 1; t++) {
+                                        reductionOutArrayToTree[j][t]->write(ri.data[t]);
+                                    }
+                                    notifyOutArray[j].write(true);
+                                } 
+                                dispatchS = true;
+                                break;
+                            }
+                            if(dispatchS) {
+                                notifyArrayToScheduler[i].write(static_cast<sc_int<WIDTH>>(j));
+                            }
+                        }else if(riNum >= 65 && riNum <= 128) {
+                            bool dispatchS = false;
+                            int j = 252;
+                            for(; j <= 253; j ++) {
+                                if(reduction_done[j].read()) {
+                                    fifoIdxArray[j].write(static_cast<sc_int<WIDTH>>(i));
+                                    for(int t = 0; t < riNum - 1; t++) {
+                                        reductionOutArrayToTree[j][t]->write(ri.data[t]);
+                                    }
+                                    notifyOutArray[j].write(true);
+                                } 
+                                dispatchS = true;
+                                break;
+                            }
+                            if(dispatchS) {
+                                notifyArrayToScheduler[i].write(static_cast<sc_int<WIDTH>>(j));
+                            }
+                        }else {    // riNum == 0
 
+                        }
                     }
                 }
             }

@@ -37,18 +37,17 @@ SC_MODULE(ReductionTree) {
             }else {
                 if(vecNotify.read()) {
                     done.write(false);
-                    std::vector<sc_int<WIDTH>> tmpVec;
-                    for(auto ele : vecFromController) {
-                        tmpVec.push_back(ele.read());
+                    int tmpVec[Reduction_NUM];
+                    int num = vecFromController.back().read();
+                    for(int i = 0; i < num; i ++) {
+                        tmpVec[i] = vecFromController[i].read();
                     }
-                    auto ret = std::max_element(tmpVec.begin(), tmpVec.end()-1);
-                    if(ret != tmpVec.end()) {
-                        wait(static_cast<int>(log2(tmpVec.back())), SC_NS);
-                        result.write(*ret);
-                        done.write(true);
-                    }else {
-                        std::cerr << "Error in reductionPool comparator!" << std::endl;
-                    }
+                    auto ret = std::max_element(std::begin(tmpVec), std::end(tmpVec));
+                    result.write(*ret);
+                }else {
+                    //wait(static_cast<int>(log2(tmpVec.back())), SC_NS);
+                    done.write(true); 
+                    result.write(static_cast<sc_int<WIDTH>>(-1));
                 }
             }
         }
@@ -77,8 +76,9 @@ SC_MODULE(ReductionController) {
         128-path Reduction              2
     */
     sc_in<bool> clk, rst;
+    sc_in<bool> start;
     sc_port<sc_fifo_in_if<reductionInput>> reductionInputArrayPorts[Reduction_FIFO_NUM];
-    sc_port<sc_signal<bool>> notifyArrayPorts[Reduction_FIFO_NUM];
+    sc_in<sc_int<WIDTH>> notifyArray[Reduction_FIFO_NUM];
     std::vector<sc_signal<sc_int<WIDTH>>> notifyArrayToScheduler;
     std::vector<sc_signal<bool>> notifyOutArray;
     std::vector<sc_in<bool>> reduction_done;
