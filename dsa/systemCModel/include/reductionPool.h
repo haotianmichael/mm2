@@ -39,11 +39,14 @@ SC_MODULE(ReductionTree) {
                     done.write(false);
                     int tmpVec[Reduction_NUM];
                     int num = vecFromController.back().read();
-                    for(int i = 0; i < num; i ++) {
+                    int res = -1;
+                    for(int i = 0; i < num - 1; i ++) {
                         tmpVec[i] = vecFromController[i].read();
+                        if(tmpVec[i] > res) {
+                            res = tmpVec[i];
+                        }
                     }
-                    auto ret = std::max_element(std::begin(tmpVec), std::end(tmpVec));
-                    result.write(*ret);
+                    result.write(res);
                 }else {
                     //wait(static_cast<int>(log2(tmpVec.back())), SC_NS);
                     done.write(true); 

@@ -473,6 +473,7 @@ void Chain::chain_hcu_allocate() {
                                     if(HCU_OUTPUT) {
                                         std::cout << "successfully Free mcu: " << id << " for Seg: " << it->segmentID << " at: " << sc_time_stamp() + sc_time(10, SC_NS) << std::endl;
                                     }
+                                    it->UB = -1;
                                     isforward = false;
                                     break;
                                 }
@@ -584,73 +585,79 @@ void Chain::chain_rt_checkTable(){
             }
         }else {
             if(start.read()) {
+                for(int i = 0; i < Reduction_FIFO_NUM; i ++) {
+                    if(notifyArray[i]->read() == -2) {
+                        notifyArray[i]->write(-1);
+                    }
+                }
                 for(auto it = schedulerTable->schedulerItemList.begin(); it != schedulerTable->schedulerItemList.end(); it++) {
+                   const int high_32 = it->Reduction_FIFO_Idx.range(63, 32);
                    if(it->issued && it->UB >= 66) {
-                      sc_int<WIDTH> output[it->HCU_Total_NUM.to_int()];
-                      bool enable = false;
-                      int index = 0;
-                      auto timeIt = it->TimeList.begin();
-                      assert((++timeIt)->type == 0 && "Error: Wrong ECU type!");
-                      if(timeIt->type == 0 && timeIt->hcuID != -1) {
-                          for(timeIt = it->TimeList.begin(); timeIt != it->TimeList.end(); timeIt++) {
-                                if(timeIt->hcuID != -1) {
-                                    sc_int<WIDTH>  id = timeIt->hcuID;
-                                    if(timeIt->type) {
-                                        if(mcuPool[id]->en) {
-                                            output[index++] = mcuPool[id]->regBiggerScore[0].read(); 
-                                            enable = true;
-                                        }
-                                    }else {
-                                        if(ecuPool[id]->en) {
-                                            output[index++] = ecuPool[id]->regBiggerScore[0].read();
-                                            enable = true;
-                                        }
-                                    }
-                                    if(mcuPool[id]->currentReadID.read() != -1 
-                                        && ecuPool[id]->currentReadID.read() != -1
-                                        && mcuPool[id]->freeTime.read() - sc_time(20, SC_NS)== sc_time_stamp() 
-                                        && ecuPool[id]->freeTime.read() - sc_time(20, SC_NS)== sc_time_stamp()
-                                        && (mcuIODisPatcherPool[id]->en.read()
-                                        || ecuIODisPatcherPool[id]->en.read())){ 
-                                            it->Reduction_FIFO_Idx.range(63, 32) = -1;
+                        sc_int<WIDTH> output[it->HCU_Total_NUM.to_int()];
+                        bool enable = false;
+                        int index = 0;
+                        auto timeIt = it->TimeList.begin();
+                        assert((++timeIt)->type == 0 && "Error: Wrong ECU type!");
+                        if(timeIt->type == 0 && timeIt->hcuID != -1) {
+                            for(timeIt = it->TimeList.begin(); timeIt != it->TimeList.end(); timeIt++) {
+                                  if(timeIt->hcuID != -1) {
+                                      sc_int<WIDTH>  id = timeIt->hcuID;
+                                      if(timeIt->type) {
+                                          if(mcuPool[id]->en) {
+                                              output[index++] = mcuPool[id]->regBiggerScore[0].read(); 
+                                              enable = true;
+                                          }
+                                      }else {
+                                          if(ecuPool[id]->en) {
+                                              output[index++] = ecuPool[id]->regBiggerScore[0].read();
+                                              enable = true;
+                                          }
+                                      }
+                                      if(mcuPool[id]->currentReadID.read() != -1 
+                                          && ecuPool[id]->currentReadID.read() != -1
+                                          && mcuPool[id]->freeTime.read() - sc_time(10, SC_NS)== sc_time_stamp() 
+                                          && ecuPool[id]->freeTime.read() - sc_time(10, SC_NS)== sc_time_stamp()
+                                          && (mcuIODisPatcherPool[id]->en.read()
+                                          || ecuIODisPatcherPool[id]->en.read())){ 
+                                              it->Reduction_FIFO_Idx.range(63, 32) = -1;
+                                      }
+                                  }
+                            } 
+                            assert(index>=1 && "Error: wrong time to reducting!");
+                        }
+                        if(enable) {
+                            const int low_32 = it->Reduction_FIFO_Idx.range(31, 0); 
+                            if (low_32 >= 0) {
+                                const int fifo_index = low_32;
+                                notifyArray[fifo_index]->write(1); 
+                                fillFIFOPorts(reductionInputArray[fifo_index], it->HCU_Total_NUM, output, index);
+                            }else if(low_32 == -1){
+                                bool fillS = false;
+                                for (int i = 0; i < Reduction_FIFO_NUM; i++){
+                                    if (notifyArray[i]->read() == -1){
+                                        it->Reduction_FIFO_Idx.range(31, 0) = i;
+                                        notifyArray[i]->write(1); // successfully porting, ready to dispathing
+                                        fillFIFOPorts(reductionInputArray[i], it->HCU_Total_NUM, output, index);
+                                        fillS = true;
+                                        break;
                                     }
                                 }
-                          } 
-                          assert(index>=1 && "Error: wrong time to reducting!");
-                      }
-                      if(enable) {
-                          const int low_32 = it->Reduction_FIFO_Idx.range(31, 0); 
-                          if (low_32 >= 0) {
-                              const int fifo_index = low_32;
-                              notifyArray[fifo_index]->write(1); 
-                              fillFIFOPorts(reductionInputArray[fifo_index], it->HCU_Total_NUM, output, index);
-                          }else if(low_32 == -1){
-                              bool fillS = false;
-                              for (int i = 0; i < Reduction_FIFO_NUM; i++){
-                                  if (notifyArray[i]->read() == -1){
-                                      it->Reduction_FIFO_Idx.range(31, 0) = i;
-                                      notifyArray[i]->write(1); // successfully porting, ready to dispathing
-                                      fillFIFOPorts(reductionInputArray[i], it->HCU_Total_NUM, output, index);
-                                      fillS = true;
-                                      break;
-                                  }
-                              }
-                              assert(fillS && "Error: Exceeding FIFO Capacity!");
-                          }else {
-                              std::cerr << "Error: Wong FIFO idx!" << std::endl;
-                          }
-                      }else if(it->Reduction_FIFO_Idx.range(63, 32) == -1) {
-                          const int fifo_index = it->Reduction_FIFO_Idx.range(31, 0);
-                          if(notifyArray[fifo_index]->read() == 1) {
-                                  notifyArray[fifo_index]->write(-2);
-                          }
-                          {
-                             releaseBlock(it->addr, freeList);
-                             std::lock_guard<std::mutex> lock(schedulerTable->mtx);
-                             it = schedulerTable->schedulerItemList.erase(it);
-                          }
-                      }
-                    } 
+                                assert(fillS && "Error: Exceeding FIFO Capacity!");
+                            }else {
+                                std::cerr << "Error: Wong FIFO idx!" << std::endl;
+                            }
+                        }
+                    }else if(high_32 == -1) {
+                        const int fifo_index = it->Reduction_FIFO_Idx.range(31, 0);
+                        if(notifyArray[fifo_index]->read() == 1) {
+                            notifyArray[fifo_index]->write(-2);
+                        }
+                        {
+                           releaseBlock(it->addr, freeList);
+                           std::lock_guard<std::mutex> lock(schedulerTable->mtx);
+                           it = schedulerTable->schedulerItemList.erase(it);
+                        }
+                    }
                 }
             } 
         }

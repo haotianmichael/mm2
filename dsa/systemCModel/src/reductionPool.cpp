@@ -89,16 +89,17 @@ void ReductionController::arbitrator() {
                         for(int t = 0; t < riNum - 1; t++) {
                             reductionOutArrayToTree[j][t]->write(ri.data[t]);
                         }
-                        notifyOutArray[j].write(true);
+                        reductionOutArrayToTree[j][Reduction_NUM-1]->write(riNum);
                     }else if(notifyArray[i]->read() == -2) {
                         //free reductionUnit
                         assert(reductionInputArrayPorts[i]->num_available()==0 && "Error: FIFO's data not processed!");
+                        int index = notifyArrayToScheduler[i].read();
                         notifyArrayToScheduler[i].write(static_cast<sc_int<WIDTH>>(-1));
-                        notifyOutArray[i].write(false);
+                        notifyOutArray[index].write(false);
                         fifoIdxArray[i].write(static_cast<sc_int<WIDTH>>(-1));
                     }else if(notifyArray[i]->read() == 1 && notifyArrayToScheduler[i].read().to_int() == -1) {
                         ri = reductionInputArrayPorts[i]->read();
-                        riNum = 50;
+                        riNum = ri.data.back();
                         if(riNum >= 1 && riNum <= 2) {
                             bool dispatchS = false;
                             int j = 0;
@@ -108,6 +109,7 @@ void ReductionController::arbitrator() {
                                     for(int t = 0; t < riNum - 1; t++) {
                                         reductionOutArrayToTree[j][t]->write(ri.data[t]);
                                     }
+                                    reductionOutArrayToTree[j][Reduction_NUM-1]->write(riNum);
                                     notifyOutArray[j].write(true);
                                 } 
                                 dispatchS = true;
@@ -125,6 +127,7 @@ void ReductionController::arbitrator() {
                                     for(int t = 0; t < riNum - 1; t++) {
                                         reductionOutArrayToTree[j][t]->write(ri.data[t]);
                                     }
+                                    reductionOutArrayToTree[j][Reduction_NUM-1]->write(riNum);
                                     notifyOutArray[j].write(true);
                                 } 
                                 dispatchS = true;
@@ -142,6 +145,7 @@ void ReductionController::arbitrator() {
                                     for(int t = 0; t < riNum - 1; t++) {
                                         reductionOutArrayToTree[j][t]->write(ri.data[t]);
                                     }
+                                    reductionOutArrayToTree[j][Reduction_NUM-1]->write(riNum);
                                     notifyOutArray[j].write(true);
                                 } 
                                 dispatchS = true;
@@ -159,6 +163,7 @@ void ReductionController::arbitrator() {
                                     for(int t = 0; t < riNum - 1; t++) {
                                         reductionOutArrayToTree[j][t]->write(ri.data[t]);
                                     }
+                                    reductionOutArrayToTree[j][Reduction_NUM-1]->write(riNum);
                                     notifyOutArray[j].write(true);
                                 } 
                                 dispatchS = true;
@@ -176,6 +181,7 @@ void ReductionController::arbitrator() {
                                     for(int t = 0; t < riNum - 1; t++) {
                                         reductionOutArrayToTree[j][t]->write(ri.data[t]);
                                     }
+                                    reductionOutArrayToTree[j][Reduction_NUM-1]->write(riNum);
                                     notifyOutArray[j].write(true);
                                 } 
                                 dispatchS = true;
@@ -193,6 +199,7 @@ void ReductionController::arbitrator() {
                                     for(int t = 0; t < riNum - 1; t++) {
                                         reductionOutArrayToTree[j][t]->write(ri.data[t]);
                                     }
+                                    reductionOutArrayToTree[j][Reduction_NUM-1]->write(riNum);
                                     notifyOutArray[j].write(true);
                                 } 
                                 dispatchS = true;
@@ -210,6 +217,7 @@ void ReductionController::arbitrator() {
                                     for(int t = 0; t < riNum - 1; t++) {
                                         reductionOutArrayToTree[j][t]->write(ri.data[t]);
                                     }
+                                    reductionOutArrayToTree[j][Reduction_NUM-1]->write(riNum);
                                     notifyOutArray[j].write(true);
                                 } 
                                 dispatchS = true;
