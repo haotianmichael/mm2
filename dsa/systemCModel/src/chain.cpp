@@ -576,7 +576,7 @@ void fillFIFOPorts(sc_fifo<reductionInput> *reductionInputEle, sc_int<WIDTH> &pa
     rt.data[127] = path;
     reductionInputEle->write(rt);
 }
-void Chain::chain_rt_checkTable(){
+void Chain::chain_rt_allocate(){
     while(true) {
         wait();
         if(rst.read()) {

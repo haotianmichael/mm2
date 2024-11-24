@@ -90,7 +90,7 @@ SC_MODULE(Chain) {
     void chain_hcu_execute();
     void chain_hcu_fillTable();
     void chain_hcu_allocate();
-    void chain_rt_checkTable();
+    void chain_rt_allocate();
 
 	SC_CTOR(Chain) : 
          riSegQueueLong(MAX_SEG_NUM), 
@@ -128,7 +128,7 @@ SC_MODULE(Chain) {
         sensitive << clk.pos();
 
         // check SchedulerTable and allocate ReductionTrees
-        SC_THREAD(chain_rt_checkTable);
+        SC_THREAD(chain_rt_allocate);
         sensitive << clk.pos();
 
         for(int i = 0; i < ReadNumProcessedOneTime; i ++) {
