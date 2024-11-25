@@ -61,7 +61,7 @@ void ReductionController::compute_ROCC() {
     }
 }
 
-void ReductionController::arbitrator() {
+void ReductionController::chain_rt_execute() {
     while(true) {
         wait();
         if(rst.read()) {
@@ -94,6 +94,7 @@ void ReductionController::arbitrator() {
                         //free reductionUnit
                         assert(reductionInputArrayPorts[i]->num_available()==0 && "Error: FIFO's data not processed!");
                         int index = notifyArrayToScheduler[i].read();
+                        std::cout << "successfully Free ReductionTree: "<< index <<  " at: " << sc_time_stamp() + sc_time(10, SC_NS) << std::endl;
                         notifyArrayToScheduler[i].write(static_cast<sc_int<WIDTH>>(-1));
                         notifyOutArray[index].write(false);
                         fifoIdxArray[i].write(static_cast<sc_int<WIDTH>>(-1));

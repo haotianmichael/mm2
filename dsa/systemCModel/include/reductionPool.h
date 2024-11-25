@@ -91,7 +91,7 @@ SC_MODULE(ReductionController) {
 
     
     void compute_ROCC();
-    void arbitrator();
+    void chain_rt_execute();
 
     SC_CTOR(ReductionController):
         ROCC(Reduction_KIND),
@@ -101,7 +101,7 @@ SC_MODULE(ReductionController) {
         notifyArrayToScheduler(Reduction_FIFO_NUM),
         reductionOutArrayToTree(Reduction_USAGE, std::vector<sc_signal<sc_int<WIDTH>>*>(Reduction_NUM)){
 
-        SC_THREAD(arbitrator);
+        SC_THREAD(chain_rt_execute);
         sensitive << clk.pos();
 
         SC_THREAD(compute_ROCC);

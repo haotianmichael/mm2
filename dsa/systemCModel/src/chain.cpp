@@ -471,7 +471,7 @@ void Chain::chain_hcu_allocate() {
                             if(freeParam == 1) {
                                 if(++freeNum == it->HCU_Total_NUM) {
                                     if(HCU_OUTPUT) {
-                                        std::cout << "successfully Free mcu: " << id << " for Seg: " << it->segmentID << " at: " << sc_time_stamp() + sc_time(10, SC_NS) << std::endl;
+                                        std::cout << "successfully Free mcu: " << id << " for Seg: " << it->segmentID << " at: " << it->endTime << std::endl;
                                     }
                                     it->UB = -1;
                                     isforward = false;
