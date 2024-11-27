@@ -2,95 +2,6 @@
 #include "chain.h"
 #define HCU_OUTPUT 1
 
-void Chain::chain_hcu_pre() {
-    while (true) {
-        wait();
-        if (start.read()) {
-            /*
-            FIXME: 
-            std::cout << sc_time_stamp() << std::endl;
-            */
-            if (readIdx < ReadNumProcessedOneTime) {
-                int segStart = 0, tmpSegLongNum = 0, tmpSegShortNum = 0, tmpSegID = 0;
-                riSegment *newRi = new riSegment;
-                qiSegment *newQi = new qiSegment;
-                wSegment *newW = new wSegment;
-                assert(readIdx < ReadNumProcessedOneTime && "Error: cutting operation exceeds the maximum");
-                // FIXME: there are still a few UpperBound situations which is not covered here.
-                for(int i = 0; i < anchorNum[readIdx]->read(); i ++) {
-                    assert(anchorSuccessiveRange[readIdx][i]->read() != 0 && "Error: successiveRange cannot be -1.");
-                    if(anchorSuccessiveRange[readIdx][i]->read() != 1 && anchorSuccessiveRange[readIdx][i]->read() != -1) {
-                        newRi->data[segStart] = anchorRi[readIdx][i]->read();
-                        newQi->data[segStart] = anchorQi[readIdx][i]->read();
-                        newW->data[segStart] = anchorW[readIdx][i]->read();
-                        segStart++;
-                    }else if(anchorSuccessiveRange[readIdx][i]->read() == 1 || i == anchorNum[readIdx]->read()-1) {
-                        // range = 1 means segments ends with this anchor
-                        // ending anchor still added
-                        newRi->data[segStart] = anchorRi[readIdx][i]->read();
-                        newQi->data[segStart] = anchorQi[readIdx][i]->read();
-                        newW->data[segStart] = anchorW[readIdx][i]->read();
-                        segStart++;
-
-                        newRi->readID = readIdx;
-                        if (segStart <= MCUInputLaneWIDTH){
-                            newQi->segID = tmpSegID << 1 | 0; // shortSegments ends with 0
-                        }else {
-                            newQi->segID = tmpSegID << 1 | 1;
-                        }
-                        newW->upperBound = segStart;
-                        if (newW->upperBound <= MCUInputLaneWIDTH){
-                            while(riSegQueueShort.num_free() == 0) {
-                                wait(space_available);
-                            }
-                            riSegQueueShort.write(*newRi);
-                            qiSegQueueShort.write(*newQi);
-                            wSegQueueShort.write(*newW);
-                            tmpSegShortNum++;
-                            data_available.notify();
-                        }else {
-                            while(riSegQueueLong.num_free() == 0) {
-                                wait(space_available);
-                            }
-                            riSegQueueLong.write(*newRi);
-                            qiSegQueueLong.write(*newQi);
-                            wSegQueueLong.write(*newW);
-                            tmpSegLongNum++;
-                            data_available.notify();
-                        }
-                        tmpSegID++;
-                        segStart = 0;
-                    }
-                }
-                /*
-                //the last segment
-                // base on the RCUnit's algirighm, UpperBound of last anchor is always 0,
-                // UpperBound of penultimate anchor is 1 if gap(last, penu)<5000, so they are in one segment.
-                // UpperBound of penultimate anchor is 0 if gap(last, penu)>5000, so they are in two segments.
-                if(i == anchorNum.read()) {
-                    newRi.upperBound = segStart;
-                    newQi.upperBound = segStart;
-                    newW.upperBound = segStart;
-                    if(newW.upperBound <= InputLaneWIDTH) {
-                         riSegQueueShort.write(newRi);
-                         qiSegQueueShort.write(newQi);
-                         wSegQueueShort.write(newW);
-                         tmpSegShortNum++;
-                     }else {
-                         riSegQueueLong.write(newRi);
-                         qiSegQueueLong.write(newQi);
-                         wSegQueueLong.write(newW);
-                         tmpSegLongNum++;
-                     }
-                }*/
-
-                readIdx++;
-            }
-        }
-    }
-}
-
-
 int allocateBlock(std::vector<bool> &freeList) {
     for(size_t i = 0; i < freeList.size(); i ++) {
         if(freeList[i]) {
@@ -109,40 +20,130 @@ void releaseBlock(int index, std::vector<bool> &freeList) {
         freeList[index] = true;
     }
 }
-int fillTableOfLongSegments(std::mutex& mtx, std::vector<ram_data> &localRAM, int &ramIndex, std::vector<bool> &freeList, std::list<SchedulerItem> &st, sc_fifo<riSegment> &riSegQueueLong, sc_fifo<qiSegment> &qiSegQueueLong, sc_fifo<wSegment> &wSegQueueLong, sc_event& space_available, sc_event& data_available) {
-
-    riSegment *newRi = new riSegment;
-    qiSegment *newQi = new qiSegment;
-    wSegment *newW = new wSegment;
-    while(!riSegQueueLong.num_available()) {
-        wait(data_available);
+bool isRamFree(std::vector<bool>& freeListForLong, std::vector<bool>& freeListForShort) {
+    bool shortfull = false;
+    bool longfull = false;
+    for(int i = 0; i < RAM_SIZE; i ++) {
+        if(freeListForLong[i]) {
+            longfull = true;
+            break;
+        }
     }
-    *newRi = riSegQueueLong.read();
-    *newQi = qiSegQueueLong.read();
-    *newW = wSegQueueLong.read();
-    space_available.notify();
-    // store data in ram
-    ramIndex = allocateBlock(freeList);
-    for (int i = 0; i < newW->upperBound; i++) {
-        localRAM[ramIndex].Rdata[i] = newRi->data[i];
-        localRAM[ramIndex].Qdata[i] = newQi->data[i];
-        localRAM[ramIndex].Wdata[i] = newW->data[i];
+    for(int i = 0; i < RAM_SIZE; i ++) {
+        if(freeListForShort[i]) {
+            shortfull = true;
+            break;
+        }
     }
+    return (shortfull && longfull);
+}
+void Chain::chain_ram_check() {
+    while(true) {
+        wait();
+        bool is = isRamFree(freeListForLong, freeListForShort); 
+        if(is) {
+            ram_not_full.notify(SC_ZERO_TIME);
+        }
+    }
+}
 
+void Chain::chain_hcu_pre() {
+    while (true) {
+        wait();
+        if (start.read()) {
+            /*
+            FIXME: 
+            std::cout << sc_time_stamp() << std::endl;
+            */
+            if (readIdx < ReadNumProcessedOneTime) {
+                int segStart = 0, tmpSegLongNum = 0, tmpSegShortNum = 0, tmpSegID = 0;
+                sc_int<WIDTH> RiData[MAX_SEGLENGTH];
+                sc_int<WIDTH> QiData[MAX_SEGLENGTH];
+                sc_int<WIDTH> WData;
+                assert(readIdx < ReadNumProcessedOneTime && "Error: cutting operation exceeds the maximum");
+                // FIXME: there are still a few UpperBound situations which is not covered here.
+                for(int i = 0; i < anchorNum[readIdx]->read(); i ++) {
+                    if(!isRamFree(freeListForLong, freeListForShort)) {
+                        wait(ram_not_full);
+                    }
+                    assert(anchorSuccessiveRange[readIdx][i]->read() != 0 && "Error: successiveRange cannot be -1.");
+                    if(anchorSuccessiveRange[readIdx][i]->read() != 1 && anchorSuccessiveRange[readIdx][i]->read() != -1) {
+                        RiData[segStart] = anchorRi[readIdx][i]->read();
+                        QiData[segStart] = anchorQi[readIdx][i]->read();
+                        segStart++;
+                    }else if(anchorSuccessiveRange[readIdx][i]->read() == 1 || i == anchorNum[readIdx]->read()-1) {
+                        // range = 1 means segments ends with this anchor
+                        // ending anchor still added
+                        RiData[segStart] = anchorRi[readIdx][i]->read();
+                        QiData[segStart] = anchorQi[readIdx][i]->read();
+                        WData = anchorW[readIdx][i]->read();
+                        segStart++;
+                        if(segStart <= MCUInputLaneWIDTH) {
+                            ramIndexForShort = allocateBlock(freeListForShort);
+                            localRAMForShort[ramIndexForShort].readID = readIdx;
+                            localRAMForShort[ramIndexForShort].segID = tmpSegID << 1 | 0; // shortSegments ends with 0
+                            localRAMForShort[ramIndexForShort].UpperBound = segStart;
+                            tmpSegShortNum++;
+                            for(int i = 0; i < segStart; i ++) {
+                                localRAMForShort[ramIndexForShort].Rdata[i] = RiData[i];
+                                localRAMForShort[ramIndexForShort].Qdata[i] = QiData[i];
+                            }
+                            localRAMForShort[ramIndexForShort].Wdata = WData;
+                            localRAMForShort[ramIndexForShort].used= true;
+                            localRAMForShort[ramIndexForShort].allocated = false;
+                        }else {
+                            ramIndexForLong = allocateBlock(freeListForLong);
+                            localRAMForLong[ramIndexForLong].readID = readIdx;
+                            localRAMForLong[ramIndexForLong].segID = tmpSegID << 1 | 1;
+                            localRAMForLong[ramIndexForLong].UpperBound = segStart;
+                            tmpSegLongNum++;
+                            for(int i = 0; i < segStart; i ++) {
+                                localRAMForLong[ramIndexForLong].Rdata[i] = RiData[i];
+                                localRAMForLong[ramIndexForLong].Qdata[i] = QiData[i];
+                            }
+                            localRAMForLong[ramIndexForLong].Wdata = WData;
+                            localRAMForLong[ramIndexForLong].used = true;
+                            localRAMForLong[ramIndexForLong].allocated = false;
+                        }
+                        tmpSegID++;
+                        segStart = 0;
+                    }
+                }
+                std::cout << "this read's segNum: " << tmpSegLongNum + tmpSegShortNum << std::endl;
+                readIdx++;
+            }
+        }
+    }
+}
+int fillTableOfLongSegments(std::mutex& mtx, std::vector<ram_dataForLong> &localRAMForLong, std::vector<bool> &freeListForLong, std::list<SchedulerItem> &st) {
+    // find data in ram ready to be allocated
+    int ramIndex= -1;
+    bool allo = false;
+    for(int i = 0; i < RAM_SIZE; i ++) {
+        if(!freeListForLong[i] && localRAMForLong[i].used && !localRAMForLong[i].allocated) {
+           ramIndex = i;
+           localRAMForLong[i].allocated = true;
+           allo = true;
+           break; 
+        }
+    }
+    if(!allo) {
+        return -1;
+    }
     SchedulerItem sItem;
     sItem.issued = 0;
-    sItem.readID = newRi->readID;
-    sItem.segmentID = newQi->segID >> 1;
-    sItem.UB = newW->upperBound;
+    sItem.readID = localRAMForLong[ramIndex].readID;
+    sItem.segmentID = localRAMForLong[ramIndex].segID >> 1;
+    sItem.UB = localRAMForLong[ramIndex].UpperBound;
     sItem.addr = static_cast<sc_int<WIDTH>>(ramIndex);
 
-    assert(newW->upperBound >= 66 && "Error: LongQueue's upperbound cannot be less than 66");
-    sItem.HCU_Total_NUM = 2 + (newW->upperBound - 66) / 65;
+    assert(localRAMForLong[ramIndex].UpperBound >= 66 && "Error: LongQueue's upperbound cannot be less than 66");
+    sItem.HCU_Total_NUM = 2 + (localRAMForLong[ramIndex].UpperBound - 66) / 65;
     for (int i = 0; i < sItem.HCU_Total_NUM; i++){
         SchedulerTime tl;
         tl.type = i == 0 ? 1 : 0; // mcu & ecu
         tl.SBase = i * 65;
-        tl.LBase = newW->upperBound;
+        tl.LBase = localRAMForLong[ramIndex].UpperBound;
         tl.hcuID = -1;
         // allocation cycle:
         //  C(startTime)
@@ -163,36 +164,30 @@ int fillTableOfLongSegments(std::mutex& mtx, std::vector<ram_data> &localRAM, in
     return 1;
 }
 
-int fillTableOfShortSegments(std::mutex& mtx, std::vector<ram_data> &localRAM, int &ramIndex, std::vector<bool> &freeList, std::list<SchedulerItem> &st, sc_fifo<riSegment> &riSegQueueShort, sc_fifo<qiSegment> &qiSegQueueShort, sc_fifo<wSegment> &wSegQueueShort, sc_event& space_available, sc_event& data_available) {
-    riSegment *newRi = new riSegment;
-    qiSegment *newQi = new qiSegment;
-    wSegment *newW = new wSegment;
-
-    while(!riSegQueueShort.num_available()) {
-        wait(data_available);
+int fillTableOfShortSegments(std::mutex& mtx, std::vector<ram_dataForShort> &localRAMForShort, std::vector<bool> &freeListForShort, std::list<SchedulerItem> &st) {
+    // find data in ram ready to be allocated
+    int ramIndex= -1;
+    bool allo = false;
+    for(int i = 0; i < RAM_SIZE; i ++) {
+        if(!freeListForShort[i] && localRAMForShort[i].used && !localRAMForShort[i].allocated) {
+           ramIndex = i;
+           localRAMForShort[i].allocated = true;
+           allo = true;
+           break; 
+        }
     }
-    *newRi = riSegQueueShort.read();
-    *newQi = qiSegQueueShort.read();
-    *newW = wSegQueueShort.read();
-    space_available.notify();
-    //std::cout << "fifo valid at " << sc_time_stamp() << std::endl;
-    // store data in ram
-    ramIndex = allocateBlock(freeList);
-    for (int i = 0; i < newW->upperBound; i++){
-        localRAM[ramIndex].Rdata[i] = newRi->data[i];
-        localRAM[ramIndex].Qdata[i] = newQi->data[i];
-        localRAM[ramIndex].Wdata[i] = newW->data[i];
+    if(!allo) {
+        return -1;
     }
-
     SchedulerItem sItem;
     sItem.issued = 0;
-    sItem.readID = newRi->readID;
-    sItem.segmentID = newQi->segID >> 1;
+    sItem.readID = localRAMForShort[ramIndex].readID;
+    sItem.segmentID = localRAMForShort[ramIndex].segID >> 1;
     /*if(newW->upperBound == 11) {
         std::cout << "ri->data[0] from fifo is " <<  newRi->data[0] << " ri->data[last] is " << newRi->data[newW->upperBound - 1] << " segID: "<< sItem.segmentID << std::endl;
         std::cout << "ri->data[0] from RAM is " << localRAM[ramIndex].data[0] << std::endl;
     }*/
-    sItem.UB = newW->upperBound;
+    sItem.UB = localRAMForShort[ramIndex].UpperBound;
     sItem.HCU_Total_NUM = 1;
     sItem.addr = static_cast<sc_int<WIDTH>>(ramIndex);
 
@@ -201,7 +196,7 @@ int fillTableOfShortSegments(std::mutex& mtx, std::vector<ram_data> &localRAM, i
     tl.hcuID = -1;
     tl.type = 1;
     tl.SBase = 0;
-    tl.LBase = newW->upperBound;
+    tl.LBase = localRAMForShort[ramIndex].UpperBound;
     // fill at real allocationTime
     sItem.startTime = sc_time(0, SC_NS);
     sItem.endTime = sc_time(0, SC_NS);
@@ -234,19 +229,15 @@ void Chain::chain_hcu_fillTable(){
             /*allocate ShortSeg as soon as one kind of reductionTree is running out.*/
             if(!enoughRed){
                 // little idle reduction -> allocate shortPort
-                if(riSegQueueShort.num_available() > 0){
-                    fillTableOfShortSegments(schedulerTable->mtx, localRAM, ramIndex, freeList, schedulerTable->schedulerItemList, riSegQueueShort, qiSegQueueShort, wSegQueueShort, space_available, data_available);
-                }else if(riSegQueueLong.num_available() > 0){
-                    fillTableOfLongSegments(schedulerTable->mtx, localRAM, ramIndex, freeList, schedulerTable->schedulerItemList, riSegQueueLong, qiSegQueueLong, wSegQueueLong, space_available, data_available);
+                if(fillTableOfShortSegments(schedulerTable->mtx, localRAMForShort, freeListForShort, schedulerTable->schedulerItemList) == -1) {
+                    fillTableOfLongSegments(schedulerTable->mtx, localRAMForLong, freeListForLong, schedulerTable->schedulerItemList);
                 }
-            }else{
+           }else{
                 // enough idle reduction -> allocate longPort
-                if(riSegQueueLong.num_available() > 0){
-                    fillTableOfLongSegments(schedulerTable->mtx, localRAM, ramIndex, freeList, schedulerTable->schedulerItemList, riSegQueueLong, qiSegQueueLong, wSegQueueLong, space_available, data_available);
-                }else if(riSegQueueShort.num_available() > 0){
-                    fillTableOfShortSegments(schedulerTable->mtx, localRAM, ramIndex, freeList, schedulerTable->schedulerItemList, riSegQueueShort, qiSegQueueShort, wSegQueueShort, space_available, data_available);
+                if(fillTableOfLongSegments(schedulerTable->mtx, localRAMForLong, freeListForLong, schedulerTable->schedulerItemList) == -1) {
+                    fillTableOfShortSegments(schedulerTable->mtx, localRAMForShort, freeListForShort, schedulerTable->schedulerItemList);
                 }
-            }
+           }
         }
     }
 }
@@ -434,6 +425,7 @@ void Chain::chain_hcu_allocate() {
         if(start.read()){
             bool hasScheduled = false;
             for (auto it = schedulerTable->schedulerItemList.begin(); it != schedulerTable->schedulerItemList.end(); ){
+                std::cout << schedulerTable->schedulerItemList.size() << std::endl;
                 auto timeIt = it->TimeList.begin();
                 if(it->issued){
                     // ecu allocation
@@ -473,7 +465,13 @@ void Chain::chain_hcu_allocate() {
                                     if(HCU_OUTPUT) {
                                         std::cout << "successfully Free mcu: " << id << " for Seg: " << it->segmentID << " at: " << it->endTime << std::endl;
                                     }
-                                    it->UB = -1;
+                                    if(it->UB <= MCUInputLaneWIDTH) {
+                                        releaseBlock(it->addr, freeListForShort);
+                                        std::lock_guard<std::mutex> lock(schedulerTable->mtx);
+                                        it = schedulerTable->schedulerItemList.erase(it);
+                                    }else {
+                                        it->UB = -1;
+                                    }
                                     isforward = false;
                                     break;
                                 }
@@ -544,21 +542,35 @@ void Chain::chain_hcu_execute(){
                     if (mt->type.read()){ // mcu
 
                         assert(mt->LowerBound.read()==0 && "mcu's LowerBound must be 0!");
-                        
-                        for(int j = 0; j < mt->UpperBound.read(); j ++) {
-                            mcuIODisPatcherPool[i]->ri[j].write(localRAM[mt->addr.read()].Rdata[j]);
-                            mcuIODisPatcherPool[i]->qi[j].write(localRAM[mt->addr.read()].Qdata[j]);
-                            mcuIODisPatcherPool[i]->w[j].write(localRAM[mt->addr.read()].Wdata[j]);
+                        if(mt->UpperBound.read() <= MCUInputLaneWIDTH) {
+                            for(int j = 0; j < mt->UpperBound.read(); j ++) {
+                                mcuIODisPatcherPool[i]->ri[j].write(localRAMForShort[mt->addr.read()].Rdata[j]);
+                                mcuIODisPatcherPool[i]->qi[j].write(localRAMForShort[mt->addr.read()].Qdata[j]);
+                                mcuIODisPatcherPool[i]->w[j].write(localRAMForShort[mt->addr.read()].Wdata);
+                            }
+                        }else {
+                            for(int j = 0; j < mt->UpperBound.read(); j ++) {
+                                mcuIODisPatcherPool[i]->ri[j].write(localRAMForLong[mt->addr.read()].Rdata[j]);
+                                mcuIODisPatcherPool[i]->qi[j].write(localRAMForLong[mt->addr.read()].Qdata[j]);
+                                mcuIODisPatcherPool[i]->w[j].write(localRAMForLong[mt->addr.read()].Wdata);
+                            }
                         }
                     }else{ // ecu
 
                         assert(et->LowerBound.read()!=0 && "ecu's LowerBound must not be 0!");
-                        for(int j = 0; j < et->UpperBound.read(); j ++) {
-                            ecuIODisPatcherPool[i]->ri[j].write(localRAM[et->addr.read()].Rdata[j]);
-                            ecuIODisPatcherPool[i]->qi[j].write(localRAM[et->addr.read()].Qdata[j]);
-                            ecuIODisPatcherPool[i]->w[j].write(localRAM[et->addr.read()].Wdata[j]);
+                        if(et->UpperBound.read() <= MCUInputLaneWIDTH) {
+                            for(int j = 0; j < et->UpperBound.read(); j ++) {
+                                ecuIODisPatcherPool[i]->ri[j].write(localRAMForShort[et->addr.read()].Rdata[j]);
+                                ecuIODisPatcherPool[i]->qi[j].write(localRAMForShort[et->addr.read()].Qdata[j]);
+                                ecuIODisPatcherPool[i]->w[j].write(localRAMForShort[et->addr.read()].Wdata);
+                            }
+                        }else {
+                            for(int j = 0; j < et->UpperBound.read(); j ++) {
+                                ecuIODisPatcherPool[i]->ri[j].write(localRAMForLong[et->addr.read()].Rdata[j]);
+                                ecuIODisPatcherPool[i]->qi[j].write(localRAMForLong[et->addr.read()].Qdata[j]);
+                                ecuIODisPatcherPool[i]->w[j].write(localRAMForLong[et->addr.read()].Wdata);
+                            }
                         }
-
                     }
                 }
             }
@@ -653,7 +665,7 @@ void Chain::chain_rt_allocate(){
                             notifyArray[fifo_index]->write(-2);
                         }
                         {
-                           releaseBlock(it->addr, freeList);
+                           releaseBlock(it->addr, freeListForLong);
                            std::lock_guard<std::mutex> lock(schedulerTable->mtx);
                            it = schedulerTable->schedulerItemList.erase(it);
                         }

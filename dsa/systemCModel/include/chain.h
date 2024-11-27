@@ -29,33 +29,26 @@ SC_MODULE(Chain) {
     */
     RangeCountUnit *rc;
 
-    // @SegmentsQueue (Two Ports)
+    // @LocalRAM (Two Ports)
     /*
-        read from rc.array --> simulating read from DDR
-        the width of fifo simulating DDR's width
+       sizeof(ram_data) : 40018 Bytes 
+       sizeof(RAM): 40018B x 40 x 2 = 3.053MB
     */
     // UpperBound <= 65 elements  Lane[0, 64]
-    sc_fifo<riSegment> riSegQueueLong;  
-    sc_fifo<qiSegment> qiSegQueueLong;
-    sc_fifo<wSegment> wSegQueueLong;
-    // UpperBound > 65
-    sc_fifo<riSegment> riSegQueueShort; 
-    sc_fifo<qiSegment> qiSegQueueShort;
-    sc_fifo<wSegment> wSegQueueShort;
     sc_int<WIDTH> readIdx = 0; //read which currently being cut
-    sc_event data_available;  // fifo signal
-    sc_event space_available;
+    std::vector<ram_dataForShort> localRAMForShort;
+    std::vector<ram_dataForLong> localRAMForLong;
+    std::vector<bool> freeListForShort;
+    std::vector<bool> freeListForLong;
+    int ramIndexForShort;
+    int ramIndexForLong;
+    sc_event ram_not_full;
 
     // @SchedulerTable
     /*
         FIXME: schedulerTable needs to be filled more than one time within one cycle.
     */
     SchedulerTable *schedulerTable;
-
-    // @LocalRAM store the Input
-    std::vector<ram_data> localRAM;
-    std::vector<bool> freeList;
-    int ramIndex;
 
     // @HCU Pool
     // simulator can only use either mcuPool[i] or ecuPool[i], cannot use them both at the same time.
@@ -86,6 +79,7 @@ SC_MODULE(Chain) {
     sc_fifo<reductionInput> *reductionInputArray[Reduction_FIFO_NUM];        
     sc_signal<sc_int<WIDTH>> *notifyArray[Reduction_FIFO_NUM];
 
+    void chain_ram_check();
     void chain_hcu_pre();
     void chain_hcu_execute();
     void chain_hcu_fillTable();
@@ -93,13 +87,8 @@ SC_MODULE(Chain) {
     void chain_rt_allocate();
 
 	SC_CTOR(Chain) : 
-         riSegQueueLong(MAX_SEG_NUM), 
-         qiSegQueueLong(MAX_SEG_NUM), 
-         wSegQueueLong(MAX_SEG_NUM),
-         riSegQueueShort(MAX_SEG_NUM),
-         qiSegQueueShort(MAX_SEG_NUM),
-         wSegQueueShort(MAX_SEG_NUM),
-         ramIndex(0),
+         ramIndexForLong(0),
+         ramIndexForShort(0),
          alloParam(0),
          freeParam(0),
          anchorNum(ReadNumProcessedOneTime),
@@ -109,13 +98,15 @@ SC_MODULE(Chain) {
          anchorSuccessiveRange(ReadNumProcessedOneTime, std::vector<sc_signal<sc_int<WIDTH>>*>(MAX_READ_LENGTH)),
          resultArray(RESULT_NUM){
 
+        SC_THREAD(chain_ram_check);
+        sensitive << clk.pos();
 
         // prepare the segmentQueue
-        // one read per cycle.(延时问题后续重新考虑)
+        // one read per cycle.
         SC_THREAD(chain_hcu_pre);
         sensitive << clk.pos();
 
-        // fill SchedulerTable for every Segment based on SegQueue
+        // fill SchedulerTable for every Segment
         SC_THREAD(chain_hcu_fillTable);
         sensitive << clk.pos();
 
@@ -123,7 +114,7 @@ SC_MODULE(Chain) {
         SC_THREAD(chain_hcu_allocate);
         sensitive << clk.pos();
 
-        // HCU IO Wiring/Free and fill PSQTable
+        // HCU IO Wiring and Enable
         SC_THREAD(chain_hcu_execute);
         sensitive << clk.pos();
 
@@ -131,6 +122,7 @@ SC_MODULE(Chain) {
         SC_THREAD(chain_rt_allocate);
         sensitive << clk.pos();
 
+        /************@RC Unit ****************************************/
         for(int i = 0; i < ReadNumProcessedOneTime; i ++) {
             anchorNum[i] = new sc_signal<sc_int<WIDTH>>();
             for(int j = 0; j < MAX_READ_LENGTH; j ++) {
@@ -162,15 +154,19 @@ SC_MODULE(Chain) {
             }
         }
 
+        /************@SchedulerTable ****************************************/
         schedulerTable = new SchedulerTable;
         try {
             // FIXME: memory maybe not enough.
-            localRAM.resize(RAM_SIZE);
-            freeList.resize(RAM_SIZE, true);
+            localRAMForLong.resize(RAM_SIZE);
+            localRAMForShort.resize(RAM_SIZE);
+            freeListForLong.resize(RAM_SIZE, true);
+            freeListForShort.resize(RAM_SIZE, true);
         }catch(const std::bad_alloc& e) {
             std::cerr << "Scheduler's localRAM allocation failed:" << e.what() << std::endl;
         }
 
+        /************@IODispatcher ****************************************/
         std::ostringstream mcu_name, ecu_name, mcuIO_name, ecuIO_name;
         for(int i = 0; i < HCU_NUM; i ++) {
             mcuIO_name << "mcuIODis(" << i << ")";
@@ -202,6 +198,7 @@ SC_MODULE(Chain) {
         }
 
         
+        /************@HCU ****************************************/
         int rIndex = 0;
         for(int i = 0; i < HCU_NUM && rIndex < HCU_NUM*2; i ++) {
             mcu_name << "mcuPool(" << i << ")";
@@ -248,6 +245,8 @@ SC_MODULE(Chain) {
             ecu_name.str("");
         }
 
+
+        /************@ReductionTree ****************************************/
         std::stringstream r_name;
         rtController = new ReductionController("ReductionController");
         rtController->clk(clk);

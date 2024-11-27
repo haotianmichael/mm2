@@ -5,46 +5,26 @@
 #include <list>
 #include <mutex>
 
-struct ram_data{
+struct ram_dataForLong{
    sc_int<WIDTH> Rdata[MAX_SEGLENGTH]; 
    sc_int<WIDTH> Qdata[MAX_SEGLENGTH]; 
-   sc_int<WIDTH> Wdata[MAX_SEGLENGTH]; 
+   sc_int<WIDTH> Wdata;
+   sc_int<WIDTH> readID;
+   sc_int<WIDTH> segID;
+   sc_int<WIDTH> UpperBound;
+   bool used;
+   bool allocated;
 };
 
-struct riSegment{
-    sc_int<WIDTH>  data[MAX_SEGLENGTH]; 
-    sc_int<WIDTH> readID;   // readID which this segment belongs to 
-    friend std::ostream& operator<<(std::ostream& os, const riSegment& segment){
-        os << "riSegment: ";
-        for(int i =0; i < MAX_SEGLENGTH; i ++) {
-            os << segment.data[i] << " "; 
-        }
-        return os;
-    }
-};
-
-struct qiSegment{
-    sc_int<WIDTH>  data[MAX_SEGLENGTH]; 
-    sc_int<WIDTH> segID;   // segmentID
-    friend std::ostream& operator<<(std::ostream& os, const qiSegment& segment) {
-        os << "qiSegment: ";
-        for(int i =0; i < MAX_SEGLENGTH; i ++) {
-            os << segment.data[i] << " ";
-        }
-        return os;
-    }
-};
-
-struct wSegment{
-    sc_int<WIDTH>  data[MAX_SEGLENGTH]; 
-    sc_int<WIDTH> upperBound;
-    friend std::ostream& operator<<(std::ostream& os, const wSegment& segment) {
-        os << "wSegment: ";
-        for(int i = 0; i < segment.upperBound; i ++) {
-                os << segment.data[i] << " ";
-        }
-        return os;
-    }
+struct ram_dataForShort{
+   sc_int<WIDTH> Rdata[MIN_SEGLENGTH]; 
+   sc_int<WIDTH> Qdata[MIN_SEGLENGTH]; 
+   sc_int<WIDTH> Wdata;
+   sc_int<WIDTH> readID;
+   sc_int<WIDTH> segID;
+   sc_int<WIDTH> UpperBound;
+   bool used;
+   bool allocated;
 };
 
 struct SchedulerTime{

@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <stdio.h>
+#include <sys/time.h>
 #include "kalloc.h"
 
 /*for allocation of memory*/
@@ -155,7 +156,7 @@ void mm_chain_dp(int max_dist_x, int max_dist_y, int bw,
         v[i] = max_j >= 0 && v[max_j] > max_f ? v[max_j] : max_f; // v[] keeps the peak score up to i; f[] is the score ending at i, not always the peak
     }
 
-    FILE *outfp = fopen("out2.txt", "w"); 
+    /*FILE *outfp = fopen("out4.txt", "w"); 
     static int count = 0;
     if(count++ > READ_NUM) {
         fclose(outfp);
@@ -168,7 +169,7 @@ void mm_chain_dp(int max_dist_x, int max_dist_y, int bw,
     for (int i = 0; i < n; i++) {
         fprintf(outfp, "%d\t%d\t%d\t%d\n", (int)f[i], (int)p[i], (int)v[i], (int)t[i]);
     }
-    fprintf(outfp, "EOR\n");
+    fprintf(outfp, "EOR\n");*/
 
 }
 
@@ -221,7 +222,7 @@ int main() {
     int *n_u_;
     uint64_t **_u;
     read_t read;
-    FILE *infp = fopen("data/in2.txt", "r");
+    FILE *infp = fopen("data/in4.txt", "r");
     if(infp == NULL){
         printf("ERROR TO GET FILE!"); 
         return -1;
@@ -230,7 +231,16 @@ int main() {
     b->km = calloc(1, sizeof(kmem_t));  // alloc for km
 
     a = parse_read(b->km, infp, a, &n, &max_dist_x, &max_dist_y, &bw);
+
+    struct timeval start, end;
+    double time_taken;
+    gettimeofday(&start, NULL);
+
     mm_chain_dp(max_dist_x, max_dist_y, bw, max_skip, max_iter, min_cnt, min_sc, is_cdna, n_segs, n, a, n_u_, _u, b->km);
+
+    gettimeofday(&end, NULL);
+    time_taken = (end.tv_sec - start.tv_sec) + (end.tv_usec - start.tv_usec) / 1000000.0;
+    printf("Elapsed time: %f seconds\n", time_taken);
 
     fclose(infp);
     return 0;
