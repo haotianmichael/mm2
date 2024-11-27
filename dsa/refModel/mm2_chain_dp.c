@@ -222,7 +222,7 @@ int main() {
     int *n_u_;
     uint64_t **_u;
     read_t read;
-    FILE *infp = fopen("data/in4.txt", "r");
+    FILE *infp = fopen("data/in1.txt", "r");
     if(infp == NULL){
         printf("ERROR TO GET FILE!"); 
         return -1;

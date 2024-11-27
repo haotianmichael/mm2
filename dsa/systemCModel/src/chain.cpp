@@ -676,3 +676,13 @@ void Chain::chain_rt_allocate(){
     }
 }
 
+void Chain::chain_output() {
+    while(true) {
+        wait();
+        if(!rst.read()) {
+            if(start.read()) {
+                result_file << "Output1" << resultArray[0] <<  std::endl;
+            } 
+        }
+    }
+}

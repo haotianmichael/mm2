@@ -79,12 +79,15 @@ SC_MODULE(Chain) {
     sc_fifo<reductionInput> *reductionInputArray[Reduction_FIFO_NUM];        
     sc_signal<sc_int<WIDTH>> *notifyArray[Reduction_FIFO_NUM];
 
+    std::ofstream result_file;
+
     void chain_ram_check();
     void chain_hcu_pre();
     void chain_hcu_execute();
     void chain_hcu_fillTable();
     void chain_hcu_allocate();
     void chain_rt_allocate();
+    void chain_output();
 
 	SC_CTOR(Chain) : 
          ramIndexForLong(0),
@@ -121,6 +124,12 @@ SC_MODULE(Chain) {
         // check SchedulerTable and allocate ReductionTrees
         SC_THREAD(chain_rt_allocate);
         sensitive << clk.pos();
+
+        // output of chain
+        SC_THREAD(chain_output);
+        for(int i = 0; i < RESULT_NUM; i ++){
+            sensitive << resultArray[i];
+        }
 
         /************@RC Unit ****************************************/
         for(int i = 0; i < ReadNumProcessedOneTime; i ++) {
@@ -277,6 +286,13 @@ SC_MODULE(Chain) {
             notifyArray[i] = new sc_signal<sc_int<WIDTH>>();
             rtController->reductionInputArrayPorts[i].bind(*reductionInputArray[i]);
             rtController->notifyArray[i](*notifyArray[i]);
+        }
+
+        /************@Output ****************************************/
+        result_file.open("output.txt", std::ios::out | std::ios::app);
+        if(!result_file.is_open()) {
+            std::cerr << "Error: cannot open file for output!" << std::endl;
+            sc_stop();
         }
 	}
 };
