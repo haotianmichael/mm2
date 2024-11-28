@@ -17,8 +17,9 @@ SC_MODULE(Chain) {
     std::vector<sc_signal<sc_int<WIDTH>>*> anchorNum;  //number of anchors
     std::vector<std::vector<sc_signal<sc_int<WIDTH>>*>> anchorRi;
     std::vector<std::vector<sc_signal<sc_int<WIDTH>>*>> anchorQi;
-    std::vector<std::vector<sc_signal<sc_int<WIDTH>>*>> anchorW;
+    std::vector<std::vector<sc_signal<sc_int<WIDTH>>*>> anchorIdx;
     std::vector<std::vector<sc_signal<sc_int<WIDTH>>*>> anchorSuccessiveRange;// successive range of every anchor 
+    std::vector<sc_signal<sc_int<WIDTH>>*> anchorW;  //number of anchors
 
     /*ResultArray consists of both HCU's resultArray(UB<=65) and ReductionPool's resultArray(UB>65) */
     std::vector<sc_out<sc_int<WIDTH>>> resultArray;
@@ -62,15 +63,18 @@ SC_MODULE(Chain) {
     ecuIODispatcher *ecuIODisPatcherPool[HCU_NUM];
 
     // @Wiring
-    sc_signal<sc_int<WIDTH> > mri[HCU_NUM][MCUInputLaneWIDTH + 1];
-    sc_signal<sc_int<WIDTH> > mqi[HCU_NUM][MCUInputLaneWIDTH + 1];
-    sc_signal<sc_int<WIDTH> > mw[HCU_NUM][MCUInputLaneWIDTH + 1];
-    sc_signal<sc_int<WIDTH> > eri[HCU_NUM][MCUInputLaneWIDTH + 1];
-    sc_signal<sc_int<WIDTH> > eqi[HCU_NUM][MCUInputLaneWIDTH + 1];
-    sc_signal<sc_int<WIDTH> > ew[HCU_NUM][MCUInputLaneWIDTH + 1];
-    sc_signal<sc_int<WIDTH> > ecu_ri[HCU_NUM];
-    sc_signal<sc_int<WIDTH> > ecu_qi[HCU_NUM];
-    sc_signal<sc_int<WIDTH> > ecu_w[HCU_NUM];
+    std::vector<std::vector<sc_signal<sc_int<WIDTH>>*>> mri;
+    std::vector<std::vector<sc_signal<sc_int<WIDTH>>*>> mqi;
+    std::vector<std::vector<sc_signal<sc_int<WIDTH>>*>> mw;
+    std::vector<std::vector<sc_signal<sc_int<WIDTH>>*>> midx;
+    std::vector<std::vector<sc_signal<sc_int<WIDTH>>*>> eri;
+    std::vector<std::vector<sc_signal<sc_int<WIDTH>>*>> eqi;
+    std::vector<std::vector<sc_signal<sc_int<WIDTH>>*>> ew;
+    std::vector<std::vector<sc_signal<sc_int<WIDTH>>*>> eidx;
+    std::vector<sc_signal<sc_int<WIDTH>>*> ecu_ri;
+    std::vector<sc_signal<sc_int<WIDTH>>*> ecu_qi;
+    std::vector<sc_signal<sc_int<WIDTH>>*> ecu_w;
+    std::vector<sc_signal<sc_int<WIDTH>>*> ecu_idx;
 
     // @ReductionPool
     ReductionController *rtController;
@@ -95,10 +99,23 @@ SC_MODULE(Chain) {
          alloParam(0),
          freeParam(0),
          anchorNum(ReadNumProcessedOneTime),
+         anchorW(ReadNumProcessedOneTime),
          anchorRi(ReadNumProcessedOneTime, std::vector<sc_signal<sc_int<WIDTH>>*>(MAX_READ_LENGTH)),
          anchorQi(ReadNumProcessedOneTime, std::vector<sc_signal<sc_int<WIDTH>>*>(MAX_READ_LENGTH)),
-         anchorW(ReadNumProcessedOneTime, std::vector<sc_signal<sc_int<WIDTH>>*>(MAX_READ_LENGTH)),
+         anchorIdx(ReadNumProcessedOneTime, std::vector<sc_signal<sc_int<WIDTH>>*>(MAX_READ_LENGTH)),
          anchorSuccessiveRange(ReadNumProcessedOneTime, std::vector<sc_signal<sc_int<WIDTH>>*>(MAX_READ_LENGTH)),
+         mri(HCU_NUM, std::vector<sc_signal<sc_int<WIDTH>>*>(MCUInputLaneWIDTH+1)),
+         mqi(HCU_NUM, std::vector<sc_signal<sc_int<WIDTH>>*>(MCUInputLaneWIDTH+1)),
+         mw(HCU_NUM, std::vector<sc_signal<sc_int<WIDTH>>*>(MCUInputLaneWIDTH+1)),
+         midx(HCU_NUM, std::vector<sc_signal<sc_int<WIDTH>>*>(MCUInputLaneWIDTH+1)),
+         eri(HCU_NUM, std::vector<sc_signal<sc_int<WIDTH>>*>(MCUInputLaneWIDTH+1)),
+         eqi(HCU_NUM, std::vector<sc_signal<sc_int<WIDTH>>*>(MCUInputLaneWIDTH+1)),
+         ew(HCU_NUM, std::vector<sc_signal<sc_int<WIDTH>>*>(MCUInputLaneWIDTH+1)),
+         eidx(HCU_NUM, std::vector<sc_signal<sc_int<WIDTH>>*>(MCUInputLaneWIDTH+1)),
+         ecu_ri(HCU_NUM),
+         ecu_qi(HCU_NUM),
+         ecu_w(HCU_NUM),
+         ecu_idx(HCU_NUM),
          resultArray(RESULT_NUM){
 
         SC_THREAD(chain_ram_check);
@@ -134,11 +151,12 @@ SC_MODULE(Chain) {
         /************@RC Unit ****************************************/
         for(int i = 0; i < ReadNumProcessedOneTime; i ++) {
             anchorNum[i] = new sc_signal<sc_int<WIDTH>>();
+            anchorW[i] = new sc_signal<sc_int<WIDTH>>();
             for(int j = 0; j < MAX_READ_LENGTH; j ++) {
                 try {
                     anchorRi[i][j] = new sc_signal<sc_int<WIDTH>>();
                     anchorQi[i][j] = new sc_signal<sc_int<WIDTH>>();
-                    anchorW[i][j] = new sc_signal<sc_int<WIDTH>>();
+                    anchorIdx[i][j] = new sc_signal<sc_int<WIDTH>>();
                     anchorSuccessiveRange[i][j] = new sc_signal<sc_int<WIDTH>>();
                 }catch(const std::bad_alloc& e) {
                     std::cerr << "Scheduler Memory allocation failed:" << e.what() << std::endl;
@@ -155,10 +173,11 @@ SC_MODULE(Chain) {
         rc->cutDone(start);
         for(int readIdx = 0; readIdx < ReadNumProcessedOneTime; readIdx++) {
             rc->anchorNum[readIdx]->bind(*anchorNum[readIdx]);
+            rc->anchorW[readIdx]->bind(*anchorW[readIdx]);
             for(int i = 0; i < MAX_READ_LENGTH; i ++) {
                 rc->anchorRi[readIdx][i]->bind(*anchorRi[readIdx][i]);
                 rc->anchorQi[readIdx][i]->bind(*anchorQi[readIdx][i]);
-                rc->anchorW[readIdx][i]->bind(*anchorW[readIdx][i]);
+                rc->anchorIdx[readIdx][i]->bind(*anchorIdx[readIdx][i]);
                 rc->anchorSuccessiveRange[readIdx][i]->bind(*anchorSuccessiveRange[readIdx][i]);
             }
         }
@@ -173,6 +192,28 @@ SC_MODULE(Chain) {
             freeListForShort.resize(RAM_SIZE, true);
         }catch(const std::bad_alloc& e) {
             std::cerr << "Scheduler's localRAM allocation failed:" << e.what() << std::endl;
+        }
+
+        /************@Wiring****************************************/
+        for(int i = 0; i < HCU_NUM; i ++) {
+            ecu_ri[i] = new sc_signal<sc_int<WIDTH>>();
+            ecu_qi[i] = new sc_signal<sc_int<WIDTH>>();
+            ecu_w[i] = new sc_signal<sc_int<WIDTH>>();
+            ecu_idx[i] = new sc_signal<sc_int<WIDTH>>();
+            for(int j = 0; j < MCUInputLaneWIDTH + 1; j ++) {
+                try {
+                    mri[i][j] = new sc_signal<sc_int<WIDTH>>();
+                    mqi[i][j] = new sc_signal<sc_int<WIDTH>>();
+                    mw[i][j] = new sc_signal<sc_int<WIDTH>>();
+                    midx[i][j] = new sc_signal<sc_int<WIDTH>>();
+                    eri[i][j] = new sc_signal<sc_int<WIDTH>>();
+                    eqi[i][j] = new sc_signal<sc_int<WIDTH>>();
+                    ew[i][j] = new sc_signal<sc_int<WIDTH>>();
+                    eidx[i][j] = new sc_signal<sc_int<WIDTH>>();
+                }catch(const std::bad_alloc& e) {
+                    std::cerr << "Scheduler Memory allocation failed:" << e.what() << std::endl;
+                }
+            }
         }
 
         /************@IODispatcher ****************************************/
@@ -192,16 +233,19 @@ SC_MODULE(Chain) {
             ecuIODisPatcherPool[i]->en.write(static_cast<bool>(0));
 
             for(int j = 0; j < MCUInputLaneWIDTH + 1; j ++) {
-                mcuIODisPatcherPool[i]->ri_out[j](mri[i][j]);
-                mcuIODisPatcherPool[i]->qi_out[j](mqi[i][j]);
-                mcuIODisPatcherPool[i]->w_out[j](mw[i][j]);
-                ecuIODisPatcherPool[i]->ri_out[j](eri[i][j]);
-                ecuIODisPatcherPool[i]->qi_out[j](eqi[i][j]);
-                ecuIODisPatcherPool[i]->w_out[j](ew[i][j]);
+                mcuIODisPatcherPool[i]->ri_out[j](*mri[i][j]);
+                mcuIODisPatcherPool[i]->qi_out[j](*mqi[i][j]);
+                mcuIODisPatcherPool[i]->w_out[j](*mw[i][j]);
+                mcuIODisPatcherPool[i]->idx_out[j](*midx[i][j]);
+                ecuIODisPatcherPool[i]->ri_out[j](*eri[i][j]);
+                ecuIODisPatcherPool[i]->qi_out[j](*eqi[i][j]);
+                ecuIODisPatcherPool[i]->w_out[j](*ew[i][j]);
+                ecuIODisPatcherPool[i]->idx_out[j](*eidx[i][j]);
             }
-            ecuIODisPatcherPool[i]->ecu_ri_out(ecu_ri[i]);
-            ecuIODisPatcherPool[i]->ecu_qi_out(ecu_qi[i]);
-            ecuIODisPatcherPool[i]->ecu_w_out(ecu_w[i]);
+            ecuIODisPatcherPool[i]->ecu_ri_out(*ecu_ri[i]);
+            ecuIODisPatcherPool[i]->ecu_qi_out(*ecu_qi[i]);
+            ecuIODisPatcherPool[i]->ecu_w_out(*ecu_w[i]);
+            ecuIODisPatcherPool[i]->ecu_idx_out(*ecu_idx[i]);
             mcuIO_name.str("");
             ecuIO_name.str("");
         }
@@ -221,16 +265,19 @@ SC_MODULE(Chain) {
             ecuPool[i]->rst(rst);
             ecuPool[i]->en.write(static_cast<bool>(0));
             for(int j = 0; j < MCUInputLaneWIDTH + 1; j ++) {
-                mcuPool[i]->riArray[j](mri[i][j]);
-                mcuPool[i]->qiArray[j](mqi[i][j]);
-                mcuPool[i]->W[j](mw[i][j]);
-                ecuPool[i]->riArray[j](eri[i][j]);
-                ecuPool[i]->qiArray[j](eqi[i][j]);
-                ecuPool[i]->W[j](ew[i][j]);
+                mcuPool[i]->riArray[j](*mri[i][j]);
+                mcuPool[i]->qiArray[j](*mqi[i][j]);
+                mcuPool[i]->W[j](*mw[i][j]);
+                //mcuPool[i]->Idx[j](midx[i][j]);
+                ecuPool[i]->riArray[j](*eri[i][j]);
+                ecuPool[i]->qiArray[j](*eqi[i][j]);
+                ecuPool[i]->W[j](*ew[i][j]);
+                //ecuPool[i]->Idx[j](eidx[i][j]);
             }
-            ecuPool[i]->ecu_ri(ecu_ri[i]);
-            ecuPool[i]->ecu_qi(ecu_qi[i]);
-            ecuPool[i]->ecu_w(ecu_w[i]);
+            ecuPool[i]->ecu_ri(*ecu_ri[i]);
+            ecuPool[i]->ecu_qi(*ecu_qi[i]);
+            ecuPool[i]->ecu_w(*ecu_w[i]);
+            //ecuPool[i]->ecu_idx(ecu_idx[i]);
             
             mcuPool[i]->currentReadID.write(static_cast<sc_int<WIDTH> >(-1));
             mcuPool[i]->currentSegID.write(static_cast<sc_int<WIDTH> >(-1));
@@ -289,7 +336,7 @@ SC_MODULE(Chain) {
         }
 
         /************@Output ****************************************/
-        result_file.open("output.txt", std::ios::out | std::ios::app);
+        result_file.open("output/out.txt", std::ios::out | std::ios::app);
         if(!result_file.is_open()) {
             std::cerr << "Error: cannot open file for output!" << std::endl;
             sc_stop();

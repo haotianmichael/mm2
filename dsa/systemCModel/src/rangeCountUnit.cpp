@@ -25,8 +25,9 @@ void RangeCountUnit::takeReadsAndCut() {
                     if (iss >> val0 >> val1 >> val2 >> val3) {
                         tmpAnchorSegNum[readIdx][i] = val0;
                         anchorRi[readIdx][i]->write(val1);
+                        anchorIdx[readIdx][i]->write(i);
                         tmpAnchorRi[readIdx][i] = val1;
-                        anchorW[readIdx][i]->write(val2);
+                        anchorW[readIdx]->write(val2);
                         anchorQi[readIdx][i]->write(val3);
                         i++;
                     }

@@ -59,6 +59,7 @@ void Chain::chain_hcu_pre() {
                 int segStart = 0, tmpSegLongNum = 0, tmpSegShortNum = 0, tmpSegID = 0;
                 sc_int<WIDTH> RiData[MAX_SEGLENGTH];
                 sc_int<WIDTH> QiData[MAX_SEGLENGTH];
+                sc_int<WIDTH> Idx[MAX_SEGLENGTH];
                 sc_int<WIDTH> WData;
                 assert(readIdx < ReadNumProcessedOneTime && "Error: cutting operation exceeds the maximum");
                 // FIXME: there are still a few UpperBound situations which is not covered here.
@@ -70,13 +71,15 @@ void Chain::chain_hcu_pre() {
                     if(anchorSuccessiveRange[readIdx][i]->read() != 1 && anchorSuccessiveRange[readIdx][i]->read() != -1) {
                         RiData[segStart] = anchorRi[readIdx][i]->read();
                         QiData[segStart] = anchorQi[readIdx][i]->read();
+                        Idx[segStart] = anchorIdx[readIdx][i]->read();
                         segStart++;
                     }else if(anchorSuccessiveRange[readIdx][i]->read() == 1 || i == anchorNum[readIdx]->read()-1) {
                         // range = 1 means segments ends with this anchor
                         // ending anchor still added
                         RiData[segStart] = anchorRi[readIdx][i]->read();
                         QiData[segStart] = anchorQi[readIdx][i]->read();
-                        WData = anchorW[readIdx][i]->read();
+                        Idx[segStart] = anchorIdx[readIdx][i]->read();
+                        WData = anchorW[readIdx]->read();
                         segStart++;
                         if(segStart <= MCUInputLaneWIDTH) {
                             ramIndexForShort = allocateBlock(freeListForShort);
@@ -87,6 +90,7 @@ void Chain::chain_hcu_pre() {
                             for(int i = 0; i < segStart; i ++) {
                                 localRAMForShort[ramIndexForShort].Rdata[i] = RiData[i];
                                 localRAMForShort[ramIndexForShort].Qdata[i] = QiData[i];
+                                localRAMForShort[ramIndexForShort].Idx[i] = Idx[i];
                             }
                             localRAMForShort[ramIndexForShort].Wdata = WData;
                             localRAMForShort[ramIndexForShort].used= true;
@@ -100,6 +104,7 @@ void Chain::chain_hcu_pre() {
                             for(int i = 0; i < segStart; i ++) {
                                 localRAMForLong[ramIndexForLong].Rdata[i] = RiData[i];
                                 localRAMForLong[ramIndexForLong].Qdata[i] = QiData[i];
+                                localRAMForLong[ramIndexForLong].Idx[i] = Idx[i];
                             }
                             localRAMForLong[ramIndexForLong].Wdata = WData;
                             localRAMForLong[ramIndexForLong].used = true;
@@ -425,7 +430,6 @@ void Chain::chain_hcu_allocate() {
         if(start.read()){
             bool hasScheduled = false;
             for (auto it = schedulerTable->schedulerItemList.begin(); it != schedulerTable->schedulerItemList.end(); ){
-                std::cout << schedulerTable->schedulerItemList.size() << std::endl;
                 auto timeIt = it->TimeList.begin();
                 if(it->issued){
                     // ecu allocation
@@ -546,12 +550,14 @@ void Chain::chain_hcu_execute(){
                             for(int j = 0; j < mt->UpperBound.read(); j ++) {
                                 mcuIODisPatcherPool[i]->ri[j].write(localRAMForShort[mt->addr.read()].Rdata[j]);
                                 mcuIODisPatcherPool[i]->qi[j].write(localRAMForShort[mt->addr.read()].Qdata[j]);
+                                //mcuIODisPatcherPool[i]->idx[j].write(localRAMForShort[mt->addr.read()].Idx[j]);
                                 mcuIODisPatcherPool[i]->w[j].write(localRAMForShort[mt->addr.read()].Wdata);
                             }
                         }else {
                             for(int j = 0; j < mt->UpperBound.read(); j ++) {
                                 mcuIODisPatcherPool[i]->ri[j].write(localRAMForLong[mt->addr.read()].Rdata[j]);
                                 mcuIODisPatcherPool[i]->qi[j].write(localRAMForLong[mt->addr.read()].Qdata[j]);
+                               // mcuIODisPatcherPool[i]->idx[j].write(localRAMForLong[mt->addr.read()].Idx[j]);
                                 mcuIODisPatcherPool[i]->w[j].write(localRAMForLong[mt->addr.read()].Wdata);
                             }
                         }
@@ -562,12 +568,14 @@ void Chain::chain_hcu_execute(){
                             for(int j = 0; j < et->UpperBound.read(); j ++) {
                                 ecuIODisPatcherPool[i]->ri[j].write(localRAMForShort[et->addr.read()].Rdata[j]);
                                 ecuIODisPatcherPool[i]->qi[j].write(localRAMForShort[et->addr.read()].Qdata[j]);
+                                //ecuIODisPatcherPool[i]->idx[j].write(localRAMForShort[et->addr.read()].Idx[j]);
                                 ecuIODisPatcherPool[i]->w[j].write(localRAMForShort[et->addr.read()].Wdata);
                             }
                         }else {
                             for(int j = 0; j < et->UpperBound.read(); j ++) {
                                 ecuIODisPatcherPool[i]->ri[j].write(localRAMForLong[et->addr.read()].Rdata[j]);
                                 ecuIODisPatcherPool[i]->qi[j].write(localRAMForLong[et->addr.read()].Qdata[j]);
+                                //ecuIODisPatcherPool[i]->idx[j].write(localRAMForLong[et->addr.read()].Idx[j]);
                                 ecuIODisPatcherPool[i]->w[j].write(localRAMForLong[et->addr.read()].Wdata);
                             }
                         }

@@ -11,6 +11,7 @@ SC_MODULE(MCU) {
     sc_in<sc_int<WIDTH> > riArray[LaneWIDTH + 1];
     sc_in<sc_int<WIDTH> > qiArray[LaneWIDTH + 1];
     sc_in<sc_int<WIDTH> > W[LaneWIDTH + 1];
+    //sc_in<sc_int<WIDTH> > Idx[LaneWIDTH + 1];
 
     // For Scheduler
     sc_signal<sc_int<WIDTH> > currentReadID;   
@@ -26,6 +27,8 @@ SC_MODULE(MCU) {
     HLane* hlane[LaneWIDTH];
     /* Registers for staging Lane's output for 1 cycle*/
     sc_signal<sc_int<WIDTH> >  regBiggerScore[LaneWIDTH + 1];
+    /*predecessor*/
+    //sc_signal<sc_int<WIDTH> > predecessor[LaneWIDTH + 1];
   
     /*Constant Value*/
     sc_signal<sc_int<WIDTH> > tmpI;
@@ -61,6 +64,23 @@ SC_MODULE(MCU) {
         }
     }
 
+    /*void updatePredecessor() {
+        while(true) {
+            wait();
+            if(!rst.read()){
+                if(en.read()) {
+                    for(int i =0; i < LaneWIDTH; i ++) {
+                        if(hlane[i]->comResult.read()) {
+                            ;//predecessor[i].write();
+                        }else {
+                            ;//predecessor[i]->write();
+                        }
+                    } 
+                }
+            }
+        }
+    }*/
+
     SC_CTOR(MCU) {
         std::ostringstream hlaneName;
         for(int i = 0; i < LaneWIDTH; i ++) {
@@ -73,6 +93,7 @@ SC_MODULE(MCU) {
             hlane[i]->id(tmpI);
             tmpI.write(static_cast<sc_int<WIDTH> >(i));
             // MCU Wiring
+            //hlane[i]->current_ScoreOfZeroLane(regBiggerScore[0]);
             hlane[i]->inputA.ri(riArray[0]);
             hlane[i]->inputA.qi(qiArray[0]);
             hlane[i]->inputA.W(W[0]);
@@ -93,6 +114,10 @@ SC_MODULE(MCU) {
         SC_THREAD(updateRegBiggerScore);
         sensitive << score_updated;
 
+        /*SC_THREAD(updatePredecessor);
+        for(int i = 0; i < LaneWIDTH; i ++) {
+            sensitive << hlane[i]->comResult;
+        }*/
     }
 
 };
@@ -103,12 +128,14 @@ SC_MODULE(ECU){
     sc_in<sc_int<WIDTH> > ecu_ri;
     sc_in<sc_int<WIDTH> > ecu_qi;
     sc_in<sc_int<WIDTH> > ecu_w;
+    //sc_in<sc_int<WIDTH> > ecu_idx;
 
     sc_in<bool> clk, rst;
     sc_signal<bool> en;
     sc_in<sc_int<WIDTH> > riArray[LaneWIDTH + 1];
     sc_in<sc_int<WIDTH> > qiArray[LaneWIDTH + 1];
     sc_in<sc_int<WIDTH> > W[LaneWIDTH + 1];
+    //sc_in<sc_int<WIDTH> > Idx[LaneWIDTH + 1];
 
     // For Scheduler
     sc_signal<sc_int<WIDTH> > currentReadID;   
@@ -124,6 +151,8 @@ SC_MODULE(ECU){
     HLane* hlane[LaneWIDTH];
     /* Registers for staging Lane's output for 1 cycle*/
     sc_signal<sc_int<WIDTH> >  regBiggerScore[LaneWIDTH + 1];
+    /*predecessor*/
+    //sc_signal<sc_int<WIDTH> > predecessor[LaneWIDTH + 1];
   
     /*Constant Value*/
     sc_signal<sc_int<WIDTH> > tmpI;
@@ -158,6 +187,22 @@ SC_MODULE(ECU){
             }
         }
     }
+    /*void updatePredecessor() {
+        while(true) {
+            wait();
+            if(!rst.read()){
+                if(en.read()) {
+                    for(int i =0; i < LaneWIDTH; i ++) {
+                        if(hlane[i]->comResult.read()) {
+                            ;//predecessor[i].write();
+                        }else {
+                            ;//predecessor[i]->write();
+                        }
+                    } 
+                }
+            }
+        }
+    }*/
 
     SC_CTOR(ECU){
         std::ostringstream hlaneName;
@@ -171,6 +216,7 @@ SC_MODULE(ECU){
             hlane[i]->id(tmpI);
             tmpI.write(static_cast<sc_int<WIDTH> >(i));
             // ECU Wiring
+            //hlane[i]->current_ScoreOfZeroLane(regBiggerScore[0]);
             hlane[i]->inputA.ri(ecu_ri);
             hlane[i]->inputA.qi(ecu_qi);
             hlane[i]->inputA.W(ecu_w);
@@ -189,6 +235,11 @@ SC_MODULE(ECU){
 
         SC_THREAD(updateRegBiggerScore);
         sensitive << score_updated;
+
+        /*SC_THREAD(updatePredecessor);
+        for(int i = 0; i < LaneWIDTH; i ++) {
+            sensitive << hlane[i]->comResult;
+        }*/
     }
 
 };

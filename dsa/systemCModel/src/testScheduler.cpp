@@ -41,8 +41,8 @@ int sc_main(int argc, char* argv[]) {
     for(int i =0; i < HCU_NUM; i ++) {
             mri_name << "MCU" << i << "Input";
             eri_name << "ECU" << i << "Input";
-            sc_trace(fp, chain.mri[i][0].read(), mri_name.str());
-            sc_trace(fp, chain.eri[i][0].read(), eri_name.str());
+            sc_trace(fp, chain.mri[i][0]->read(), mri_name.str());
+            sc_trace(fp, chain.eri[i][0]->read(), eri_name.str());
             mri_name.str("");
             eri_name.str("");
     }
