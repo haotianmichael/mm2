@@ -268,16 +268,16 @@ SC_MODULE(Chain) {
                 mcuPool[i]->riArray[j](*mri[i][j]);
                 mcuPool[i]->qiArray[j](*mqi[i][j]);
                 mcuPool[i]->W[j](*mw[i][j]);
-                //mcuPool[i]->Idx[j](midx[i][j]);
+                mcuPool[i]->Idx[j](*midx[i][j]);
                 ecuPool[i]->riArray[j](*eri[i][j]);
                 ecuPool[i]->qiArray[j](*eqi[i][j]);
                 ecuPool[i]->W[j](*ew[i][j]);
-                //ecuPool[i]->Idx[j](eidx[i][j]);
+                ecuPool[i]->Idx[j](*eidx[i][j]);
             }
             ecuPool[i]->ecu_ri(*ecu_ri[i]);
             ecuPool[i]->ecu_qi(*ecu_qi[i]);
             ecuPool[i]->ecu_w(*ecu_w[i]);
-            //ecuPool[i]->ecu_idx(ecu_idx[i]);
+            ecuPool[i]->ecu_idx(*ecu_idx[i]);
             
             mcuPool[i]->currentReadID.write(static_cast<sc_int<WIDTH> >(-1));
             mcuPool[i]->currentSegID.write(static_cast<sc_int<WIDTH> >(-1));

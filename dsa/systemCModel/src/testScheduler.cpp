@@ -48,13 +48,18 @@ int sc_main(int argc, char* argv[]) {
     }
 
     std::stringstream resultName;
-    for(int i = 0; i < RESULT_NUM; i ++) {
-        resultName << "result" << i;
-        sc_trace(fp, chain.resultArray[i].read(), resultName.str());
-        sc_trace(fp, chain.resultArray[i].read(), resultName.str());
-        resultName.str("");
-    }
-    
+
+    sc_trace(fp, chain.mcuPool[2]->hlane[0]->computeResult.read(), "score0");
+    sc_trace(fp, chain.mcuPool[2]->hlane[1]->computeResult.read(), "score1");
+    sc_trace(fp, chain.mcuPool[2]->hlane[2]->computeResult.read(), "score2");
+    sc_trace(fp, chain.mcuPool[2]->hlane[3]->computeResult.read(), "score3");
+    sc_trace(fp, chain.mcuPool[2]->hlane[4]->computeResult.read(), "score4");
+
+    sc_trace(fp, chain.mcuPool[2]->hlane[0]->current_ScoreOfZeroLane.read(), "regBiggerScore0");
+    sc_trace(fp, chain.mcuPool[2]->hlane[0]->adderAOut.read(), "adderA");
+    sc_trace(fp, chain.mcuPool[2]->hlane[0]->adderBOut.read(), "lastCmp");
+    sc_trace(fp, chain.mcuPool[2]->hlane[0]->biggerScore.read(), "result");
+
     //sc_trace(fp, scheduler.mcuIODisPatcherPool[0]->en.read(), "en");    std::cout's time is 1cycle later from simulation result
     //sc_start(20000, SC_NS); 
     sc_start(11698000, SC_NS); 

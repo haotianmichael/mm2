@@ -57,9 +57,9 @@ void Chain::chain_hcu_pre() {
             */
             if (readIdx < ReadNumProcessedOneTime) {
                 int segStart = 0, tmpSegLongNum = 0, tmpSegShortNum = 0, tmpSegID = 0;
-                sc_int<WIDTH> RiData[MAX_SEGLENGTH];
-                sc_int<WIDTH> QiData[MAX_SEGLENGTH];
-                sc_int<WIDTH> Idx[MAX_SEGLENGTH];
+                sc_int<WIDTH> *RiData = new sc_int<WIDTH>[MAX_SEGLENGTH];
+                sc_int<WIDTH> *QiData = new sc_int<WIDTH>[MAX_SEGLENGTH];
+                sc_int<WIDTH> *Idx = new sc_int<WIDTH>[MAX_SEGLENGTH];
                 sc_int<WIDTH> WData;
                 assert(readIdx < ReadNumProcessedOneTime && "Error: cutting operation exceeds the maximum");
                 // FIXME: there are still a few UpperBound situations which is not covered here.

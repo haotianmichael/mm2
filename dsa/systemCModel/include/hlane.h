@@ -5,15 +5,10 @@
 #include <cmath>
 #include "helper.h"
 
-/*Anchor (do only within one read)*/
-struct Anchor {
-    sc_in<sc_int<WIDTH> > ri, qi;
-    sc_in<sc_int<WIDTH> > W;
-};
-
 /*ScoreCompute*/
 SC_MODULE(Score) {
     sc_in<bool> rst;
+    sc_in<bool> clk;
     sc_in<bool> en;
     sc_in<sc_int<WIDTH> > riX, riY, qiX, qiY;
     sc_in<sc_int<WIDTH> > W, W_avg;
@@ -56,13 +51,12 @@ SC_MODULE(Score) {
                     result.write(static_cast<sc_int<WIDTH> >(-1));
                 }
            }
-            wait(10, SC_NS);
         }
     }
 
     SC_CTOR(Score) {
         SC_THREAD(compute);
-        sensitive << riX << riY << qiX << qiY << W;
+        sensitive << clk.pos();
     }
 };
 
@@ -75,31 +69,34 @@ SC_MODULE(Comparator) {
     sc_in<bool> en;
     sc_in<sc_int<WIDTH> > cmpA, cmpB;
     sc_out<sc_int<WIDTH> > bigger;
-    //sc_out<bool> comResult;
+    sc_out<bool> comResult;
 
     void compare(){
-        if(rst.read()) {
-            bigger.write(-1);
-        }else {
-            if(en.read()) {
-                bigger.write(cmpA.read() > cmpB.read() 
-                  ? cmpA.read() : cmpB.read());
-                //comResult.write(cmpA.read() > cmpB.read() 
-                 //? true : false);
+        while(true) {
+            wait();
+            if(rst.read()) {
+                bigger.write(-1);
             }else {
-                bigger.write(static_cast<sc_int<WIDTH> >(-1));
-                //comResult.write(false);
+                if(en.read()) {
+                    bigger.write(cmpA.read() > cmpB.read() 
+                      ? cmpA.read() : cmpB.read());
+                    comResult.write(cmpA.read() > cmpB.read() 
+                     ? true : false);
+                }else {
+                    bigger.write(static_cast<sc_int<WIDTH> >(-1));
+                    comResult.write(false);
+                }
             }
         }
     }
 
     SC_CTOR(Comparator) {
-        SC_METHOD(compare);
+        SC_THREAD(compare);
         sensitive << clk.pos();
     } 
 };
 
-/*SC_MODULE(HAdder) {
+SC_MODULE(HAdder) {
     sc_in<bool> clk, rst;
     sc_in <bool> en;
     sc_in<sc_int<WIDTH>> in1;
@@ -107,10 +104,13 @@ SC_MODULE(Comparator) {
     sc_out<sc_int<WIDTH>> out;
 
     void process() {
-        if(!rst.read()) {
-            if(en.read()) {
-                int result = in1.read() + in2.read();
-                out.write(static_cast<sc_int<WIDTH>>(result));
+        while(true) {
+            wait();
+            if(!rst.read()) {
+                if(en.read()) {
+                    int result = in1.read() + in2.read();
+                    out.write(static_cast<sc_int<WIDTH>>(result));
+                }
             }
         }
     }
@@ -120,7 +120,7 @@ SC_MODULE(Comparator) {
        sensitive << clk.pos();
     }
 
-};*/
+};
 /*Computing Lane for One-Pair of Anchors*/
 SC_MODULE(HLane) {
     
@@ -128,35 +128,55 @@ SC_MODULE(HLane) {
     sc_in<bool> en;
     sc_in<sc_int<WIDTH> > id;   // Id of each Lane within one HCU (1-65)
     sc_in<sc_int<WIDTH> > lastCmp;  // input of this lane's  comparator
-    //sc_in<sc_int<WIDTH> > current_ScoreOfZeroLane;
+    sc_in<sc_int<WIDTH> > current_ScoreOfZeroLane;
     sc_signal<sc_int<WIDTH> > computeResult; // result of ScCompute
     sc_signal<sc_int<WIDTH> > biggerScore;  // output of this lane/input of next lane's comparator
-    //sc_signal<bool> comResult;
+    sc_signal<bool> comResult;
+
+    sc_in<sc_int<WIDTH>> inputA_ri;
+    sc_in<sc_int<WIDTH>> inputA_qi;
+    sc_in<sc_int<WIDTH>> inputA_w;
+    sc_in<sc_int<WIDTH>> inputB_ri;
+    sc_in<sc_int<WIDTH>> inputB_qi;
+    sc_in<sc_int<WIDTH>> inputB_w;
+
+    sc_signal<sc_int<WIDTH>> inputA_ri_sig;
+    sc_signal<sc_int<WIDTH>> inputA_qi_sig;
+    sc_signal<sc_int<WIDTH>> inputA_w_sig;
+    sc_signal<sc_int<WIDTH>> inputB_ri_sig;
+    sc_signal<sc_int<WIDTH>> inputB_qi_sig;
+    sc_signal<sc_int<WIDTH>> inputB_w_sig;
 
     /*pipeline*/
-    Anchor inputA;  
-    Anchor inputB;
     Score *compute;
     Comparator *comparator;
-    /*HAdder *adderA;
+    HAdder *adderA;
     HAdder *adderB;
     sc_signal<sc_int<WIDTH>> adderAOut;
     sc_signal<sc_int<WIDTH>> lhs;
-    sc_signal<sc_int<WIDTH>> adderBOut;*/
+    sc_signal<sc_int<WIDTH>> adderBOut;
 
     SC_CTOR(HLane) {
         
+        inputA_ri(inputA_ri_sig);
+        inputA_qi(inputA_qi_sig);
+        inputA_w(inputA_w_sig);
+        inputB_ri(inputB_ri_sig);
+        inputB_qi(inputB_qi_sig);
+        inputB_w(inputB_w_sig);
+
         compute = new Score("compute");
+        compute->clk(clk);
         compute->rst(rst);
         compute->en(en);
-        compute->riX(inputA.ri);
-        compute->riY(inputB.ri);
-        compute->qiX(inputA.qi);
-        compute->qiY(inputB.qi);
-        compute->W(inputA.W);   // inputA has the same span with inputB
-        compute->W_avg(inputA.W);
+        compute->riX(inputA_ri_sig);
+        compute->riY(inputB_ri_sig);
+        compute->qiX(inputA_qi_sig);
+        compute->qiY(inputB_qi_sig);
+        compute->W(inputA_w_sig);   // inputA has the same span with inputB
+        compute->W_avg(inputA_w_sig);
         compute->result(computeResult);
-        /*adderA = new HAdder("adderA"); 
+        adderA = new HAdder("adderA"); 
         adderB = new HAdder("adderB"); 
 
         adderA->clk(clk);
@@ -170,18 +190,18 @@ SC_MODULE(HLane) {
         adderB->rst(rst);
         adderB->en(en);
         adderB->in1(lastCmp);
-        //lhs.write(0);
+        lhs.write(0);
         adderB->in2(lhs);
-        adderB->out(adderBOut);*/
+        adderB->out(adderBOut);
 
         comparator = new Comparator("comparator");
         comparator->clk(clk);
         comparator->rst(rst);
         comparator->en(en);
-        comparator->cmpA(computeResult);
-        comparator->cmpB(lastCmp);
+        comparator->cmpA(adderAOut);
+        comparator->cmpB(adderBOut);
         comparator->bigger(biggerScore);
-        //comparator->comResult(comResult);
+        comparator->comResult(comResult);
     }
 };
 

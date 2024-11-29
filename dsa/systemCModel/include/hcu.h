@@ -11,7 +11,13 @@ SC_MODULE(MCU) {
     sc_in<sc_int<WIDTH> > riArray[LaneWIDTH + 1];
     sc_in<sc_int<WIDTH> > qiArray[LaneWIDTH + 1];
     sc_in<sc_int<WIDTH> > W[LaneWIDTH + 1];
-    //sc_in<sc_int<WIDTH> > Idx[LaneWIDTH + 1];
+    sc_in<sc_int<WIDTH> > Idx[LaneWIDTH + 1];
+
+    // Wiring
+    sc_signal<sc_int<WIDTH>> riArray_sig[LaneWIDTH+1];
+    sc_signal<sc_int<WIDTH>> qiArray_sig[LaneWIDTH+1];
+    sc_signal<sc_int<WIDTH>> W_sig[LaneWIDTH+1];
+    sc_signal<sc_int<WIDTH>> Idx_sig[LaneWIDTH+1];
 
     // For Scheduler
     sc_signal<sc_int<WIDTH> > currentReadID;   
@@ -84,6 +90,13 @@ SC_MODULE(MCU) {
     SC_CTOR(MCU) {
         std::ostringstream hlaneName;
         for(int i = 0; i < LaneWIDTH; i ++) {
+            riArray[i](riArray_sig[i]);
+            qiArray[i](qiArray_sig[i]);
+            W[i](W_sig[i]);
+        }
+
+        for(int i = 0; i < LaneWIDTH; i ++) {
+
             // initialize Hlane
             hlaneName << "HLane" << i;
             hlane[i] = new HLane(hlaneName.str().c_str());
@@ -93,13 +106,13 @@ SC_MODULE(MCU) {
             hlane[i]->id(tmpI);
             tmpI.write(static_cast<sc_int<WIDTH> >(i));
             // MCU Wiring
-            //hlane[i]->current_ScoreOfZeroLane(regBiggerScore[0]);
-            hlane[i]->inputA.ri(riArray[0]);
-            hlane[i]->inputA.qi(qiArray[0]);
-            hlane[i]->inputA.W(W[0]);
-            hlane[i]->inputB.ri(riArray[i+1]);
-            hlane[i]->inputB.qi(qiArray[i+1]);
-            hlane[i]->inputB.W(W[i+1]);
+            hlane[i]->current_ScoreOfZeroLane(regBiggerScore[0]);
+            hlane[i]->inputA_ri(riArray_sig[0]);
+            hlane[i]->inputA_qi(qiArray_sig[0]);
+            hlane[i]->inputA_w(W_sig[0]);
+            hlane[i]->inputB_ri(riArray_sig[i+1]);
+            hlane[i]->inputB_qi(qiArray_sig[i+1]);
+            hlane[i]->inputB_w(W_sig[i+1]);
 
             hlane[i]->lastCmp(regBiggerScore[i+1]); 
             hlaneName.str("");
@@ -128,14 +141,24 @@ SC_MODULE(ECU){
     sc_in<sc_int<WIDTH> > ecu_ri;
     sc_in<sc_int<WIDTH> > ecu_qi;
     sc_in<sc_int<WIDTH> > ecu_w;
-    //sc_in<sc_int<WIDTH> > ecu_idx;
+    sc_in<sc_int<WIDTH> > ecu_idx;
 
     sc_in<bool> clk, rst;
     sc_signal<bool> en;
     sc_in<sc_int<WIDTH> > riArray[LaneWIDTH + 1];
     sc_in<sc_int<WIDTH> > qiArray[LaneWIDTH + 1];
     sc_in<sc_int<WIDTH> > W[LaneWIDTH + 1];
-    //sc_in<sc_int<WIDTH> > Idx[LaneWIDTH + 1];
+    sc_in<sc_int<WIDTH> > Idx[LaneWIDTH + 1];
+
+    //Wiring
+    sc_signal<sc_int<WIDTH>> riArray_sig[LaneWIDTH];
+    sc_signal<sc_int<WIDTH>> qiArray_sig[LaneWIDTH];
+    sc_signal<sc_int<WIDTH>> W_sig[LaneWIDTH];
+    sc_signal<sc_int<WIDTH>> Idx_sig[LaneWIDTH];
+    sc_signal<sc_int<WIDTH>> ecu_ri_sig;
+    sc_signal<sc_int<WIDTH>> ecu_qi_sig;
+    sc_signal<sc_int<WIDTH>> ecu_w_sig;
+    sc_signal<sc_int<WIDTH>> ecu_idx_sig;
 
     // For Scheduler
     sc_signal<sc_int<WIDTH> > currentReadID;   
@@ -206,6 +229,14 @@ SC_MODULE(ECU){
 
     SC_CTOR(ECU){
         std::ostringstream hlaneName;
+        ecu_ri(ecu_ri_sig);
+        ecu_qi(ecu_qi_sig);
+        ecu_w(ecu_w_sig);
+        for(int i = 0; i < LaneWIDTH; i ++) {
+            riArray[i](riArray_sig[i]);
+            qiArray[i](qiArray_sig[i]);
+            W[i](W_sig[i]);
+        }
         for(int i = 0; i < LaneWIDTH; i ++) {
             // initialize Hlane
             hlaneName << "HLane" << i;
@@ -216,13 +247,13 @@ SC_MODULE(ECU){
             hlane[i]->id(tmpI);
             tmpI.write(static_cast<sc_int<WIDTH> >(i));
             // ECU Wiring
-            //hlane[i]->current_ScoreOfZeroLane(regBiggerScore[0]);
-            hlane[i]->inputA.ri(ecu_ri);
-            hlane[i]->inputA.qi(ecu_qi);
-            hlane[i]->inputA.W(ecu_w);
-            hlane[i]->inputB.ri(riArray[i]);
-            hlane[i]->inputB.qi(qiArray[i]);
-            hlane[i]->inputB.W(W[i]);
+            hlane[i]->current_ScoreOfZeroLane(regBiggerScore[0]);
+            hlane[i]->inputA_ri(ecu_ri_sig);
+            hlane[i]->inputA_qi(ecu_qi_sig);
+            hlane[i]->inputA_w(ecu_w_sig);
+            hlane[i]->inputB_ri(riArray_sig[i]);
+            hlane[i]->inputB_qi(qiArray_sig[i]);
+            hlane[i]->inputB_w(W_sig[i]);
 
             hlane[i]->lastCmp(regBiggerScore[i+1]); 
             hlaneName.str("");
