@@ -156,14 +156,20 @@ SC_MODULE(HLane) {
     sc_signal<sc_int<WIDTH>> lhs;
     sc_signal<sc_int<WIDTH>> adderBOut;
 
+    void updateValue() {
+        while(true) {
+            wait();
+            inputA_ri_sig.write(inputA_ri.read());
+            inputA_qi_sig.write(inputA_qi.read());
+            inputA_w_sig.write(inputA_w.read());
+            inputB_ri_sig.write(inputB_ri.read());
+            inputB_qi_sig.write(inputB_qi.read());
+            inputB_w_sig.write(inputB_w.read());
+        }
+    }
+
     SC_CTOR(HLane) {
         
-        inputA_ri(inputA_ri_sig);
-        inputA_qi(inputA_qi_sig);
-        inputA_w(inputA_w_sig);
-        inputB_ri(inputB_ri_sig);
-        inputB_qi(inputB_qi_sig);
-        inputB_w(inputB_w_sig);
 
         compute = new Score("compute");
         compute->clk(clk);
@@ -202,6 +208,9 @@ SC_MODULE(HLane) {
         comparator->cmpB(adderBOut);
         comparator->bigger(biggerScore);
         comparator->comResult(comResult);
+
+        SC_THREAD(updateValue);
+        sensitive << clk.pos();
     }
 };
 

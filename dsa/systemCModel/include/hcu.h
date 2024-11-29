@@ -11,7 +11,7 @@ SC_MODULE(MCU) {
     sc_in<sc_int<WIDTH> > riArray[LaneWIDTH + 1];
     sc_in<sc_int<WIDTH> > qiArray[LaneWIDTH + 1];
     sc_in<sc_int<WIDTH> > W[LaneWIDTH + 1];
-    sc_in<sc_int<WIDTH> > Idx[LaneWIDTH + 1];
+    //sc_in<sc_int<WIDTH> > Idx[LaneWIDTH + 1];
 
     // Wiring
     sc_signal<sc_int<WIDTH>> riArray_sig[LaneWIDTH+1];
@@ -69,7 +69,6 @@ SC_MODULE(MCU) {
             }
         }
     }
-
     /*void updatePredecessor() {
         while(true) {
             wait();
@@ -86,15 +85,19 @@ SC_MODULE(MCU) {
             }
         }
     }*/
+    void updateValue() {
+        while(true) {
+            wait();
+            for(int i = 0; i < LaneWIDTH; i ++) {
+                riArray_sig[i].write(riArray[i].read()); 
+                qiArray_sig[i].write(qiArray[i].read());
+                W_sig[i].write(W[i].read());
+            }
+        }
+    }
 
     SC_CTOR(MCU) {
         std::ostringstream hlaneName;
-        for(int i = 0; i < LaneWIDTH; i ++) {
-            riArray[i](riArray_sig[i]);
-            qiArray[i](qiArray_sig[i]);
-            W[i](W_sig[i]);
-        }
-
         for(int i = 0; i < LaneWIDTH; i ++) {
 
             // initialize Hlane
@@ -127,6 +130,9 @@ SC_MODULE(MCU) {
         SC_THREAD(updateRegBiggerScore);
         sensitive << score_updated;
 
+        SC_THREAD(updateValue);
+        sensitive << clk.pos();
+
         /*SC_THREAD(updatePredecessor);
         for(int i = 0; i < LaneWIDTH; i ++) {
             sensitive << hlane[i]->comResult;
@@ -138,27 +144,27 @@ SC_MODULE(MCU) {
 
 SC_MODULE(ECU){
 
-    sc_in<sc_int<WIDTH> > ecu_ri;
-    sc_in<sc_int<WIDTH> > ecu_qi;
-    sc_in<sc_int<WIDTH> > ecu_w;
-    sc_in<sc_int<WIDTH> > ecu_idx;
+    sc_in<sc_int<WIDTH> > ecu_ri[LaneWIDTH+1];
+    sc_in<sc_int<WIDTH> > ecu_qi[LaneWIDTH+1];
+    sc_in<sc_int<WIDTH> > ecu_w[LaneWIDTH+1];
+    //sc_in<sc_int<WIDTH> > ecu_idx[LaneWIDTH+1];
 
     sc_in<bool> clk, rst;
     sc_signal<bool> en;
     sc_in<sc_int<WIDTH> > riArray[LaneWIDTH + 1];
     sc_in<sc_int<WIDTH> > qiArray[LaneWIDTH + 1];
     sc_in<sc_int<WIDTH> > W[LaneWIDTH + 1];
-    sc_in<sc_int<WIDTH> > Idx[LaneWIDTH + 1];
+    //sc_in<sc_int<WIDTH> > Idx[LaneWIDTH + 1];
 
     //Wiring
     sc_signal<sc_int<WIDTH>> riArray_sig[LaneWIDTH];
     sc_signal<sc_int<WIDTH>> qiArray_sig[LaneWIDTH];
     sc_signal<sc_int<WIDTH>> W_sig[LaneWIDTH];
     sc_signal<sc_int<WIDTH>> Idx_sig[LaneWIDTH];
-    sc_signal<sc_int<WIDTH>> ecu_ri_sig;
-    sc_signal<sc_int<WIDTH>> ecu_qi_sig;
-    sc_signal<sc_int<WIDTH>> ecu_w_sig;
-    sc_signal<sc_int<WIDTH>> ecu_idx_sig;
+    sc_signal<sc_int<WIDTH>> ecu_ri_sig[LaneWIDTH];
+    sc_signal<sc_int<WIDTH>> ecu_qi_sig[LaneWIDTH];
+    sc_signal<sc_int<WIDTH>> ecu_w_sig[LaneWIDTH];
+    sc_signal<sc_int<WIDTH>> ecu_idx_sig[LaneWIDTH];
 
     // For Scheduler
     sc_signal<sc_int<WIDTH> > currentReadID;   
@@ -226,17 +232,19 @@ SC_MODULE(ECU){
             }
         }
     }*/
+    void updateValue() {
+        for(int i = 0; i < LaneWIDTH; i ++) {
+            ecu_ri_sig[i].write(ecu_ri[i].read());
+            ecu_qi_sig[i].write(ecu_qi[i].read());
+            ecu_w_sig[i].write(ecu_w[i].read());
+            riArray_sig[i].write(riArray[i].read()); 
+            qiArray_sig[i].write(qiArray[i].read());
+            W_sig[i].write(W[i].read());
+        }
+    }
 
     SC_CTOR(ECU){
         std::ostringstream hlaneName;
-        ecu_ri(ecu_ri_sig);
-        ecu_qi(ecu_qi_sig);
-        ecu_w(ecu_w_sig);
-        for(int i = 0; i < LaneWIDTH; i ++) {
-            riArray[i](riArray_sig[i]);
-            qiArray[i](qiArray_sig[i]);
-            W[i](W_sig[i]);
-        }
         for(int i = 0; i < LaneWIDTH; i ++) {
             // initialize Hlane
             hlaneName << "HLane" << i;
@@ -248,9 +256,9 @@ SC_MODULE(ECU){
             tmpI.write(static_cast<sc_int<WIDTH> >(i));
             // ECU Wiring
             hlane[i]->current_ScoreOfZeroLane(regBiggerScore[0]);
-            hlane[i]->inputA_ri(ecu_ri_sig);
-            hlane[i]->inputA_qi(ecu_qi_sig);
-            hlane[i]->inputA_w(ecu_w_sig);
+            hlane[i]->inputA_ri(ecu_ri_sig[i]);
+            hlane[i]->inputA_qi(ecu_qi_sig[i]);
+            hlane[i]->inputA_w(ecu_w_sig[i]);
             hlane[i]->inputB_ri(riArray_sig[i]);
             hlane[i]->inputB_qi(qiArray_sig[i]);
             hlane[i]->inputB_w(W_sig[i]);
@@ -267,6 +275,8 @@ SC_MODULE(ECU){
         SC_THREAD(updateRegBiggerScore);
         sensitive << score_updated;
 
+        SC_THREAD(updateValue);
+        sensitive << clk.pos();
         /*SC_THREAD(updatePredecessor);
         for(int i = 0; i < LaneWIDTH; i ++) {
             sensitive << hlane[i]->comResult;
