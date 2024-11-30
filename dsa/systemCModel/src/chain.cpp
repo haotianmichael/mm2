@@ -489,7 +489,7 @@ void Chain::chain_hcu_allocate() {
                     // mcu allocation
                     assert(it->HCU_Total_NUM <= HCU_NUM && "Error: exceeding hcu allocation bounds!");
                     it->startTime = sc_time_stamp();
-                    it->endTime = sc_time_stamp() + sc_time((it->UB + 2) * 10, SC_NS); // endTime = startTime + (newW.upperbound + 1)
+                    it->endTime = sc_time_stamp() + sc_time((it->UB + 2 + 2 + 1) * 10, SC_NS); // endTime = startTime + (newW.upperbound + 1)
                     assert((timeIt->hcuID==-1 || timeIt->hcuID == -2) && "Error: mcu already allocated!");
                     assert(timeIt->type && " Error: mcu allocator cannot operates ecu!");
                     if(hasScheduled) {

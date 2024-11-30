@@ -16,46 +16,43 @@ SC_MODULE(Score) {
 
     double  absDiff;
     void compute() {
-        while(true) {
-            if(rst.read()) {
-                result.write(-1);
-            }else {
-                /*if(riX.read()>0) {
-                    std::cout << riX.read() << std::endl;
-                }*/
-                if(en.read()) {
-                    //std::cout << "hcu enable start at " << sc_time_stamp() << std::endl;
-                    if((riX.read() == 0 && riY.read() == 0) && (qiX.read() == 0 && qiY.read() == 0)) {
-                        result.write(-1);
-                    }else {
-                        if((riX.read() == 0 && qiX.read() == 0) || (riY.read() == 0 && qiY.read() == 0)) {
-                            // this only happens when hcu only has element ri/qiArray[0] and ri/qiArray[i]=-1(i=1,2,3...)
-                            result.write(static_cast<sc_int<WIDTH> >(-1));
-                        }else {
-                            //std::cout << riX.read() << " " << riY.read()  << " " << qiX.read() << " " << qiY.read() << " " << std::endl;
-                            absDiff = fabs(fabs(riX.read().to_double()-riY.read().to_double()) - fabs(qiX.read().to_double() - qiY.read().to_double()));
-                            double tmpB = (int)(absDiff * 15 * 0.01 + 0.5 * (log(absDiff)/log(2.0)));
-                            double B = absDiff == 0 ? 0 : tmpB;
-                            double tmpA = (fabs(riX.read().to_double() - riY.read().to_double()) > fabs(qiX.read().to_double() - qiY.read().to_double())) ? fabs(qiX.read().to_double() - qiY.read().to_double()) : fabs(riX.read().to_double() - riY.read().to_double());
-                            double A;
-                            if(tmpA > 15.0) {
-                               A = 15.0;
-                            }else {
-                               A = tmpA;
-                            }
-                           
-                            result.write(static_cast<sc_int<WIDTH> >(A - B));
-                        }
-                    }
-                }else {
-                    result.write(static_cast<sc_int<WIDTH> >(-1));
-                }
+       if(rst.read()) {
+           result.write(-1);
+       }else {
+           /*if(riX.read()>0) {
+               std::cout << riX.read() << std::endl;
+           }*/
+           if(en.read()) {
+               //std::cout << "hcu enable start at " << sc_time_stamp() << std::endl;
+               if((riX.read() == 0 && riY.read() == 0) && (qiX.read() == 0 && qiY.read() == 0)) {
+                   result.write(-1);
+               }else {
+                   if((riX.read() == 0 && qiX.read() == 0) || (riY.read() == 0 && qiY.read() == 0)) {
+                       // this only happens when hcu only has element ri/qiArray[0] and ri/qiArray[i]=-1(i=1,2,3...)
+                       result.write(static_cast<sc_int<WIDTH> >(-1));
+                   }else {
+                       //std::cout << riX.read() << " " << riY.read()  << " " << qiX.read() << " " << qiY.read() << " " << std::endl;
+                       absDiff = fabs(fabs(riX.read().to_double()-riY.read().to_double()) - fabs(qiX.read().to_double() - qiY.read().to_double()));
+                       double tmpB = (int)(absDiff * 15 * 0.01 + 0.5 * (log(absDiff)/log(2.0)));
+                       double B = absDiff == 0 ? 0 : tmpB;
+                       double tmpA = (fabs(riX.read().to_double() - riY.read().to_double()) > fabs(qiX.read().to_double() - qiY.read().to_double())) ? fabs(qiX.read().to_double() - qiY.read().to_double()) : fabs(riX.read().to_double() - riY.read().to_double());
+                       double A;
+                       if(tmpA > 15.0) {
+                          A = 15.0;
+                       }else {
+                          A = tmpA;
+                       }
+                       result.write(static_cast<sc_int<WIDTH> >(A - B));
+                   }
+               }
+           }else {
+               result.write(static_cast<sc_int<WIDTH> >(-2));
            }
-        }
+      }
     }
 
     SC_CTOR(Score) {
-        SC_THREAD(compute);
+        SC_METHOD(compute);
         sensitive << clk.pos();
     }
 };
@@ -72,26 +69,26 @@ SC_MODULE(Comparator) {
     sc_out<bool> comResult;
 
     void compare(){
-        while(true) {
-            wait();
-            if(rst.read()) {
-                bigger.write(-1);
-            }else {
-                if(en.read()) {
-                    bigger.write(cmpA.read() > cmpB.read() 
-                      ? cmpA.read() : cmpB.read());
-                    comResult.write(cmpA.read() > cmpB.read() 
-                     ? true : false);
+        if(rst.read()) {
+            bigger.write(-1);
+        }else {
+            if(en.read()) {
+                if(cmpA.read() > cmpB.read()) {
+                    bigger.write(cmpA.read());
+                    comResult.write(true);
                 }else {
-                    bigger.write(static_cast<sc_int<WIDTH> >(-1));
+                    bigger.write(cmpB.read());
                     comResult.write(false);
                 }
+            }else {
+                bigger.write(static_cast<sc_int<WIDTH> >(-1));
+                comResult.write(false);
             }
         }
     }
 
     SC_CTOR(Comparator) {
-        SC_THREAD(compare);
+        SC_METHOD(compare);
         sensitive << clk.pos();
     } 
 };
@@ -127,11 +124,11 @@ SC_MODULE(HLane) {
     sc_in<bool> clk, rst;
     sc_in<bool> en;
     sc_in<sc_int<WIDTH> > id;   // Id of each Lane within one HCU (1-65)
-    sc_in<sc_int<WIDTH> > lastCmp;  // input of this lane's  comparator
-    sc_in<sc_int<WIDTH> > current_ScoreOfZeroLane;
+    //sc_in<sc_int<WIDTH> > lastCmp;  // input of this lane's  comparator
+    //sc_in<sc_int<WIDTH> > current_ScoreOfZeroLane;
     sc_signal<sc_int<WIDTH> > computeResult; // result of ScCompute
-    sc_signal<sc_int<WIDTH> > biggerScore;  // output of this lane/input of next lane's comparator
-    sc_signal<bool> comResult;
+    //sc_signal<sc_int<WIDTH> > biggerScore;  // output of this lane/input of next lane's comparator
+    //sc_signal<bool> comResult;
 
     sc_in<sc_int<WIDTH>> inputA_ri;
     sc_in<sc_int<WIDTH>> inputA_qi;
@@ -149,12 +146,12 @@ SC_MODULE(HLane) {
 
     /*pipeline*/
     Score *compute;
-    Comparator *comparator;
+    /*Comparator *comparator;
     HAdder *adderA;
     HAdder *adderB;
     sc_signal<sc_int<WIDTH>> adderAOut;
     sc_signal<sc_int<WIDTH>> lhs;
-    sc_signal<sc_int<WIDTH>> adderBOut;
+    sc_signal<sc_int<WIDTH>> adderBOut;*/
 
     void updateValue() {
         while(true) {
@@ -182,7 +179,7 @@ SC_MODULE(HLane) {
         compute->W(inputA_w_sig);   // inputA has the same span with inputB
         compute->W_avg(inputA_w_sig);
         compute->result(computeResult);
-        adderA = new HAdder("adderA"); 
+        /*adderA = new HAdder("adderA"); 
         adderB = new HAdder("adderB"); 
 
         adderA->clk(clk);
@@ -207,7 +204,7 @@ SC_MODULE(HLane) {
         comparator->cmpA(adderAOut);
         comparator->cmpB(adderBOut);
         comparator->bigger(biggerScore);
-        comparator->comResult(comResult);
+        comparator->comResult(comResult);*/
 
         SC_THREAD(updateValue);
         sensitive << clk.pos();

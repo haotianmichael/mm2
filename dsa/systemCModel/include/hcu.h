@@ -40,26 +40,18 @@ SC_MODULE(MCU) {
     sc_signal<sc_int<WIDTH> > tmpI;
     sc_signal<sc_int<WIDTH> > constLastCmp;
 
-    /*Driven signal*/
-    sc_event score_updated;
-
-    void monitor_sc_updates() {
-        while(true) {
-            wait();
-            if(!rst.read()) {
-                if(en.read()) {
-                   score_updated.notify();
-                }
-            }
-        }
-    }
     void updateRegBiggerScore() {
         while(true) {
             wait();
             if(!rst.read()) {
                 if(en.read()) {
                     for(int i = 0; i < LaneWIDTH; i ++){
-                          regBiggerScore[i].write(hlane[i]->biggerScore.read());
+                          int tmp = hlane[i]->computeResult.read() + regBiggerScore[0].read();
+                          if(tmp > regBiggerScore[i+1].read()) {
+                                regBiggerScore[i].write(static_cast<sc_int<WIDTH>>(tmp));
+                          }else {
+                                regBiggerScore[i].write(regBiggerScore[i+1].read());
+                          }
                     }
                 }
             }else if(rst.read()){
@@ -109,7 +101,7 @@ SC_MODULE(MCU) {
             hlane[i]->id(tmpI);
             tmpI.write(static_cast<sc_int<WIDTH> >(i));
             // MCU Wiring
-            hlane[i]->current_ScoreOfZeroLane(regBiggerScore[0]);
+            //hlane[i]->current_ScoreOfZeroLane(regBiggerScore[0]);
             hlane[i]->inputA_ri(riArray_sig[0]);
             hlane[i]->inputA_qi(qiArray_sig[0]);
             hlane[i]->inputA_w(W_sig[0]);
@@ -117,18 +109,14 @@ SC_MODULE(MCU) {
             hlane[i]->inputB_qi(qiArray_sig[i+1]);
             hlane[i]->inputB_w(W_sig[i+1]);
 
-            hlane[i]->lastCmp(regBiggerScore[i+1]); 
+            //hlane[i]->lastCmp(regBiggerScore[i+1]); 
             hlaneName.str("");
 
         }
 
-        SC_THREAD(monitor_sc_updates);
-        for(int i =0; i < LaneWIDTH; i ++) {
-           sensitive << hlane[i]->biggerScore;
-        }
 
         SC_THREAD(updateRegBiggerScore);
-        sensitive << score_updated;
+        sensitive << clk.pos();
 
         SC_THREAD(updateValue);
         sensitive << clk.pos();
@@ -187,31 +175,27 @@ SC_MODULE(ECU){
     sc_signal<sc_int<WIDTH> > tmpI;
     sc_signal<sc_int<WIDTH> > constLastCmp;
 
-    /*Driven signal*/
-    sc_event score_updated;
-
-    void monitor_sc_updates() {
-        while(true) {
-            wait();
-            if(!rst.read()) {
-                if(en.read()) {
-                    score_updated.notify();
-                }
-            }
-        }
-    }
     void updateRegBiggerScore() {
         while(true) {
             wait();
             if(!rst.read()) {
                 if(en.read()) {
                     for(int i = 0; i < LaneWIDTH; i ++){
-                          regBiggerScore[i].write(hlane[i]->biggerScore.read());
+                          int tmp = hlane[i]->computeResult.read() + regBiggerScore[0].read();
+                          if(tmp > regBiggerScore[i+1].read()) {
+                                regBiggerScore[i].write(static_cast<sc_int<WIDTH>>(tmp));
+                          }else {
+                                regBiggerScore[i].write(regBiggerScore[i+1].read());
+                          }
+                    }
+                }else {
+                    for(int i = 0; i < LaneWIDTH; i ++) {
+                        regBiggerScore[i].write(static_cast<sc_int<WIDTH>>(-1));
                     }
                 }
             }else if(rst.read()){
                 for(int i = 0; i < LaneWIDTH + 1; i ++) {
-                    regBiggerScore[i].write(static_cast<sc_int<WIDTH> >(-1));
+                   regBiggerScore[i].write(static_cast<sc_int<WIDTH> >(-1));
                 }
             }
         }
@@ -255,7 +239,7 @@ SC_MODULE(ECU){
             hlane[i]->id(tmpI);
             tmpI.write(static_cast<sc_int<WIDTH> >(i));
             // ECU Wiring
-            hlane[i]->current_ScoreOfZeroLane(regBiggerScore[0]);
+            //hlane[i]->current_ScoreOfZeroLane(regBiggerScore[0]);
             hlane[i]->inputA_ri(ecu_ri_sig[i]);
             hlane[i]->inputA_qi(ecu_qi_sig[i]);
             hlane[i]->inputA_w(ecu_w_sig[i]);
@@ -263,17 +247,12 @@ SC_MODULE(ECU){
             hlane[i]->inputB_qi(qiArray_sig[i]);
             hlane[i]->inputB_w(W_sig[i]);
 
-            hlane[i]->lastCmp(regBiggerScore[i+1]); 
+            //hlane[i]->lastCmp(regBiggerScore[i+1]); 
             hlaneName.str("");
         }
 
-        SC_THREAD(monitor_sc_updates);
-        for(int i =0; i < LaneWIDTH; i ++) {
-           sensitive << hlane[i]->biggerScore;
-        }
-
         SC_THREAD(updateRegBiggerScore);
-        sensitive << score_updated;
+        sensitive << clk.pos();
 
         SC_THREAD(updateValue);
         sensitive << clk.pos();

@@ -37,7 +37,7 @@ int sc_main(int argc, char* argv[]) {
     sc_trace(fp, rst, "rst");
     
     sc_trace(fp, chain.start.read(), "cutDone");
-    std::ostringstream mri_name, eri_name;
+    /*std::ostringstream mri_name, eri_name;
     for(int i =0; i < HCU_NUM; i ++) {
             mri_name << "MCU" << i << "Input";
             eri_name << "ECU" << i << "Input";
@@ -45,9 +45,11 @@ int sc_main(int argc, char* argv[]) {
             sc_trace(fp, chain.eri[i][0]->read(), eri_name.str());
             mri_name.str("");
             eri_name.str("");
-    }
+    }*/
 
     std::stringstream resultName;
+    sc_trace(fp, chain.mcuPool[2]->hlane[0]->compute->riX.read(), "riX");
+    sc_trace(fp, chain.mcuPool[2]->hlane[0]->compute->riY.read(), "riY");
 
     sc_trace(fp, chain.mcuPool[2]->hlane[0]->computeResult.read(), "score0");
     sc_trace(fp, chain.mcuPool[2]->hlane[1]->computeResult.read(), "score1");
@@ -55,10 +57,13 @@ int sc_main(int argc, char* argv[]) {
     sc_trace(fp, chain.mcuPool[2]->hlane[3]->computeResult.read(), "score3");
     sc_trace(fp, chain.mcuPool[2]->hlane[4]->computeResult.read(), "score4");
 
-    sc_trace(fp, chain.mcuPool[2]->hlane[0]->current_ScoreOfZeroLane.read(), "regBiggerScore0");
-    sc_trace(fp, chain.mcuPool[2]->hlane[0]->adderAOut.read(), "adderA");
-    sc_trace(fp, chain.mcuPool[2]->hlane[0]->adderBOut.read(), "lastCmp");
-    sc_trace(fp, chain.mcuPool[2]->hlane[0]->biggerScore.read(), "result");
+    sc_trace(fp, chain.mcuPool[2]->regBiggerScore[0].read(), "regBiggerScore0");
+    sc_trace(fp, chain.mcuPool[2]->regBiggerScore[1].read(), "regBiggerScore1");
+    sc_trace(fp, chain.mcuPool[2]->regBiggerScore[2].read(), "regBiggerScore2");
+    sc_trace(fp, chain.mcuPool[2]->regBiggerScore[3].read(), "regBiggerScore3");
+    sc_trace(fp, chain.mcuPool[2]->regBiggerScore[4].read(), "regBiggerScore4");
+    //sc_trace(fp, chain.mcuPool[2]->hlane[0]->lastCmp.read(), "lastCmp");
+    //sc_trace(fp, chain.mcuPool[2]->hlane[0]->biggerScore.read(), "result");
 
     //sc_trace(fp, scheduler.mcuIODisPatcherPool[0]->en.read(), "en");    std::cout's time is 1cycle later from simulation result
     //sc_start(20000, SC_NS); 
