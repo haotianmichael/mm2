@@ -550,14 +550,14 @@ void Chain::chain_hcu_execute(){
                             for(int j = 0; j < mt->UpperBound.read(); j ++) {
                                 mcuIODisPatcherPool[i]->ri[j].write(localRAMForShort[mt->addr.read()].Rdata[j]);
                                 mcuIODisPatcherPool[i]->qi[j].write(localRAMForShort[mt->addr.read()].Qdata[j]);
-                                //mcuIODisPatcherPool[i]->idx[j].write(localRAMForShort[mt->addr.read()].Idx[j]);
+                                mcuIODisPatcherPool[i]->idx[j].write(localRAMForShort[mt->addr.read()].Idx[j]);
                                 mcuIODisPatcherPool[i]->w[j].write(localRAMForShort[mt->addr.read()].Wdata);
                             }
                         }else {
                             for(int j = 0; j < mt->UpperBound.read(); j ++) {
                                 mcuIODisPatcherPool[i]->ri[j].write(localRAMForLong[mt->addr.read()].Rdata[j]);
                                 mcuIODisPatcherPool[i]->qi[j].write(localRAMForLong[mt->addr.read()].Qdata[j]);
-                               // mcuIODisPatcherPool[i]->idx[j].write(localRAMForLong[mt->addr.read()].Idx[j]);
+                                mcuIODisPatcherPool[i]->idx[j].write(localRAMForLong[mt->addr.read()].Idx[j]);
                                 mcuIODisPatcherPool[i]->w[j].write(localRAMForLong[mt->addr.read()].Wdata);
                             }
                         }

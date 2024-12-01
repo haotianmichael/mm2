@@ -11,7 +11,7 @@ SC_MODULE(MCU) {
     sc_in<sc_int<WIDTH> > riArray[LaneWIDTH + 1];
     sc_in<sc_int<WIDTH> > qiArray[LaneWIDTH + 1];
     sc_in<sc_int<WIDTH> > W[LaneWIDTH + 1];
-    //sc_in<sc_int<WIDTH> > Idx[LaneWIDTH + 1];
+    sc_in<sc_int<WIDTH> > Idx[LaneWIDTH + 1];
 
     // Wiring
     sc_signal<sc_int<WIDTH>> riArray_sig[LaneWIDTH+1];
@@ -34,49 +34,41 @@ SC_MODULE(MCU) {
     /* Registers for staging Lane's output for 1 cycle*/
     sc_signal<sc_int<WIDTH> >  regBiggerScore[LaneWIDTH + 1];
     /*predecessor*/
-    //sc_signal<sc_int<WIDTH> > predecessor[LaneWIDTH + 1];
+    sc_signal<sc_int<WIDTH> > predecessor[LaneWIDTH + 1];
   
     /*Constant Value*/
     sc_signal<sc_int<WIDTH> > tmpI;
     sc_signal<sc_int<WIDTH> > constLastCmp;
 
-    void updateRegBiggerScore() {
+    void updateRegBiggerScoreAndPredecessor() {
         while(true) {
             wait();
             if(!rst.read()) {
                 if(en.read()) {
                     for(int i = 0; i < LaneWIDTH; i ++){
                           int tmp = hlane[i]->computeResult.read() + regBiggerScore[0].read();
-                          if(tmp > regBiggerScore[i+1].read()) {
+                          if(tmp >= regBiggerScore[i+1].read()) {
                                 regBiggerScore[i].write(static_cast<sc_int<WIDTH>>(tmp));
+                                predecessor[i].write(hlane[i]->index_top_out.read());
                           }else {
                                 regBiggerScore[i].write(regBiggerScore[i+1].read());
                           }
+                    }
+                }else {
+                    for(int i = 0; i < LaneWIDTH + 1; i ++) {
+                       regBiggerScore[i].write(static_cast<sc_int<WIDTH> >(-1));
+                       predecessor[i].write(static_cast<sc_int<WIDTH>>(-1));
                     }
                 }
             }else if(rst.read()){
                 for(int i = 0; i < LaneWIDTH + 1; i ++) {
                    regBiggerScore[i].write(static_cast<sc_int<WIDTH> >(-1));
+                   predecessor[i].write(static_cast<sc_int<WIDTH>>(-1));
                 }
             }
         }
     }
-    /*void updatePredecessor() {
-        while(true) {
-            wait();
-            if(!rst.read()){
-                if(en.read()) {
-                    for(int i =0; i < LaneWIDTH; i ++) {
-                        if(hlane[i]->comResult.read()) {
-                            ;//predecessor[i].write();
-                        }else {
-                            ;//predecessor[i]->write();
-                        }
-                    } 
-                }
-            }
-        }
-    }*/
+    
     void updateValue() {
         while(true) {
             wait();
@@ -84,6 +76,7 @@ SC_MODULE(MCU) {
                 riArray_sig[i].write(riArray[i].read()); 
                 qiArray_sig[i].write(qiArray[i].read());
                 W_sig[i].write(W[i].read());
+                Idx_sig[i].write(Idx[i].read());
             }
         }
     }
@@ -101,30 +94,25 @@ SC_MODULE(MCU) {
             hlane[i]->id(tmpI);
             tmpI.write(static_cast<sc_int<WIDTH> >(i));
             // MCU Wiring
-            //hlane[i]->current_ScoreOfZeroLane(regBiggerScore[0]);
             hlane[i]->inputA_ri(riArray_sig[0]);
             hlane[i]->inputA_qi(qiArray_sig[0]);
             hlane[i]->inputA_w(W_sig[0]);
             hlane[i]->inputB_ri(riArray_sig[i+1]);
             hlane[i]->inputB_qi(qiArray_sig[i+1]);
             hlane[i]->inputB_w(W_sig[i+1]);
-
-            //hlane[i]->lastCmp(regBiggerScore[i+1]); 
+            hlane[i]->index_top(Idx_sig[0]);
+            hlane[i]->index_self(Idx_sig[i+1]);
             hlaneName.str("");
 
         }
 
 
-        SC_THREAD(updateRegBiggerScore);
+        SC_THREAD(updateRegBiggerScoreAndPredecessor);
         sensitive << clk.pos();
 
         SC_THREAD(updateValue);
         sensitive << clk.pos();
 
-        /*SC_THREAD(updatePredecessor);
-        for(int i = 0; i < LaneWIDTH; i ++) {
-            sensitive << hlane[i]->comResult;
-        }*/
     }
 
 };
@@ -135,14 +123,14 @@ SC_MODULE(ECU){
     sc_in<sc_int<WIDTH> > ecu_ri[LaneWIDTH+1];
     sc_in<sc_int<WIDTH> > ecu_qi[LaneWIDTH+1];
     sc_in<sc_int<WIDTH> > ecu_w[LaneWIDTH+1];
-    //sc_in<sc_int<WIDTH> > ecu_idx[LaneWIDTH+1];
+    sc_in<sc_int<WIDTH> > ecu_idx[LaneWIDTH+1];
 
     sc_in<bool> clk, rst;
     sc_signal<bool> en;
     sc_in<sc_int<WIDTH> > riArray[LaneWIDTH + 1];
     sc_in<sc_int<WIDTH> > qiArray[LaneWIDTH + 1];
     sc_in<sc_int<WIDTH> > W[LaneWIDTH + 1];
-    //sc_in<sc_int<WIDTH> > Idx[LaneWIDTH + 1];
+    sc_in<sc_int<WIDTH> > Idx[LaneWIDTH + 1];
 
     //Wiring
     sc_signal<sc_int<WIDTH>> riArray_sig[LaneWIDTH];
@@ -169,20 +157,20 @@ SC_MODULE(ECU){
     /* Registers for staging Lane's output for 1 cycle*/
     sc_signal<sc_int<WIDTH> >  regBiggerScore[LaneWIDTH + 1];
     /*predecessor*/
-    //sc_signal<sc_int<WIDTH> > predecessor[LaneWIDTH + 1];
+    sc_signal<sc_int<WIDTH> > predecessor[LaneWIDTH + 1];
   
     /*Constant Value*/
     sc_signal<sc_int<WIDTH> > tmpI;
     sc_signal<sc_int<WIDTH> > constLastCmp;
 
-    void updateRegBiggerScore() {
+    void updateRegBiggerScoreAndPredecessor() {
         while(true) {
             wait();
             if(!rst.read()) {
                 if(en.read()) {
                     for(int i = 0; i < LaneWIDTH; i ++){
                           int tmp = hlane[i]->computeResult.read() + regBiggerScore[0].read();
-                          if(tmp > regBiggerScore[i+1].read()) {
+                          if(tmp >= regBiggerScore[i+1].read()) {
                                 regBiggerScore[i].write(static_cast<sc_int<WIDTH>>(tmp));
                           }else {
                                 regBiggerScore[i].write(regBiggerScore[i+1].read());
@@ -200,22 +188,7 @@ SC_MODULE(ECU){
             }
         }
     }
-    /*void updatePredecessor() {
-        while(true) {
-            wait();
-            if(!rst.read()){
-                if(en.read()) {
-                    for(int i =0; i < LaneWIDTH; i ++) {
-                        if(hlane[i]->comResult.read()) {
-                            ;//predecessor[i].write();
-                        }else {
-                            ;//predecessor[i]->write();
-                        }
-                    } 
-                }
-            }
-        }
-    }*/
+ 
     void updateValue() {
         for(int i = 0; i < LaneWIDTH; i ++) {
             ecu_ri_sig[i].write(ecu_ri[i].read());
@@ -224,6 +197,8 @@ SC_MODULE(ECU){
             riArray_sig[i].write(riArray[i].read()); 
             qiArray_sig[i].write(qiArray[i].read());
             W_sig[i].write(W[i].read());
+            Idx_sig[i].write(Idx[i].read());
+            ecu_idx_sig[i].write(ecu_idx[i].read());
         }
     }
 
@@ -239,7 +214,6 @@ SC_MODULE(ECU){
             hlane[i]->id(tmpI);
             tmpI.write(static_cast<sc_int<WIDTH> >(i));
             // ECU Wiring
-            //hlane[i]->current_ScoreOfZeroLane(regBiggerScore[0]);
             hlane[i]->inputA_ri(ecu_ri_sig[i]);
             hlane[i]->inputA_qi(ecu_qi_sig[i]);
             hlane[i]->inputA_w(ecu_w_sig[i]);
@@ -247,19 +221,17 @@ SC_MODULE(ECU){
             hlane[i]->inputB_qi(qiArray_sig[i]);
             hlane[i]->inputB_w(W_sig[i]);
 
-            //hlane[i]->lastCmp(regBiggerScore[i+1]); 
+            hlane[i]->index_top(ecu_idx_sig[0]);
+            hlane[i]->index_self(ecu_idx_sig[i]);
             hlaneName.str("");
         }
 
-        SC_THREAD(updateRegBiggerScore);
+        SC_THREAD(updateRegBiggerScoreAndPredecessor);
         sensitive << clk.pos();
 
         SC_THREAD(updateValue);
         sensitive << clk.pos();
-        /*SC_THREAD(updatePredecessor);
-        for(int i = 0; i < LaneWIDTH; i ++) {
-            sensitive << hlane[i]->comResult;
-        }*/
+        
     }
 
 };

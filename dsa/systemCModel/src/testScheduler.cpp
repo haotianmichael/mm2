@@ -47,23 +47,30 @@ int sc_main(int argc, char* argv[]) {
             eri_name.str("");
     }*/
 
-    std::stringstream resultName;
-    sc_trace(fp, chain.mcuPool[2]->hlane[0]->compute->riX.read(), "riX");
-    sc_trace(fp, chain.mcuPool[2]->hlane[0]->compute->riY.read(), "riY");
+    std::stringstream riXName, riYName, IdxName, ScoreName, regBiggerScoreName, predecessorName;
+    for(int i = 0; i < LaneWIDTH; i ++) {
 
-    sc_trace(fp, chain.mcuPool[2]->hlane[0]->computeResult.read(), "score0");
-    sc_trace(fp, chain.mcuPool[2]->hlane[1]->computeResult.read(), "score1");
-    sc_trace(fp, chain.mcuPool[2]->hlane[2]->computeResult.read(), "score2");
-    sc_trace(fp, chain.mcuPool[2]->hlane[3]->computeResult.read(), "score3");
-    sc_trace(fp, chain.mcuPool[2]->hlane[4]->computeResult.read(), "score4");
+        riXName << "riX" << i;
+        riYName << "riY" << i;
+        IdxName << "Idx" << i;
+        ScoreName << "Score" << i;
+        regBiggerScoreName << "regBiggerScore" << i;
+        predecessorName << "predecessor" << i;
+        sc_trace(fp, chain.mcuPool[2]->hlane[i]->compute->riX.read(), riXName.str());
+        sc_trace(fp, chain.mcuPool[2]->hlane[i]->compute->riY.read(), riYName.str());
 
-    sc_trace(fp, chain.mcuPool[2]->regBiggerScore[0].read(), "regBiggerScore0");
-    sc_trace(fp, chain.mcuPool[2]->regBiggerScore[1].read(), "regBiggerScore1");
-    sc_trace(fp, chain.mcuPool[2]->regBiggerScore[2].read(), "regBiggerScore2");
-    sc_trace(fp, chain.mcuPool[2]->regBiggerScore[3].read(), "regBiggerScore3");
-    sc_trace(fp, chain.mcuPool[2]->regBiggerScore[4].read(), "regBiggerScore4");
-    //sc_trace(fp, chain.mcuPool[2]->hlane[0]->lastCmp.read(), "lastCmp");
-    //sc_trace(fp, chain.mcuPool[2]->hlane[0]->biggerScore.read(), "result");
+        sc_trace(fp, chain.mcuPool[2]->hlane[i]->index_top_out.read(), IdxName.str());
+        sc_trace(fp, chain.mcuPool[2]->hlane[i]->computeResult.read(), ScoreName.str());
+        sc_trace(fp, chain.mcuPool[2]->regBiggerScore[i].read(), regBiggerScoreName.str());
+        sc_trace(fp, chain.mcuPool[2]->predecessor[i].read(), predecessorName.str());
+
+        riXName.str("");
+        riYName.str("");
+        IdxName.str("");
+        ScoreName.str("");
+        regBiggerScoreName.str("");
+        predecessorName.str("");
+    }
 
     //sc_trace(fp, scheduler.mcuIODisPatcherPool[0]->en.read(), "en");    std::cout's time is 1cycle later from simulation result
     //sc_start(20000, SC_NS); 

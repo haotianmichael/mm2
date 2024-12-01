@@ -11,8 +11,10 @@ SC_MODULE(Score) {
     sc_in<bool> clk;
     sc_in<bool> en;
     sc_in<sc_int<WIDTH> > riX, riY, qiX, qiY;
+    sc_in<sc_int<WIDTH>> index_top, index_self;
     sc_in<sc_int<WIDTH> > W, W_avg;
     sc_out<sc_int<WIDTH> > result;
+    sc_out<sc_int<WIDTH>> index_top_out, index_self_out;
 
     double  absDiff;
     void compute() {
@@ -43,6 +45,8 @@ SC_MODULE(Score) {
                           A = tmpA;
                        }
                        result.write(static_cast<sc_int<WIDTH> >(A - B));
+                       index_top_out.write(index_top.read());
+                       index_self_out.write(index_self.read());
                    }
                }
            }else {
@@ -127,6 +131,8 @@ SC_MODULE(HLane) {
     //sc_in<sc_int<WIDTH> > lastCmp;  // input of this lane's  comparator
     //sc_in<sc_int<WIDTH> > current_ScoreOfZeroLane;
     sc_signal<sc_int<WIDTH> > computeResult; // result of ScCompute
+    sc_signal<sc_int<WIDTH>> index_top_out;
+    sc_signal<sc_int<WIDTH>> index_self_out;
     //sc_signal<sc_int<WIDTH> > biggerScore;  // output of this lane/input of next lane's comparator
     //sc_signal<bool> comResult;
 
@@ -136,6 +142,8 @@ SC_MODULE(HLane) {
     sc_in<sc_int<WIDTH>> inputB_ri;
     sc_in<sc_int<WIDTH>> inputB_qi;
     sc_in<sc_int<WIDTH>> inputB_w;
+    sc_in<sc_int<WIDTH>> index_top;
+    sc_in<sc_int<WIDTH>> index_self;
 
     sc_signal<sc_int<WIDTH>> inputA_ri_sig;
     sc_signal<sc_int<WIDTH>> inputA_qi_sig;
@@ -143,6 +151,8 @@ SC_MODULE(HLane) {
     sc_signal<sc_int<WIDTH>> inputB_ri_sig;
     sc_signal<sc_int<WIDTH>> inputB_qi_sig;
     sc_signal<sc_int<WIDTH>> inputB_w_sig;
+    sc_signal<sc_int<WIDTH>> index_top_sig;
+    sc_signal<sc_int<WIDTH>> index_self_sig;
 
     /*pipeline*/
     Score *compute;
@@ -162,6 +172,8 @@ SC_MODULE(HLane) {
             inputB_ri_sig.write(inputB_ri.read());
             inputB_qi_sig.write(inputB_qi.read());
             inputB_w_sig.write(inputB_w.read());
+            index_top_sig.write(index_top.read());
+            index_self_sig.write(index_self.read());
         }
     }
 
@@ -178,7 +190,11 @@ SC_MODULE(HLane) {
         compute->qiY(inputB_qi_sig);
         compute->W(inputA_w_sig);   // inputA has the same span with inputB
         compute->W_avg(inputA_w_sig);
+        compute->index_self(index_self_sig);
+        compute->index_top(index_top_sig);
         compute->result(computeResult);
+        compute->index_self_out(index_self_out);
+        compute->index_top_out(index_top_out);
         /*adderA = new HAdder("adderA"); 
         adderB = new HAdder("adderB"); 
 
