@@ -18,7 +18,8 @@ SC_MODULE(Chain) {
     std::vector<std::vector<sc_signal<sc_int<WIDTH>>*>> anchorRi;
     std::vector<std::vector<sc_signal<sc_int<WIDTH>>*>> anchorQi;
     std::vector<std::vector<sc_signal<sc_int<WIDTH>>*>> anchorIdx;
-    std::vector<std::vector<sc_signal<sc_int<WIDTH>>*>> anchorSuccessiveRange;// successive range of every anchor 
+    std::vector<std::vector<sc_signal<sc_uint<WIDTH>>*>> anchorSegNum;
+    int **anchorSuccessiveRange;// successive range of every anchor 
     std::vector<sc_signal<sc_int<WIDTH>>*> anchorW;  //number of anchors
 
     /*ResultArray consists of both HCU's resultArray(UB<=65) and ReductionPool's resultArray(UB>65) */
@@ -86,7 +87,7 @@ SC_MODULE(Chain) {
     std::ofstream result_file;
 
     void chain_ram_check();
-    void chain_hcu_pre();
+    void chain_hcu_cut();
     void chain_hcu_execute();
     void chain_hcu_fillTable();
     void chain_hcu_allocate();
@@ -103,7 +104,7 @@ SC_MODULE(Chain) {
          anchorRi(ReadNumProcessedOneTime, std::vector<sc_signal<sc_int<WIDTH>>*>(MAX_READ_LENGTH)),
          anchorQi(ReadNumProcessedOneTime, std::vector<sc_signal<sc_int<WIDTH>>*>(MAX_READ_LENGTH)),
          anchorIdx(ReadNumProcessedOneTime, std::vector<sc_signal<sc_int<WIDTH>>*>(MAX_READ_LENGTH)),
-         anchorSuccessiveRange(ReadNumProcessedOneTime, std::vector<sc_signal<sc_int<WIDTH>>*>(MAX_READ_LENGTH)),
+         anchorSegNum(ReadNumProcessedOneTime, std::vector<sc_signal<sc_uint<WIDTH>>*>(MAX_READ_LENGTH)),
          mri(HCU_NUM, std::vector<sc_signal<sc_int<WIDTH>>*>(MCUInputLaneWIDTH+1)),
          mqi(HCU_NUM, std::vector<sc_signal<sc_int<WIDTH>>*>(MCUInputLaneWIDTH+1)),
          mw(HCU_NUM, std::vector<sc_signal<sc_int<WIDTH>>*>(MCUInputLaneWIDTH+1)),
@@ -123,7 +124,7 @@ SC_MODULE(Chain) {
 
         // prepare the segmentQueue
         // one read per cycle.
-        SC_THREAD(chain_hcu_pre);
+        SC_THREAD(chain_hcu_cut);
         sensitive << clk.pos();
 
         // fill SchedulerTable for every Segment
@@ -157,7 +158,7 @@ SC_MODULE(Chain) {
                     anchorRi[i][j] = new sc_signal<sc_int<WIDTH>>();
                     anchorQi[i][j] = new sc_signal<sc_int<WIDTH>>();
                     anchorIdx[i][j] = new sc_signal<sc_int<WIDTH>>();
-                    anchorSuccessiveRange[i][j] = new sc_signal<sc_int<WIDTH>>();
+                    anchorSegNum[i][j] = new sc_signal<sc_uint<WIDTH>>();
                 }catch(const std::bad_alloc& e) {
                     std::cerr << "Scheduler Memory allocation failed:" << e.what() << std::endl;
                 }
@@ -170,15 +171,17 @@ SC_MODULE(Chain) {
             std::cerr << "Scheduler's RangeCountUnit allocation failed:" << e.what() << std::endl;
         }
         rc->rst(rst);
-        rc->cutDone(start);
+        rc->readDone(start);
+        anchorSuccessiveRange = new int*[ReadNumProcessedOneTime];
         for(int readIdx = 0; readIdx < ReadNumProcessedOneTime; readIdx++) {
             rc->anchorNum[readIdx]->bind(*anchorNum[readIdx]);
             rc->anchorW[readIdx]->bind(*anchorW[readIdx]);
+            anchorSuccessiveRange[readIdx] = new int[MAX_READ_LENGTH];
             for(int i = 0; i < MAX_READ_LENGTH; i ++) {
                 rc->anchorRi[readIdx][i]->bind(*anchorRi[readIdx][i]);
                 rc->anchorQi[readIdx][i]->bind(*anchorQi[readIdx][i]);
                 rc->anchorIdx[readIdx][i]->bind(*anchorIdx[readIdx][i]);
-                rc->anchorSuccessiveRange[readIdx][i]->bind(*anchorSuccessiveRange[readIdx][i]);
+                rc->anchorSegNum[readIdx][i]->bind(*anchorSegNum[readIdx][i]);
             }
         }
 

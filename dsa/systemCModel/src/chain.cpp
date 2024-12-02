@@ -47,15 +47,53 @@ void Chain::chain_ram_check() {
     }
 }
 
-void Chain::chain_hcu_pre() {
+void Chain::chain_hcu_cut() {
     while (true) {
         wait();
         if (start.read()) {
             /*
-            FIXME: 
-            std::cout << sc_time_stamp() << std::endl;
+            Cut one batch of read (one read for a batch for simulator)
+            FIXME: bottleneck lies in batch size 
             */
-            if (readIdx < ReadNumProcessedOneTime) {
+            // compute dynamic range and cut
+            // cut algorighm is strictly according to the software version.
+            int rangeHeuristic[8] = {0, 16, 512, 1024, 2048, 3072, 4096, 5000};
+            for(; readIdx < ReadNumProcessedOneTime; readIdx++){
+                for(int j = 0; j < anchorNum[readIdx]->read(); j ++) {
+                    if(anchorSegNum[readIdx][j+1]->read() != anchorSegNum[readIdx][j]->read()) {
+                        anchorSuccessiveRange[readIdx][j] = 1;
+                        continue;
+                    }
+                    int end = j + 5000;
+                    for(int delta = 0; delta < 8; delta++) {
+                        if((j + rangeHeuristic[delta] < anchorNum[readIdx]->read())) {
+                            if(anchorSegNum[readIdx][j+rangeHeuristic[delta]]->read() == anchorSegNum[readIdx][j]->read()) {
+                                    if(anchorRi[readIdx][j+rangeHeuristic[delta]]->read() - anchorRi[readIdx][j]->read() > 5000) {
+                                            end = j + rangeHeuristic[delta];
+                                            break;
+                                    }
+                            }else {
+                                end = j + rangeHeuristic[delta-1];
+                                break;
+                            }
+                        }
+                        // FIXME: the last 16 anchor will omit segID
+                        if(anchorNum[readIdx]->read() - j <= 16) {
+                             end = anchorNum[readIdx]->read() - 1; 
+                        }
+                    }
+                    while(end > j && anchorRi[readIdx][end]->read() - anchorRi[readIdx][j]->read() > 5000) {
+                        end--;
+                    } 
+                    /*
+                        1. range of anchor[j]'s successor is [j + 1, end]
+                        2. cut when rangeLength = 1
+                        3. max range of a segment is its UpperBound
+                    */
+                    anchorSuccessiveRange[readIdx][j] = end-j+1;
+                    //std::cout << end - j + 1  << " " << j<< std::endl;
+                }
+                // store segments into SRAM. 
                 int segStart = 0, tmpSegLongNum = 0, tmpSegShortNum = 0, tmpSegID = 0;
                 sc_int<WIDTH> *RiData = new sc_int<WIDTH>[MAX_SEGLENGTH];
                 sc_int<WIDTH> *QiData = new sc_int<WIDTH>[MAX_SEGLENGTH];
@@ -67,13 +105,13 @@ void Chain::chain_hcu_pre() {
                     if(!isRamFree(freeListForLong, freeListForShort)) {
                         wait(ram_not_full);
                     }
-                    assert(anchorSuccessiveRange[readIdx][i]->read() != 0 && "Error: successiveRange cannot be -1.");
-                    if(anchorSuccessiveRange[readIdx][i]->read() != 1 && anchorSuccessiveRange[readIdx][i]->read() != -1) {
+                    assert(anchorSuccessiveRange[readIdx][i] != 0 && "Error: successiveRange cannot be -1.");
+                    if(anchorSuccessiveRange[readIdx][i] != 1 && anchorSuccessiveRange[readIdx][i] != -1) {
                         RiData[segStart] = anchorRi[readIdx][i]->read();
                         QiData[segStart] = anchorQi[readIdx][i]->read();
                         Idx[segStart] = anchorIdx[readIdx][i]->read();
                         segStart++;
-                    }else if(anchorSuccessiveRange[readIdx][i]->read() == 1 || i == anchorNum[readIdx]->read()-1) {
+                    }else if(anchorSuccessiveRange[readIdx][i] == 1 || i == anchorNum[readIdx]->read()-1) {
                         // range = 1 means segments ends with this anchor
                         // ending anchor still added
                         RiData[segStart] = anchorRi[readIdx][i]->read();
@@ -115,7 +153,6 @@ void Chain::chain_hcu_pre() {
                     }
                 }
                 std::cout << "this read's segNum: " << tmpSegLongNum + tmpSegShortNum << std::endl;
-                readIdx++;
             }
         }
     }
@@ -568,14 +605,14 @@ void Chain::chain_hcu_execute(){
                             for(int j = 0; j < et->UpperBound.read(); j ++) {
                                 ecuIODisPatcherPool[i]->ri[j].write(localRAMForShort[et->addr.read()].Rdata[j]);
                                 ecuIODisPatcherPool[i]->qi[j].write(localRAMForShort[et->addr.read()].Qdata[j]);
-                                //ecuIODisPatcherPool[i]->idx[j].write(localRAMForShort[et->addr.read()].Idx[j]);
+                                ecuIODisPatcherPool[i]->idx[j].write(localRAMForShort[et->addr.read()].Idx[j]);
                                 ecuIODisPatcherPool[i]->w[j].write(localRAMForShort[et->addr.read()].Wdata);
                             }
                         }else {
                             for(int j = 0; j < et->UpperBound.read(); j ++) {
                                 ecuIODisPatcherPool[i]->ri[j].write(localRAMForLong[et->addr.read()].Rdata[j]);
                                 ecuIODisPatcherPool[i]->qi[j].write(localRAMForLong[et->addr.read()].Qdata[j]);
-                                //ecuIODisPatcherPool[i]->idx[j].write(localRAMForLong[et->addr.read()].Idx[j]);
+                                ecuIODisPatcherPool[i]->idx[j].write(localRAMForLong[et->addr.read()].Idx[j]);
                                 ecuIODisPatcherPool[i]->w[j].write(localRAMForLong[et->addr.read()].Wdata);
                             }
                         }
