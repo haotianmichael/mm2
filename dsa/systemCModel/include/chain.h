@@ -24,6 +24,7 @@ SC_MODULE(Chain) {
 
     /*ResultArray consists of both HCU's resultArray(UB<=65) and ReductionPool's resultArray(UB>65) */
     std::vector<sc_out<sc_int<WIDTH>>> resultArray;
+    std::vector<sc_out<sc_int<WIDTH>>> resultAddrArray;
 
     // @RC Unit
     /*
@@ -76,6 +77,7 @@ SC_MODULE(Chain) {
     std::vector<sc_signal<sc_int<WIDTH>>*> ecu_qi;
     std::vector<sc_signal<sc_int<WIDTH>>*> ecu_w;
     std::vector<sc_signal<sc_int<WIDTH>>*> ecu_idx;
+    std::vector<sc_signal<sc_int<WIDTH>>*> ecu_score;
 
     // @ReductionPool
     ReductionController *rtController;
@@ -91,8 +93,9 @@ SC_MODULE(Chain) {
     void chain_hcu_execute();
     void chain_hcu_fillTable();
     void chain_hcu_allocate();
+    void chain_ram_write_score();
+    void chain_ram_read_score();
     void chain_rt_allocate();
-    void chain_output();
 
 	SC_CTOR(Chain) : 
          ramIndexForLong(0),
@@ -117,7 +120,9 @@ SC_MODULE(Chain) {
          ecu_qi(HCU_NUM),
          ecu_w(HCU_NUM),
          ecu_idx(HCU_NUM),
-         resultArray(RESULT_NUM){
+         ecu_score(HCU_NUM),
+         resultArray(RESULT_NUM),
+         resultAddrArray(RESULT_NUM){
 
         SC_THREAD(chain_ram_check);
         sensitive << clk.pos();
@@ -135,6 +140,14 @@ SC_MODULE(Chain) {
         SC_THREAD(chain_hcu_allocate);
         sensitive << clk.pos();
 
+        // cache former final-score 
+        SC_THREAD(chain_ram_write_score);
+        sensitive << clk.pos();
+
+        // read former final-score for computing other anchor's schore
+        SC_THREAD(chain_ram_read_score);
+        sensitive << clk.pos();
+
         // HCU IO Wiring and Enable
         SC_THREAD(chain_hcu_execute);
         sensitive << clk.pos();
@@ -142,12 +155,6 @@ SC_MODULE(Chain) {
         // check SchedulerTable and allocate ReductionTrees
         SC_THREAD(chain_rt_allocate);
         sensitive << clk.pos();
-
-        // output of chain
-        SC_THREAD(chain_output);
-        for(int i = 0; i < RESULT_NUM; i ++){
-            sensitive << resultArray[i];
-        }
 
         /************@RC Unit ****************************************/
         for(int i = 0; i < ReadNumProcessedOneTime; i ++) {
@@ -203,6 +210,7 @@ SC_MODULE(Chain) {
             ecu_qi[i] = new sc_signal<sc_int<WIDTH>>();
             ecu_w[i] = new sc_signal<sc_int<WIDTH>>();
             ecu_idx[i] = new sc_signal<sc_int<WIDTH>>();
+            ecu_score[i] = new sc_signal<sc_int<WIDTH>>();
             for(int j = 0; j < MCUInputLaneWIDTH + 1; j ++) {
                 try {
                     mri[i][j] = new sc_signal<sc_int<WIDTH>>();
@@ -249,6 +257,7 @@ SC_MODULE(Chain) {
             ecuIODisPatcherPool[i]->ecu_qi_out(*ecu_qi[i]);
             ecuIODisPatcherPool[i]->ecu_w_out(*ecu_w[i]);
             ecuIODisPatcherPool[i]->ecu_idx_out(*ecu_idx[i]);
+            ecuIODisPatcherPool[i]->ecu_score_out(*ecu_score[i]);
             mcuIO_name.str("");
             ecuIO_name.str("");
         }
@@ -280,6 +289,7 @@ SC_MODULE(Chain) {
                 ecuPool[i]->ecu_qi[j](*ecu_qi[i]);
                 ecuPool[i]->ecu_w[j](*ecu_w[i]);
                 ecuPool[i]->ecu_idx[j](*ecu_idx[i]);
+                ecuPool[i]->ecu_final_score[j](*ecu_score[i]);
             }
 
             
@@ -290,7 +300,6 @@ SC_MODULE(Chain) {
             mcuPool[i]->type.write(static_cast<bool>(0));
             mcuPool[i]->executeTime.write(sc_time(0, SC_NS));
             mcuPool[i]->freeTime.write(sc_time(0, SC_NS));
-            resultArray[rIndex++](mcuPool[i]->regBiggerScore[0]);
 
             ecuPool[i]->currentReadID.write(static_cast<sc_int<WIDTH> >(-1));
             ecuPool[i]->currentSegID.write(static_cast<sc_int<WIDTH> >(-1));
@@ -299,7 +308,6 @@ SC_MODULE(Chain) {
             ecuPool[i]->type.write(static_cast<bool>(0));
             ecuPool[i]->executeTime.write(sc_time(0, SC_NS));
             ecuPool[i]->freeTime.write(sc_time(0, SC_NS));
-            resultArray[rIndex++](ecuPool[i]->regBiggerScore[0]);
 
             mcu_name.str("");
             ecu_name.str("");
@@ -322,12 +330,15 @@ SC_MODULE(Chain) {
             reductionTree[i]->rst(rst);
             reductionTree[i]->vecNotify(rtController->notifyOutArray[i]);
             reductionTree[i]->fifoIdx(rtController->fifoIdxArray[i]);
+            reductionTree[i]->address(rtController->reductionOutArrayAddress[i]);
             for(int j = 0; j < Reduction_NUM; j ++) {
                 reductionTree[i]->vecFromController[j](*(rtController->reductionOutArrayToTree[i][j]));
+                reductionTree[i]->vecPredecessor[j](*(rtController->reductionOutArrayPredecessor[i][j]));
             }
             rtController->reduction_done[i](reductionTree[i]->done);
             assert(rIndex < RESULT_NUM && "Error: exceeding resultArray's bounds!");
             resultArray[rIndex++](reductionTree[i]->result);
+            resultAddrArray[rIndex++](reductionTree[i]->out_address);
             r_name.str("");
         }
 

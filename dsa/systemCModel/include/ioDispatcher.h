@@ -46,6 +46,7 @@ SC_MODULE(ecuIODispatcher) {
     sc_signal<sc_int<WIDTH> > qi[MAX_SEGLENGTH];
     sc_signal<sc_int<WIDTH> > w[MAX_SEGLENGTH];
     sc_signal<sc_int<WIDTH> > idx[MAX_SEGLENGTH];
+    sc_signal<sc_int<WIDTH> > final_score[MAX_SEGLENGTH];
 
     int cycle_count;
     int base_count;
@@ -57,6 +58,7 @@ SC_MODULE(ecuIODispatcher) {
     sc_out<sc_int<WIDTH> > ecu_qi_out;
     sc_out<sc_int<WIDTH> > ecu_w_out;
     sc_out<sc_int<WIDTH> > ecu_idx_out;
+    sc_out<sc_int<WIDTH>> ecu_score_out;
 
     void shift_data();
     SC_CTOR(ecuIODispatcher) : cycle_count(LowerBound.read()), base_count(0){

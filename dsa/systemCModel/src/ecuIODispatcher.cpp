@@ -9,7 +9,8 @@ void ecuIODispatcher::shift_data() {
                     ecu_ri_out.write(ri[base_count]);
                     ecu_qi_out.write(qi[base_count]);
                     ecu_w_out.write(w[base_count]);
-                    ecu_idx_out.write(idx_out[base_count]);
+                    ecu_idx_out.write(idx[base_count]);
+                    ecu_score_out.write(final_score[base_count]);
                     base_count++;
                 }
                 if(cycle_count <= UpperBound.read()-65) {
@@ -55,6 +56,7 @@ void ecuIODispatcher::shift_data() {
                 ecu_ri_out.write(static_cast<sc_int<WIDTH> >(-1));
                 ecu_w_out.write(static_cast<sc_int<WIDTH> >(-1));
                 ecu_idx_out.write(static_cast<sc_int<WIDTH>>(-1));
+                ecu_score_out.write(static_cast<sc_int<WIDTH>>(-1));
             }
         }else {
             base_count = 0;
@@ -69,6 +71,7 @@ void ecuIODispatcher::shift_data() {
             ecu_ri_out.write(static_cast<sc_int<WIDTH> >(-1));
             ecu_w_out.write(static_cast<sc_int<WIDTH> >(-1));
             ecu_idx_out.write(static_cast<sc_int<WIDTH>>(-1));
+            ecu_score_out.write(static_cast<sc_int<WIDTH>>(-1));
         }
     }
 }

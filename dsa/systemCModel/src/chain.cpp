@@ -557,6 +557,61 @@ void Chain::chain_hcu_allocate() {
     }
 }
 
+void Chain::chain_ram_write_score() {
+    while(true) {
+        wait();
+        if(start.read()) {
+
+            // the first 65 final-score (FinalScoreIdx up to 65)
+            for(auto it = schedulerTable->schedulerItemList.begin(); it != schedulerTable->schedulerItemList.end(); it ++) {
+                if(it->issued) {  
+                    auto timeIt = it->TimeList.begin();
+                    for(; timeIt != it->TimeList.end(); timeIt++) {
+                        if(timeIt->hcuID != -1 && timeIt->type) {   
+                            sc_int<WIDTH> id = timeIt->hcuID;
+                            sc_int<WIDTH> &idx = localRAMForLong[it->addr].FinalScoreIdx;
+                            if(mcuPool[id]->en && idx <= 65 && mcuPool[id]->regBiggerScore[0].read() != -1) {
+                                localRAMForLong[it->addr].FinalScore[idx++] = mcuPool[id]->regBiggerScore[0].read();
+                            } 
+                        }
+                    }
+                }
+            }     
+
+            // the rest of final-score (FinalScoreIdx start from 66)
+           for(int i = 0; i < Reduction_USAGE; i ++) {
+                int address = resultAddrArray[i].read();
+                if(address != -1) {
+                    sc_int<WIDTH> &idx = localRAMForLong[address].FinalScoreIdx;
+                    localRAMForLong[address].FinalScore[idx++] = resultArray[i].read();
+                } 
+            } 
+        }
+    }
+}
+
+void Chain::chain_ram_read_score() {
+    while(true) {
+        wait();
+        if(start.read()) {
+            for(auto it = schedulerTable->schedulerItemList.begin(); it != schedulerTable->schedulerItemList.end(); it ++) {
+                if(it->issued && it->UB >= 66) {
+                    auto timeIt = it->TimeList.begin();
+                    sc_int<WIDTH>* finalScore = localRAMForLong[it->addr].FinalScore;
+                    for(; timeIt != it->TimeList.end(); timeIt++) {
+                        sc_int<WIDTH> id = timeIt->hcuID;
+                        for(int i = 0; i < MAX_SEGLENGTH; i ++) {
+                            if(finalScore[i] != -1) {
+                                ecuIODisPatcherPool[id]->final_score[i].write(finalScore[i]);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
 void Chain::chain_hcu_execute(){
     while (true){
         wait();
@@ -623,14 +678,16 @@ void Chain::chain_hcu_execute(){
     }
 }
 
-void fillFIFOPorts(sc_fifo<reductionInput> *reductionInputEle, sc_int<WIDTH> &path, sc_int<WIDTH> *output, int outputNum) {
+void fillFIFOPorts(sc_fifo<reductionInput> *reductionInputEle, sc_int<WIDTH> &path, sc_int<WIDTH> *output, sc_int<WIDTH> *predecessor, sc_int<WIDTH> address, int outputNum) {
     reductionInput rt;
     int j = 0;
     assert(outputNum < 128 && "Error: exceeding reductionTree boundry!");
     for(; j < outputNum; j++) {
         rt.data[j] = output[j];
+        rt.predecessor[j] = predecessor[j];
     }
     rt.data[127] = path;
+    rt.address = address;
     reductionInputEle->write(rt);
 }
 void Chain::chain_rt_allocate(){
@@ -651,6 +708,8 @@ void Chain::chain_rt_allocate(){
                    const int high_32 = it->Reduction_FIFO_Idx.range(63, 32);
                    if(it->issued && it->UB >= 66) {
                         sc_int<WIDTH> output[it->HCU_Total_NUM.to_int()];
+                        sc_int<WIDTH> outputPre[it->HCU_Total_NUM.to_int()];
+                        sc_int<WIDTH> address = it->addr;
                         bool enable = false;
                         int index = 0;
                         auto timeIt = it->TimeList.begin();
@@ -662,11 +721,13 @@ void Chain::chain_rt_allocate(){
                                       if(timeIt->type) {
                                           if(mcuPool[id]->en) {
                                               output[index++] = mcuPool[id]->regBiggerScore[0].read(); 
+                                              outputPre[index++] = mcuPool[id]->predecessor[0].read();
                                               enable = true;
                                           }
                                       }else {
                                           if(ecuPool[id]->en) {
                                               output[index++] = ecuPool[id]->regBiggerScore[0].read();
+                                              outputPre[index++] = mcuPool[id]->predecessor[0].read();
                                               enable = true;
                                           }
                                       }
@@ -687,14 +748,14 @@ void Chain::chain_rt_allocate(){
                             if (low_32 >= 0) {
                                 const int fifo_index = low_32;
                                 notifyArray[fifo_index]->write(1); 
-                                fillFIFOPorts(reductionInputArray[fifo_index], it->HCU_Total_NUM, output, index);
+                                fillFIFOPorts(reductionInputArray[fifo_index], it->HCU_Total_NUM, output, outputPre, address, index);
                             }else if(low_32 == -1){
                                 bool fillS = false;
                                 for (int i = 0; i < Reduction_FIFO_NUM; i++){
                                     if (notifyArray[i]->read() == -1){
                                         it->Reduction_FIFO_Idx.range(31, 0) = i;
                                         notifyArray[i]->write(1); // successfully porting, ready to dispathing
-                                        fillFIFOPorts(reductionInputArray[i], it->HCU_Total_NUM, output, index);
+                                        fillFIFOPorts(reductionInputArray[i], it->HCU_Total_NUM, output, outputPre, address, index);
                                         fillS = true;
                                         break;
                                     }
@@ -716,17 +777,6 @@ void Chain::chain_rt_allocate(){
                         }
                     }
                 }
-            } 
-        }
-    }
-}
-
-void Chain::chain_output() {
-    while(true) {
-        wait();
-        if(!rst.read()) {
-            if(start.read()) {
-                result_file << "Output1" << resultArray[0] <<  std::endl;
             } 
         }
     }

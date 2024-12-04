@@ -70,6 +70,7 @@ void ReductionController::chain_rt_execute() {
                 notifyOutArray[i].write(false);
                 for(int j = 0; j < Reduction_NUM; j ++) {
                     reductionOutArrayToTree[i][j]->write(static_cast<sc_int<WIDTH>>(-1));
+                    reductionOutArrayPredecessor[i][j]->write(static_cast<sc_int<WIDTH>>(-1));
                 }
             }
             for(int i = 0; i < Reduction_FIFO_NUM; i ++) {
@@ -88,7 +89,9 @@ void ReductionController::chain_rt_execute() {
                         assert(fifoIdxArray[j].read()==i && "Error: unknow error about FIFOIx and ReductionIdx!"); 
                         for(int t = 0; t < riNum - 1; t++) {
                             reductionOutArrayToTree[j][t]->write(ri.data[t]);
+                            reductionOutArrayPredecessor[j][t]->write(ri.predecessor[t]);
                         }
+                        reductionOutArrayAddress[j].write(ri.address);
                         reductionOutArrayToTree[j][Reduction_NUM-1]->write(riNum);
                     }else if(notifyArray[i]->read() == -2) {
                         //free reductionUnit
@@ -109,7 +112,9 @@ void ReductionController::chain_rt_execute() {
                                     fifoIdxArray[j].write(static_cast<sc_int<WIDTH>>(i));
                                     for(int t = 0; t < riNum - 1; t++) {
                                         reductionOutArrayToTree[j][t]->write(ri.data[t]);
+                                        reductionOutArrayPredecessor[j][t]->write(ri.predecessor[t]);
                                     }
+                                    reductionOutArrayAddress[j].write(ri.address);
                                     reductionOutArrayToTree[j][Reduction_NUM-1]->write(riNum);
                                     notifyOutArray[j].write(true);
                                 } 
@@ -127,7 +132,9 @@ void ReductionController::chain_rt_execute() {
                                     fifoIdxArray[j].write(static_cast<sc_int<WIDTH>>(i));
                                     for(int t = 0; t < riNum - 1; t++) {
                                         reductionOutArrayToTree[j][t]->write(ri.data[t]);
+                                        reductionOutArrayPredecessor[j][t]->write(ri.predecessor[t]);
                                     }
+                                    reductionOutArrayAddress[j].write(ri.address);
                                     reductionOutArrayToTree[j][Reduction_NUM-1]->write(riNum);
                                     notifyOutArray[j].write(true);
                                 } 
@@ -145,7 +152,9 @@ void ReductionController::chain_rt_execute() {
                                     fifoIdxArray[j].write(static_cast<sc_int<WIDTH>>(i));
                                     for(int t = 0; t < riNum - 1; t++) {
                                         reductionOutArrayToTree[j][t]->write(ri.data[t]);
+                                        reductionOutArrayPredecessor[j][t]->write(ri.predecessor[t]);
                                     }
+                                    reductionOutArrayAddress[j].write(ri.address);
                                     reductionOutArrayToTree[j][Reduction_NUM-1]->write(riNum);
                                     notifyOutArray[j].write(true);
                                 } 
@@ -163,7 +172,9 @@ void ReductionController::chain_rt_execute() {
                                     fifoIdxArray[j].write(static_cast<sc_int<WIDTH>>(i));
                                     for(int t = 0; t < riNum - 1; t++) {
                                         reductionOutArrayToTree[j][t]->write(ri.data[t]);
+                                        reductionOutArrayPredecessor[j][t]->write(ri.predecessor[t]);
                                     }
+                                    reductionOutArrayAddress[j].write(ri.address);
                                     reductionOutArrayToTree[j][Reduction_NUM-1]->write(riNum);
                                     notifyOutArray[j].write(true);
                                 } 
@@ -181,7 +192,9 @@ void ReductionController::chain_rt_execute() {
                                     fifoIdxArray[j].write(static_cast<sc_int<WIDTH>>(i));
                                     for(int t = 0; t < riNum - 1; t++) {
                                         reductionOutArrayToTree[j][t]->write(ri.data[t]);
+                                        reductionOutArrayPredecessor[j][t]->write(ri.predecessor[t]);
                                     }
+                                    reductionOutArrayAddress[j].write(ri.address);
                                     reductionOutArrayToTree[j][Reduction_NUM-1]->write(riNum);
                                     notifyOutArray[j].write(true);
                                 } 
@@ -199,7 +212,9 @@ void ReductionController::chain_rt_execute() {
                                     fifoIdxArray[j].write(static_cast<sc_int<WIDTH>>(i));
                                     for(int t = 0; t < riNum - 1; t++) {
                                         reductionOutArrayToTree[j][t]->write(ri.data[t]);
+                                        reductionOutArrayPredecessor[j][t]->write(ri.predecessor[t]);
                                     }
+                                    reductionOutArrayAddress[j].write(ri.address);
                                     reductionOutArrayToTree[j][Reduction_NUM-1]->write(riNum);
                                     notifyOutArray[j].write(true);
                                 } 
@@ -217,7 +232,9 @@ void ReductionController::chain_rt_execute() {
                                     fifoIdxArray[j].write(static_cast<sc_int<WIDTH>>(i));
                                     for(int t = 0; t < riNum - 1; t++) {
                                         reductionOutArrayToTree[j][t]->write(ri.data[t]);
+                                        reductionOutArrayPredecessor[j][t]->write(ri.predecessor[t]);
                                     }
+                                    reductionOutArrayAddress[j].write(ri.address);
                                     reductionOutArrayToTree[j][Reduction_NUM-1]->write(riNum);
                                     notifyOutArray[j].write(true);
                                 } 

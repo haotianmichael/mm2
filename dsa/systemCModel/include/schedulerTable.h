@@ -9,6 +9,8 @@ struct ram_dataForLong{
    sc_int<WIDTH> Rdata[MAX_SEGLENGTH]; 
    sc_int<WIDTH> Qdata[MAX_SEGLENGTH]; 
    sc_int<WIDTH> Idx[MAX_SEGLENGTH]; 
+   sc_int<WIDTH> FinalScore[MAX_SEGLENGTH];
+   sc_int<WIDTH> FinalScoreIdx = 0;
    sc_int<WIDTH> Wdata;
    sc_int<WIDTH> readID;
    sc_int<WIDTH> segID;
@@ -21,6 +23,7 @@ struct ram_dataForShort{
    sc_int<WIDTH> Rdata[MIN_SEGLENGTH]; 
    sc_int<WIDTH> Qdata[MIN_SEGLENGTH]; 
    sc_int<WIDTH> Idx[MIN_SEGLENGTH]; 
+   sc_int<WIDTH> FinalScore[MAX_SEGLENGTH];
    sc_int<WIDTH> Wdata;
    sc_int<WIDTH> readID;
    sc_int<WIDTH> segID;

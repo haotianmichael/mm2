@@ -124,6 +124,7 @@ SC_MODULE(ECU){
     sc_in<sc_int<WIDTH> > ecu_qi[LaneWIDTH+1];
     sc_in<sc_int<WIDTH> > ecu_w[LaneWIDTH+1];
     sc_in<sc_int<WIDTH> > ecu_idx[LaneWIDTH+1];
+    sc_in<sc_int<WIDTH> > ecu_final_score[LaneWIDTH+1];
 
     sc_in<bool> clk, rst;
     sc_signal<bool> en;
@@ -141,6 +142,7 @@ SC_MODULE(ECU){
     sc_signal<sc_int<WIDTH>> ecu_qi_sig[LaneWIDTH];
     sc_signal<sc_int<WIDTH>> ecu_w_sig[LaneWIDTH];
     sc_signal<sc_int<WIDTH>> ecu_idx_sig[LaneWIDTH];
+    sc_signal<sc_int<WIDTH>> ecu_final_score_sig[LaneWIDTH];
 
     // For Scheduler
     sc_signal<sc_int<WIDTH> > currentReadID;   
@@ -169,9 +171,10 @@ SC_MODULE(ECU){
             if(!rst.read()) {
                 if(en.read()) {
                     for(int i = 0; i < LaneWIDTH; i ++){
-                          int tmp = hlane[i]->computeResult.read() + regBiggerScore[0].read();
+                          int tmp = hlane[i]->computeResult.read() + ecu_final_score_sig[i].read();
                           if(tmp >= regBiggerScore[i+1].read()) {
                                 regBiggerScore[i].write(static_cast<sc_int<WIDTH>>(tmp));
+                                predecessor[i].write(hlane[i]->index_top_out.read());
                           }else {
                                 regBiggerScore[i].write(regBiggerScore[i+1].read());
                           }
@@ -179,11 +182,13 @@ SC_MODULE(ECU){
                 }else {
                     for(int i = 0; i < LaneWIDTH; i ++) {
                         regBiggerScore[i].write(static_cast<sc_int<WIDTH>>(-1));
+                        predecessor[i].write(static_cast<sc_int<WIDTH>>(-1));
                     }
                 }
             }else if(rst.read()){
                 for(int i = 0; i < LaneWIDTH + 1; i ++) {
                    regBiggerScore[i].write(static_cast<sc_int<WIDTH> >(-1));
+                   predecessor[i].write(static_cast<sc_int<WIDTH>>(-1));
                 }
             }
         }
@@ -199,6 +204,7 @@ SC_MODULE(ECU){
             W_sig[i].write(W[i].read());
             Idx_sig[i].write(Idx[i].read());
             ecu_idx_sig[i].write(ecu_idx[i].read());
+            ecu_final_score_sig[i].write(ecu_final_score[i].read());
         }
     }
 
@@ -221,8 +227,8 @@ SC_MODULE(ECU){
             hlane[i]->inputB_qi(qiArray_sig[i]);
             hlane[i]->inputB_w(W_sig[i]);
 
-            hlane[i]->index_top(ecu_idx_sig[0]);
-            hlane[i]->index_self(ecu_idx_sig[i]);
+            hlane[i]->index_top(ecu_idx_sig[i]);
+            hlane[i]->index_self(Idx_sig[i]);
             hlaneName.str("");
         }
 
