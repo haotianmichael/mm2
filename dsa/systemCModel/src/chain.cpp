@@ -600,9 +600,11 @@ void Chain::chain_ram_read_score() {
                     sc_int<WIDTH>* finalScore = localRAMForLong[it->addr].FinalScore;
                     for(; timeIt != it->TimeList.end(); timeIt++) {
                         sc_int<WIDTH> id = timeIt->hcuID;
-                        for(int i = 0; i < MAX_SEGLENGTH; i ++) {
-                            if(finalScore[i] != -1) {
-                                ecuIODisPatcherPool[id]->final_score[i].write(finalScore[i]);
+                        if(id != -1) {
+                            for(int i = 0; i < MAX_SEGLENGTH; i ++) {
+                                if(finalScore[i] != -1 && ecuIODisPatcherPool[id]->final_score[i].read() != -1) {
+                                     ecuIODisPatcherPool[id]->final_score[i].write(finalScore[i]);
+                                }
                             }
                         }
                     }
