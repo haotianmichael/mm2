@@ -67,7 +67,8 @@ SC_MODULE(ReductionTree) {
     }
 
     SC_CTOR(ReductionTree) :
-       vecFromController(Reduction_NUM){
+       vecFromController(Reduction_NUM),
+       vecPredecessor(Reduction_NUM){
        SC_THREAD(process); 
        sensitive << clk.pos();
     }

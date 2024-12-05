@@ -121,8 +121,8 @@ SC_MODULE(Chain) {
          ecu_w(HCU_NUM),
          ecu_idx(HCU_NUM),
          ecu_score(HCU_NUM),
-         resultArray(RESULT_NUM),
-         resultAddrArray(RESULT_NUM){
+         resultArray(Reduction_USAGE),
+         resultAddrArray(Reduction_USAGE){
 
         SC_THREAD(chain_ram_check);
         sensitive << clk.pos();
@@ -337,7 +337,7 @@ SC_MODULE(Chain) {
             }
             rtController->reduction_done[i](reductionTree[i]->done);
             assert(rIndex < RESULT_NUM && "Error: exceeding resultArray's bounds!");
-            resultArray[rIndex++](reductionTree[i]->result);
+            resultArray[rIndex](reductionTree[i]->result);
             resultAddrArray[rIndex++](reductionTree[i]->out_address);
             r_name.str("");
         }

@@ -20,6 +20,6 @@ $(TARGET): $(OBJS)
 	$(CXX) -c $< $(CXXFLAGS)
 
 clean:
-	rm -f $(OBJS) $(TARGET) *.vcd
+	rm -f $(OBJS) $(TARGET) *.vcd ./output/out.txt
 
 .PHONY: all clean
