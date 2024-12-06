@@ -707,57 +707,55 @@ void Chain::chain_rt_allocate(){
                     }
                 }
                 for(auto it = schedulerTable->schedulerItemList.begin(); it != schedulerTable->schedulerItemList.end(); it++) {
-                   const int high_32 = it->Reduction_FIFO_Idx.range(63, 32);
+                   schedulerTable->high_32 = it->Reduction_FIFO_Idx.range(63, 32);
                    if(it->issued && it->UB >= 66) {
-                        sc_int<WIDTH> output[it->HCU_Total_NUM.to_int()];
-                        sc_int<WIDTH> outputPre[it->HCU_Total_NUM.to_int()];
-                        sc_int<WIDTH> address = it->addr;
-                        bool enable = false;
-                        int index = 0;
-                        auto timeIt = it->TimeList.begin();
-                        assert((++timeIt)->type == 0 && "Error: Wrong ECU type!");
-                        if(timeIt->type == 0 && timeIt->hcuID != -1) {
-                            for(timeIt = it->TimeList.begin(); timeIt != it->TimeList.end(); timeIt++) {
+                        schedulerTable->address = it->addr;
+                        schedulerTable->enable = false;
+                        schedulerTable->index = 0;
+                        assert((std::next(it->TimeList.begin()))->type == 0 && "Error: Wrong ECU type!");
+                        if((std::next(it->TimeList.begin()))->type == 0 && (std::next(it->TimeList.begin()))->hcuID != -1) {
+                            for(auto timeIt = it->TimeList.begin(); timeIt != it->TimeList.end(); timeIt++) {
                                   if(timeIt->hcuID != -1) {
-                                      sc_int<WIDTH>  id = timeIt->hcuID;
+                                      schedulerTable->id = timeIt->hcuID;
                                       if(timeIt->type) {
-                                          if(mcuPool[id]->en) {
-                                              output[index++] = mcuPool[id]->regBiggerScore[0].read(); 
-                                              outputPre[index++] = mcuPool[id]->predecessor[0].read();
-                                              enable = true;
+                                          if(mcuPool[schedulerTable->id]->en) {
+                                              assert(schedulerTable->index < 128 && "Error: index out of bounds");
+                                              schedulerTable->output[schedulerTable->index++] = mcuPool[schedulerTable->id]->regBiggerScore[0].read(); 
+                                              schedulerTable->outputPre[schedulerTable->index++] = mcuPool[schedulerTable->id]->predecessor[0].read();
+                                              schedulerTable->enable = true;
                                           }
                                       }else {
-                                          if(ecuPool[id]->en) {
-                                              output[index++] = ecuPool[id]->regBiggerScore[0].read();
-                                              outputPre[index++] = mcuPool[id]->predecessor[0].read();
-                                              enable = true;
+                                          if(ecuPool[schedulerTable->id]->en) {
+                                              assert(schedulerTable->index < 128 && "Error: index out of bounds");
+                                              schedulerTable->output[schedulerTable->index++] = ecuPool[schedulerTable->id]->regBiggerScore[0].read();
+                                              schedulerTable->outputPre[schedulerTable->index++] = mcuPool[schedulerTable->id]->predecessor[0].read();
+                                              schedulerTable->enable = true;
                                           }
                                       }
-                                      if(mcuPool[id]->currentReadID.read() != -1 
-                                          && ecuPool[id]->currentReadID.read() != -1
-                                          && mcuPool[id]->freeTime.read() - sc_time(10, SC_NS)== sc_time_stamp() 
-                                          && ecuPool[id]->freeTime.read() - sc_time(10, SC_NS)== sc_time_stamp()
-                                          && (mcuIODisPatcherPool[id]->en.read()
-                                          || ecuIODisPatcherPool[id]->en.read())){ 
+                                      if(mcuPool[schedulerTable->id]->currentReadID.read() != -1 
+                                          && ecuPool[schedulerTable->id]->currentReadID.read() != -1
+                                          && mcuPool[schedulerTable->id]->freeTime.read() - sc_time(10, SC_NS)== sc_time_stamp() 
+                                          && ecuPool[schedulerTable->id]->freeTime.read() - sc_time(10, SC_NS)== sc_time_stamp()
+                                          && (mcuIODisPatcherPool[schedulerTable->id]->en.read()
+                                          || ecuIODisPatcherPool[schedulerTable->id]->en.read())){ 
                                               it->Reduction_FIFO_Idx.range(63, 32) = -1;
                                       }
                                   }
                             } 
-                            assert(index>=1 && "Error: wrong time to reducting!");
+                            assert(schedulerTable->index>=1 && "Error: wrong time to reducting!");
                         }
-                        if(enable) {
-                            const int low_32 = it->Reduction_FIFO_Idx.range(31, 0); 
-                            if (low_32 >= 0) {
-                                const int fifo_index = low_32;
-                                notifyArray[fifo_index]->write(1); 
-                                fillFIFOPorts(reductionInputArray[fifo_index], it->HCU_Total_NUM, output, outputPre, address, index);
-                            }else if(low_32 == -1){
+                        if(schedulerTable->enable) {
+                            schedulerTable->low_32 = it->Reduction_FIFO_Idx.range(31, 0); 
+                            if (schedulerTable->low_32 >= 0) {
+                                notifyArray[schedulerTable->low_32]->write(1); 
+                                fillFIFOPorts(reductionInputArray[schedulerTable->low_32], it->HCU_Total_NUM, schedulerTable->output, schedulerTable->outputPre, schedulerTable->address, schedulerTable->index);
+                            }else if(schedulerTable->low_32 == -1){
                                 bool fillS = false;
                                 for (int i = 0; i < Reduction_FIFO_NUM; i++){
                                     if (notifyArray[i]->read() == -1){
                                         it->Reduction_FIFO_Idx.range(31, 0) = i;
                                         notifyArray[i]->write(1); // successfully porting, ready to dispathing
-                                        fillFIFOPorts(reductionInputArray[i], it->HCU_Total_NUM, output, outputPre, address, index);
+                                        fillFIFOPorts(reductionInputArray[i], it->HCU_Total_NUM, schedulerTable->output, schedulerTable->outputPre, schedulerTable->address, schedulerTable->index);
                                         fillS = true;
                                         break;
                                     }
@@ -767,10 +765,10 @@ void Chain::chain_rt_allocate(){
                                 std::cerr << "Error: Wong FIFO idx!" << std::endl;
                             }
                         }
-                    }else if(high_32 == -1) {
-                        const int fifo_index = it->Reduction_FIFO_Idx.range(31, 0);
-                        if(notifyArray[fifo_index]->read() == 1) {
-                            notifyArray[fifo_index]->write(-2);
+                    }else if(schedulerTable->high_32 == -1) {
+                        schedulerTable->low_32 = it->Reduction_FIFO_Idx.range(31, 0);
+                        if(notifyArray[schedulerTable->low_32]->read() == 1) {
+                            notifyArray[schedulerTable->low_32]->write(-2);
                         }
                         {
                            releaseBlock(it->addr, freeListForLong);

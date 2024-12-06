@@ -56,13 +56,13 @@ int sc_main(int argc, char* argv[]) {
         ScoreName << "Score" << i;
         regBiggerScoreName << "regBiggerScore" << i;
         predecessorName << "predecessor" << i;
-        sc_trace(fp, chain.mcuPool[2]->hlane[i]->compute->riX.read(), riXName.str());
-        sc_trace(fp, chain.mcuPool[2]->hlane[i]->compute->riY.read(), riYName.str());
+        sc_trace(fp, chain.mcuPool[0]->hlane[i]->compute->riX.read(), riXName.str());
+        sc_trace(fp, chain.mcuPool[0]->hlane[i]->compute->riY.read(), riYName.str());
 
-        sc_trace(fp, chain.mcuPool[2]->hlane[i]->index_top_out.read(), IdxName.str());
-        sc_trace(fp, chain.mcuPool[2]->hlane[i]->computeResult.read(), ScoreName.str());
-        sc_trace(fp, chain.mcuPool[2]->regBiggerScore[i].read(), regBiggerScoreName.str());
-        sc_trace(fp, chain.mcuPool[2]->predecessor[i].read(), predecessorName.str());
+        sc_trace(fp, chain.mcuPool[0]->hlane[i]->index_top_out.read(), IdxName.str());
+        sc_trace(fp, chain.mcuPool[0]->hlane[i]->computeResult.read(), ScoreName.str());
+        sc_trace(fp, chain.mcuPool[0]->regBiggerScore[i].read(), regBiggerScoreName.str());
+        sc_trace(fp, chain.mcuPool[0]->predecessor[i].read(), predecessorName.str());
 
         riXName.str("");
         riYName.str("");

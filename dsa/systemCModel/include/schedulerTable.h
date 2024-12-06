@@ -62,6 +62,16 @@ struct SchedulerTable {
     std::list<SchedulerItem> schedulerItemList;
     std::mutex mtx;
 
+    // for chain_rt_allocate
+    sc_int<WIDTH> output[HCU_NUM];
+    sc_int<WIDTH> outputPre[HCU_NUM];
+    sc_int<WIDTH>  address;
+    sc_int<WIDTH> id;
+    int high_32;
+    int low_32;
+    int index;
+    bool enable;
+
     void addItem(const SchedulerItem& item) {
         schedulerItemList.push_back(item);
     }
