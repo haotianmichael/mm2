@@ -12,7 +12,7 @@ SC_MODULE(Chain) {
 
     sc_in<bool> clk;
     sc_in<bool> rst;
-    sc_signal<bool> start;     // initialization done signal
+    sc_signal<bool> start;     // readDDR done signal
 
     std::vector<sc_signal<sc_int<WIDTH>>*> anchorNum;  //number of anchors
     std::vector<std::vector<sc_signal<sc_int<WIDTH>>*>> anchorRi;
@@ -20,7 +20,7 @@ SC_MODULE(Chain) {
     std::vector<std::vector<sc_signal<sc_int<WIDTH>>*>> anchorIdx;
     std::vector<std::vector<sc_signal<sc_uint<WIDTH>>*>> anchorSegNum;
     int **anchorSuccessiveRange;// successive range of every anchor 
-    std::vector<sc_signal<sc_int<WIDTH>>*> anchorW;  //number of anchors
+    std::vector<sc_signal<sc_int<WIDTH>>*> anchorW;  
 
     /*ResultArray consists of both HCU's resultArray(UB<=65) and ReductionPool's resultArray(UB>65) */
     std::vector<sc_out<sc_int<WIDTH>>> resultArray;
@@ -28,16 +28,16 @@ SC_MODULE(Chain) {
 
     // @RC Unit
     /*
-        taking all 200000 reads at rst.neg()
+        taking reads at rst.neg()
     */
     ReadFromDDR*rc;
 
     // @LocalRAM (Two Ports)
     /*
-       sizeof(ram_data) : 40018 Bytes 
-       sizeof(RAM): 40018B x 40 x 2 = 3.053MB
+       sizeof(ram_dataForLong) : 80018 Bytes 
+       sizeof(ram_dataForShort) : 1138 Bytes 
+       sizeof(SRAM):  <=0.8MB
     */
-    // UpperBound <= 65 elements  Lane[0, 64]
     sc_int<WIDTH> readIdx = 0; //read which currently being cut
     std::vector<ram_dataForShort> localRAMForShort;
     std::vector<ram_dataForLong> localRAMForLong;
@@ -48,9 +48,6 @@ SC_MODULE(Chain) {
     sc_event ram_not_full;
 
     // @SchedulerTable
-    /*
-        FIXME: schedulerTable needs to be filled more than one time within one cycle.
-    */
     SchedulerTable *schedulerTable;
 
     // @HCU Pool
@@ -128,7 +125,7 @@ SC_MODULE(Chain) {
         sensitive << clk.pos();
 
         // prepare the segmentQueue
-        // one read per cycle.
+        // one batch per cycle.
         SC_THREAD(chain_hcu_cut);
         sensitive << clk.pos();
 

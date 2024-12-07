@@ -9,7 +9,7 @@ SC_MODULE(ReadFromDDR) {
 
     sc_in<bool> rst;
     /* 
-        @max read length: 30000
+        @max read length: 200000
         @max segments length: 5000
     */
     sc_out<bool> readDone;

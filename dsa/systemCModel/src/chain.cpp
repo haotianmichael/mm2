@@ -55,10 +55,10 @@ void Chain::chain_hcu_cut() {
             Cut one batch of read (one read for a batch for simulator)
             FIXME: bottleneck lies in batch size 
             */
-            // compute dynamic range and cut
-            // cut algorighm is strictly according to the software version.
             int rangeHeuristic[8] = {0, 16, 512, 1024, 2048, 3072, 4096, 5000};
             for(; readIdx < ReadNumProcessedOneTime; readIdx++){
+                // compute dynamic range and cut
+                // cut algorighm is strictly according to the software version.
                 for(int j = 0; j < anchorNum[readIdx]->read(); j ++) {
                     if(anchorSegNum[readIdx][j+1]->read() != anchorSegNum[readIdx][j]->read()) {
                         anchorSuccessiveRange[readIdx][j] = 1;

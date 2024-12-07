@@ -23,7 +23,7 @@ struct ram_dataForShort{
    sc_int<WIDTH> Rdata[MIN_SEGLENGTH]; 
    sc_int<WIDTH> Qdata[MIN_SEGLENGTH]; 
    sc_int<WIDTH> Idx[MIN_SEGLENGTH]; 
-   sc_int<WIDTH> FinalScore[MAX_SEGLENGTH];
+   sc_int<WIDTH> FinalScore[MIN_SEGLENGTH];
    sc_int<WIDTH> Wdata;
    sc_int<WIDTH> readID;
    sc_int<WIDTH> segID;
@@ -57,8 +57,6 @@ struct SchedulerItem{
 
 struct SchedulerTable {
 
-    //sc_bigint<TableWIDTH> HOCC;    // HCU's Occurence
-    //sc_bigint<TableWIDTH> ROCC;    // ReductionTree's Occurence
     std::list<SchedulerItem> schedulerItemList;
     std::mutex mtx;
 

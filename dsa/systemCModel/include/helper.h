@@ -14,7 +14,7 @@
 #define MAX_SEGLENGTH 5000 
 #define MIN_SEGLENGTH 70
 #define MAX_READ_LENGTH 200000 
-#define RAM_SIZE 20   // about 1MB
+#define RAM_SIZE 10   
 #define MAX_SEG_NUM 5000
 #define ReadNumProcessedOneTime  1
 

@@ -10,7 +10,6 @@ void ReadFromDDR::takeReadsByOneBatch() {
             std::ifstream infile(filename);
             std::string line;
             int i = 0, readIdx = 0; 
-            // different anchorSegs's range > 5000
             while (std::getline(infile, line) && readIdx < ReadNumProcessedOneTime) {
                 if(line == "EOR") {
                     anchorNum[readIdx++]->write(i);
