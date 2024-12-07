@@ -5,7 +5,7 @@
 #include <vector>
 #include "hcu.h"
 
-SC_MODULE(RangeCountUnit) {
+SC_MODULE(ReadFromDDR) {
 
     sc_in<bool> rst;
     /* 
@@ -22,7 +22,7 @@ SC_MODULE(RangeCountUnit) {
 
 
     void takeReadsByOneBatch();
-    SC_CTOR(RangeCountUnit) : 
+    SC_CTOR(ReadFromDDR) : 
         anchorNum(ReadNumProcessedOneTime),
         anchorW(ReadNumProcessedOneTime),
         anchorRi(ReadNumProcessedOneTime, std::vector<sc_out<sc_int<WIDTH>>*>(MAX_READ_LENGTH, nullptr)),

@@ -1,12 +1,12 @@
-#include "rangeCountUnit.h"
+#include "readFromDDR.h"
 
 // only takeReads at reset signal=1, not every cycle
-void RangeCountUnit::takeReadsByOneBatch() {
+void ReadFromDDR::takeReadsByOneBatch() {
     while(true) {
         wait();
         if(!rst.read()) {
             // take one read (actually an anchors' array[r, q, span] of one read)
-            std::string filename("data/in1.txt");
+            std::string filename("data/in4.txt");
             std::ifstream infile(filename);
             std::string line;
             int i = 0, readIdx = 0; 

@@ -2,7 +2,7 @@
 #define CHAIN_H 
 
 #include "hcu.h"
-#include "rangeCountUnit.h"
+#include "readFromDDR.h"
 #include "schedulerTable.h"
 #include "reductionPool.h"
 #include "ioDispatcher.h"
@@ -30,7 +30,7 @@ SC_MODULE(Chain) {
     /*
         taking all 200000 reads at rst.neg()
     */
-    RangeCountUnit *rc;
+    ReadFromDDR*rc;
 
     // @LocalRAM (Two Ports)
     /*
@@ -173,7 +173,7 @@ SC_MODULE(Chain) {
         }
 
         try {
-            rc = new RangeCountUnit("RangeCountUnit");
+            rc = new ReadFromDDR("ReadFromDDR");
         }catch(const std::bad_alloc& e) {
             std::cerr << "Scheduler's RangeCountUnit allocation failed:" << e.what() << std::endl;
         }
