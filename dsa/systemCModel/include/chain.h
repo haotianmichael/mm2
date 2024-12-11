@@ -341,7 +341,7 @@ SC_MODULE(Chain) {
 
         // ReductionTree FIFO Binding
         for(int i = 0; i < Reduction_FIFO_NUM; i ++) {
-            reductionInputArray[i] = new sc_fifo<reductionInput>(MAX_SEGLENGTH);
+            reductionInputArray[i] = new sc_fifo<reductionInput>(Reduction_FIFO_DEPTH);
             notifyArray[i] = new sc_signal<sc_int<WIDTH>>();
             rtController->reductionInputArrayPorts[i].bind(*reductionInputArray[i]);
             rtController->notifyArray[i](*notifyArray[i]);

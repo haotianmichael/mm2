@@ -22,5 +22,6 @@
 #define RESULT_NUM 414 // 254 reductionResult + 80(160) hcuResult (FIXME: now we need 80 mcu and 80 ecu)
 #define Reduction_USAGE 254
 #define Reduction_KIND 7
-#define Reduction_FIFO_NUM 1000
+#define Reduction_FIFO_NUM 254
+#define Reduction_FIFO_DEPTH 3
 #endif
